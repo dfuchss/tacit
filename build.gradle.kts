@@ -35,13 +35,13 @@ if (isRelease)
         "when creating a release, the appVersion ($appVersion) must the same as the appPublishedVersion($appPublishedVersion)"
     }
 val appSuffixedVersion = withVersionSuffix(appVersion)
-val appName = "Tammy"
-val appId = "de.connect2x.tammy"
-val appHomepage = "https://tammy.connect2x.de"
+val appName = "Tacit"
+val appId = "org.fuchss.matrix.tacit"
+val appHomepage = "https://fuchss.org/projects/tacit"
 val privacyInfo = File("website/content/privacy.de-DE.md").readText().substringAfterMarkdownFrontMatter()
 val imprint = File("website/content/imprint.de-DE.md").readText().substringAfterMarkdownFrontMatter()
 
-group = "de.connect2x"
+group = "org.fuchss.matrix"
 version = appSuffixedVersion
 
 val distributionDir: Provider<Directory> =

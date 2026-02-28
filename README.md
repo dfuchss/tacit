@@ -1,14 +1,35 @@
-# Tammy
+# Tacit
 
-Website: [https://tammy.connect2x.de](https://tammy.connect2x.de)\
-Matrix-Room: [#tammy:imbitbu.de](matrix:r/tammy:imbitbu.de)
+<p align="center">
+    <img src="tacit.png" alt="Tacit logo" width="120" />
+</p>
 
-White label messenger based on [Trixnity Messenger](https://gitlab.com/connect2x/trixnity-messenger/trixnity-messenger).
-Please consult the Readme there for additional information.
+**Tacit** is a fork of **Tammy Messenger** with one clear goal: a modern, appealing Matrix experience.
+
+> Quietly powerful. Smooth by default. Built for focus.
+
+Tacit is based on [Trixnity Messenger](https://gitlab.com/connect2x/trixnity-messenger/trixnity-messenger), with an updated visual style, cleaner interaction patterns, and a UI-first product direction.
+
+## Why Tacit?
+
+- A modern, polished desktop-first Matrix experience.
+- Faster, clearer room navigation with a contemporary chat layout.
+- Matrix power under the hood, with UX tuned for daily use.
+- A fork that focuses on delight, flow, and visual consistency.
+
+## Status
+
+- **Target platform:** Desktop.
+- **Other platforms:** Android/Web/iOS are currently not actively tested in Tacit.
+- **Maturity:** Alpha — expect rough edges, breaking changes, and frequent iteration.
+
+## Original README below
+
+The original Tammy README content follows below for reference.
 
 ## Run locally
 
-If you run the messenger from the IDE or command line, the
+Run Tacit from your IDE or command line:
 
 ### Desktop
 
