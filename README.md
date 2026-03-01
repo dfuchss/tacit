@@ -8,7 +8,7 @@
 
 > Quietly powerful. Smooth by default. Built for focus.
 
-Tacit is based on [Trixnity Messenger](https://gitlab.com/connect2x/trixnity-messenger/trixnity-messenger), with an updated visual style, cleaner interaction patterns, and a UI-first product direction.
+Tacit is based on [Trixnity Messenger](https://gitlab.com/connect2x/trixnity-messenger/trixnity-messenger), with an updated visual style, and cleaner interaction patterns.
 
 ## Why Tacit?
 
@@ -19,17 +19,43 @@ Tacit is based on [Trixnity Messenger](https://gitlab.com/connect2x/trixnity-mes
 
 ## Status
 
-- **Target platform:** Desktop.
-- **Other platforms:** Android/Web/iOS are currently not actively tested in Tacit.
+- **Target platform:** Desktop / Web
+- **Other platforms:** Android/iOS are currently not actively tested in Tacit.
 - **Maturity:** Alpha — expect rough edges, breaking changes, and frequent iteration.
 
-## Original README below
+## Screenshots
+
+### DMs / Group Chats
+![DM view](.images/typing_ui.jpg)
+
+### Spaces / Guilds
+![Guild view](.images/guild_ui.jpg)
+
+### Emojis while typing :)
+![Emoji picker](.images/emoji_picker.jpg)
+
+## Development / Building
+
+You can find the build artifacts in `build/compose/binaries/main-release/...` after running the build commands below.
+
+### Linux / macOS
+
+- `TAMMY_BUILD_FLAVOR=PROD ./gradlew createReleaseDistributable` (builds app)
+- `TAMMY_BUILD_FLAVOR=PROD ./gradlew packageReleaseWebZip` (builds web zip version)
+
+### Windows
+
+- `set TAMMY_BUILD_FLAVOR=PROD` (sets environment variable for the current command prompt)
+- `gradlew createReleaseDistributable` (builds app)
+- `gradlew packageReleaseWebZip` (builds web zip version)
+
+# Original README below
 
 The original Tammy README content follows below for reference.
 
 ## Run locally
 
-Run Tacit from your IDE or command line:
+If you run the messenger from the IDE or command line, the
 
 ### Desktop
 
