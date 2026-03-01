@@ -28,10 +28,12 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import org.fuchss.matrix.tacit.*
 import org.fuchss.matrix.tacit.viewmodel.room.timeline.TacitTimelineViewModel
+import org.fuchss.matrix.tacit.views.LocalTacitRoomListHidden
 
 class TacitRoomView : RoomView {
     @Composable
     override fun create(roomViewModel: RoomViewModel) {
+        val roomListHiddenForSize = LocalTacitRoomListHidden.current
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
@@ -88,6 +90,7 @@ class TacitRoomView : RoomView {
                             TimelinePane(
                                 roomViewModel = roomViewModel,
                                 showSettingsButton = !isSettingsShown,
+                                showBackButton = roomListHiddenForSize,
                             )
                         },
                     )
@@ -151,6 +154,7 @@ class TacitRoomView : RoomView {
 private fun TimelinePane(
     roomViewModel: RoomViewModel,
     showSettingsButton: Boolean,
+    showBackButton: Boolean,
 ) {
     val activeTimeline = roomViewModel.timelineStack.subscribeAsState().value.active.instance
     if (activeTimeline is TimelineRouter.Wrapper.None) {
@@ -171,7 +175,7 @@ private fun TimelinePane(
         RoomContentSwitch(
             roomViewModel.timelineStack,
             showSettingsButton,
-            false,
+            showBackButton,
         )
     }
 }

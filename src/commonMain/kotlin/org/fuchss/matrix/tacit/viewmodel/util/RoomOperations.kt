@@ -120,6 +120,27 @@ internal suspend fun GuildEntry.createChannel(
     return Result.success(roomId)
 }
 
+internal suspend fun MatrixClient.createGroupChannel(
+    roomName: String,
+    roomTopic: String,
+): Result<RoomId> {
+    val trimmedName = roomName.trim()
+    if (trimmedName.isBlank()) {
+        return Result.failure(IllegalArgumentException("Room name is required"))
+    }
+    val roomId = withOperationTimeout("Group chat creation") {
+        this.api.room.createRoom(
+            name = trimmedName,
+            topic = roomTopic.ifBlank { null },
+            isDirect = false,
+            preset = CreateRoom.Request.Preset.PRIVATE,
+            initialState = listOf(InitialStateEvent(content = EncryptionEventContent(), "")),
+        )
+    }.getOrElse { return Result.failure(it) }
+
+    return Result.success(roomId)
+}
+
 internal suspend fun GuildEntry.inviteMember(
     matrixClient: MatrixClient,
     userId: String,

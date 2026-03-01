@@ -3,21 +3,21 @@ package org.fuchss.matrix.tacit.views.room.list.dialogs.create
 import androidx.compose.runtime.Composable
 
 @Composable
-internal fun CreateGuildDialogContainer(
+internal fun CreateGroupChannelDialogContainer(
     open: Boolean,
     inProgress: Boolean,
-    canCreateGuild: Boolean,
-    onCreateGuild: (name: String, topic: String, createDefaultChannel: Boolean) -> Unit,
+    canCreateGroupChannel: Boolean,
+    onCreateGroupChannel: (name: String, topic: String) -> Unit,
     onSetOpen: (Boolean) -> Unit,
 ) {
     if (!open) return
 
-    CreateGuildDialog(
+    CreateGroupChannelDialog(
         isCreating = inProgress,
-        canCreateGuild = canCreateGuild,
+        canCreateGroupChannel = canCreateGroupChannel,
         onDismiss = { if (!inProgress) onSetOpen(false) },
-        onCreateGuild = { name, topic, addDefaultChannel ->
-            onCreateGuild(name, topic, addDefaultChannel)
+        onCreateGroupChannel = { name, topic ->
+            onCreateGroupChannel(name, topic)
             onSetOpen(false)
         },
     )

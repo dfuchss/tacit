@@ -8,6 +8,8 @@ import org.fuchss.matrix.tacit.viewmodel.room.timeline.entry.ChannelMemberEntry
 
 internal interface TacitTimelineViewModel : TimelineViewModel {
     val roomMembers: StateFlow<List<ChannelMemberEntry>>
+    val typingMembers: StateFlow<List<ChannelMemberEntry>>
+    val typingIndicatorText: StateFlow<String?>
 
     suspend fun findExistingDirectMessageRoom(userId: UserId): RoomId?
     suspend fun findOrCreateDirectMessageRoom(userId: UserId): RoomId?

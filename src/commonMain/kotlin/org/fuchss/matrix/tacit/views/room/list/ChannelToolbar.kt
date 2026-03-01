@@ -27,7 +27,8 @@ import org.fuchss.matrix.tacit.*
 internal fun DmChannelToolbar(
     roomListViewModel: RoomListViewModel,
     canCreateRoom: Boolean,
-    onCreateRoom: () -> Unit
+    onCreateRoom: () -> Unit,
+    onCreateGroupChannel: () -> Unit,
 ) {
     var searchText by roomListViewModel.searchTerm.collectAsTextFieldValueState()
     val toolbarVerticalPadding = 7.dp
@@ -59,6 +60,12 @@ internal fun DmChannelToolbar(
                     onClick = onCreateRoom,
                     enabled = canCreateRoom,
                     primary = true,
+                )
+                ToolbarIconButton(
+                    icon = Icons.Default.GroupAdd,
+                    contentDescription = "New group chat",
+                    onClick = onCreateGroupChannel,
+                    enabled = canCreateRoom,
                 )
             }
         }
@@ -148,6 +155,7 @@ private fun RowScope.ToolbarSearchField(
     Box(
         modifier = Modifier
             .weight(1f)
+            .defaultMinSize(minWidth = 150.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(if (searchHovered) tacitInputBackgroundHover else tacitInputBackground)
             .pointerMoveFilter(

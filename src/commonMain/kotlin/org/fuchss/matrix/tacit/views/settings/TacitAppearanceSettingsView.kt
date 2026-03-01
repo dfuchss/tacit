@@ -1,12 +1,6 @@
 package org.fuchss.matrix.tacit.views.settings
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -26,7 +20,6 @@ import de.connect2x.trixnity.messenger.compose.view.VerticalScrollbar
 import de.connect2x.trixnity.messenger.compose.view.common.Header
 import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.i18n.I18nView
-import de.connect2x.trixnity.messenger.compose.view.settings.AppearanceSettingsColor
 import de.connect2x.trixnity.messenger.compose.view.settings.AppearanceSettingsSize
 import de.connect2x.trixnity.messenger.compose.view.settings.AppearanceSettingsView
 import de.connect2x.trixnity.messenger.compose.view.settings.SettingsCard
@@ -34,6 +27,7 @@ import de.connect2x.trixnity.messenger.compose.view.theme.DefaultAccentColor
 import de.connect2x.trixnity.messenger.compose.view.theme.components
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedListItemSwitch
 import de.connect2x.trixnity.messenger.viewmodel.settings.AppearanceSettingsViewModel
+import org.fuchss.matrix.tacit.views.common.TacitColorPicker
 
 class TacitAppearanceSettingsView : AppearanceSettingsView {
     @Composable
@@ -52,13 +46,13 @@ class TacitAppearanceSettingsView : AppearanceSettingsView {
                 Box {
                     Column(Modifier.padding(10.dp).verticalScroll(scroll)) {
                         SettingsCard(title = i18n.appearanceColorsTitle(), icon = Icons.Filled.Colorize) {
-                            AppearanceSettingsColor(
-                                text = i18n.appearanceAccentColorHeading(),
+                            TacitColorPicker(
+                                heading = i18n.appearanceAccentColorHeading(),
+                                resetTooltip = i18n.appearanceAccentColorDefault(),
                                 defaultColor = defaultAccentColor,
                                 color = activeAccentColor,
-                            ) {
-                                appearanceSettingsViewModel.setAccentColor(it.value.toLong())
-                            }
+                                onColorSelected = { appearanceSettingsViewModel.setAccentColor(it.value.toLong()) },
+                            )
                         }
                         SettingsCard(title = i18n.appearanceAccessibilityTitle(), icon = Icons.Filled.FormatSize) {
                             AppearanceSettingsSize(appearanceSettingsViewModel)

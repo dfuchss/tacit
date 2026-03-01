@@ -37,7 +37,7 @@ internal fun ChannelRow(
 ) {
     val channelTitle = room.roomName.collectAsState().value ?: room.roomId.full
     val selected = selectedRoomId == room.roomId
-    val dmMode = room.isDirectRoom.collectAsState().value
+    val isDirectRoom = room.isDirectRoom.collectAsState().value
     val roomImageInitials = room.roomImageInitials.collectAsState().value
     val roomImage = room.roomImage.collectAsState().value
     val isUnread = room.isUnread.collectAsState().value == true
@@ -76,7 +76,7 @@ internal fun ChannelRow(
                 },
             )
             .clickable {
-                if (dmMode) {
+                if (mode is RoomListMode.DirectMessages) {
                     TacitRoomNavigationState.showMembersPane = false
                 }
                 roomListViewModel.selectRoom(room.roomId)
@@ -84,37 +84,28 @@ internal fun ChannelRow(
             .padding(horizontal = 10.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (dmMode) {
-            ThemedUserAvatar(
-                initials = roomImageInitials ?: dmInitials(channelTitle),
-                image = roomImage,
-                size = 28.dp,
-            )
-            if (dmPresenceVisible(presence)) {
+        ThemedUserAvatar(
+            initials = roomImageInitials ?: dmInitials(channelTitle),
+            image = roomImage,
+            size = 28.dp,
+        )
+        Box(
+            modifier = Modifier
+                .width(12.dp)
+                .height(8.dp)
+                .padding(start = 4.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (isDirectRoom && dmPresenceVisible(presence)) {
                 Box(
                     modifier = Modifier
-                        .padding(start = 4.dp)
                         .size(8.dp)
                         .clip(CircleShape)
                         .background(dmPresenceColor(presence)),
                 )
-            } else {
-                Spacer(
-                    modifier = Modifier
-                        .padding(start = 4.dp)
-                        .size(8.dp),
-                )
             }
-            Spacer(Modifier.width(8.dp))
-        } else {
-            Text(
-                text = "#",
-                color = if (selected) Color.White else tacitLabelSubtle,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.width(18.dp),
-            )
         }
+        Spacer(Modifier.width(8.dp))
 
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -127,7 +118,7 @@ internal fun ChannelRow(
                     fontWeight = if (isUnread && !selected) FontWeight.SemiBold else FontWeight.Normal,
                     modifier = Modifier.weight(1f, fill = false),
                 )
-                if (dmMode) {
+                if (isDirectRoom) {
                     val presenceLabel = dmPresenceLabel(presence)
                     if (presenceLabel != null) {
                         Text(
@@ -149,7 +140,7 @@ internal fun ChannelRow(
             }
         }
 
-        if (dmMode && !time.isNullOrBlank()) {
+        if (!time.isNullOrBlank()) {
             Text(
                 text = time,
                 color = if (selected) tacitTextOnSelected else tacitLabelSubtle,

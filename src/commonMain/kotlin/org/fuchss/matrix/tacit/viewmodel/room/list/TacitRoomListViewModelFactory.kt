@@ -9,6 +9,7 @@ import de.connect2x.trixnity.core.model.UserId
 import de.connect2x.trixnity.core.model.events.m.room.CreateEventContent.RoomType
 import de.connect2x.trixnity.core.model.events.m.room.Membership
 import de.connect2x.trixnity.core.model.events.m.space.ChildEventContent
+import de.connect2x.trixnity.messenger.MatrixMessengerSettingsHolder
 import de.connect2x.trixnity.messenger.viewmodel.ViewModelContext
 import de.connect2x.trixnity.messenger.viewmodel.matrixClients
 import de.connect2x.trixnity.messenger.viewmodel.roomlist.RoomListViewModel
@@ -16,10 +17,12 @@ import de.connect2x.trixnity.messenger.viewmodel.roomlist.RoomListViewModelFacto
 import de.connect2x.trixnity.messenger.viewmodel.util.ErrorType
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.flow.SharingStarted.Companion.WhileSubscribed
+import kotlinx.coroutines.launch
 import org.fuchss.matrix.tacit.viewmodel.room.list.entry.GuildEntry
 import org.fuchss.matrix.tacit.viewmodel.room.list.entry.SpaceChannelEntry
-import org.fuchss.matrix.tacit.viewmodel.util.acceptRoomInvite
-import org.fuchss.matrix.tacit.viewmodel.util.declineRoomInvite
+import org.fuchss.matrix.tacit.viewmodel.util.UserDirectoryEntry
+import org.fuchss.matrix.tacit.viewmodel.util.searchUserDirectory
+import org.koin.core.component.get
 
 internal interface TacitRoomListViewModel : RoomListViewModel {
     val selectedGuild: StateFlow<GuildEntry?>
@@ -32,14 +35,29 @@ internal interface TacitRoomListViewModel : RoomListViewModel {
     val browseChannels: StateFlow<List<SpaceChannelEntry>>
     val dmUnreadCount: StateFlow<Int>
     val guildUnreadCounts: StateFlow<Map<String, Int>>
-    val selectedGuildInviteFallback: StateFlow<GuildEntry?>
-    val selectedGuildClient: StateFlow<MatrixClient?>
-    val preferredCreationClient: StateFlow<MatrixClient?>
+    val canUseSelectedGuildAccount: StateFlow<Boolean>
+    val canUsePreferredCreationAccount: StateFlow<Boolean>
+    val createGuildInProgress: StateFlow<Boolean>
+    val createChannelInProgress: StateFlow<Boolean>
+    val joiningChannelRoomId: StateFlow<RoomId?>
+    val inviteToGuildInProgress: StateFlow<Boolean>
+    val createDirectMessageInProgress: StateFlow<Boolean>
+    val createGroupChannelInProgress: StateFlow<Boolean>
+    val guildInviteActionInProgress: StateFlow<Boolean>
 
     fun selectGuild(guild: GuildEntry?)
     fun reportError(message: String?, errorType: ErrorType = ErrorType.JUST_DISMISS)
-    suspend fun acceptGuildInvite(guild: GuildEntry): Result<RoomId>
-    suspend fun declineGuildInvite(guild: GuildEntry): Result<Unit>
+    fun createGuild(name: String, topic: String, createDefaultChannel: Boolean)
+    fun createChannel(guild: GuildEntry, name: String, topic: String)
+    fun joinChannel(guild: GuildEntry, channel: SpaceChannelEntry)
+    suspend fun searchUsersForGuild(guild: GuildEntry, query: String): Result<List<UserDirectoryEntry>>
+    fun inviteUserToGuild(guild: GuildEntry, userId: String, reason: String)
+    suspend fun searchUsersForDirectMessages(query: String): Result<List<UserDirectoryEntry>>
+    fun startDirectMessage(userId: String)
+    fun createGroupChannel(name: String, topic: String)
+    fun acceptGuildInvite(guild: GuildEntry)
+    fun declineGuildInvite(guild: GuildEntry)
+    fun reorderGuild(fromIndex: Int, toIndex: Int)
 }
 
 internal object TacitRoomListViewModelFactory : RoomListViewModelFactory {
@@ -78,25 +96,6 @@ private class TacitRoomListViewModelImpl(
     private val delegate: RoomListViewModel,
     viewModelContext: ViewModelContext,
 ) : TacitRoomListViewModel, RoomListViewModel by delegate, ViewModelContext by viewModelContext {
-
-    private data class RoomDerived(
-        val room: TacitRoomListElementViewModel,
-        val roomId: RoomId,
-        val roomName: String?,
-        val isDirect: Boolean,
-        val isInvite: Boolean,
-        val isKnock: Boolean,
-        val isLeave: Boolean,
-        val isJoined: Boolean,
-        val isUnread: Boolean,
-    )
-
-    private data class UnknownDisplayNamesInput(
-        val guild: GuildEntry?,
-        val client: MatrixClient?,
-        val children: Map<RoomId, Set<String>>,
-        val rooms: List<RoomDerived>,
-    )
 
     private val _selectedGuild = MutableStateFlow<GuildEntry?>(null)
     override val selectedGuild: StateFlow<GuildEntry?> = _selectedGuild
@@ -143,25 +142,62 @@ private class TacitRoomListViewModelImpl(
         }
         .stateIn(coroutineScope, WhileSubscribed(), emptyList())
 
-    private val selectedMatrixClients: StateFlow<List<MatrixClient>> =
+    private val selectedMatrixClientUserIds: StateFlow<List<UserId>> =
         combine(matrixClients, accountViewModel.activeAccount) {
                 clients,
                 activeAccount,
             ->
-            if (activeAccount == null) clients.values.toList() else listOfNotNull(clients[activeAccount])
+            if (activeAccount == null) clients.keys.toList() else listOfNotNull(activeAccount.takeIf {
+                clients.containsKey(
+                    it
+                )
+            })
         }.stateIn(coroutineScope, WhileSubscribed(), emptyList())
 
-    override val selectedGuildClient: StateFlow<MatrixClient?> =
-        combine(selectedGuild, selectedMatrixClients) { guild, clients ->
-            guild?.let { selected -> clients.find { it.userId == selected.userId } }
+    private val selectedMatrixClients: Flow<List<MatrixClient>> =
+        combine(matrixClients, selectedMatrixClientUserIds) { clients, userIds ->
+            userIds.mapNotNull { clients[it] }
+        }
+
+    private val selectedGuildUserId: StateFlow<UserId?> =
+        combine(selectedGuild, selectedMatrixClientUserIds) { guild, selectedUserIds ->
+            guild?.userId?.takeIf { selectedUserIds.contains(it) }
         }.stateIn(coroutineScope, WhileSubscribed(), null)
 
-    override val preferredCreationClient: StateFlow<MatrixClient?> =
+    private val preferredCreationUserId: StateFlow<UserId?> =
         combine(matrixClients, accountViewModel.activeAccount) { clients, activeAccount ->
-            activeAccount?.let { clients[it] } ?: clients.values.firstOrNull()
+            activeAccount?.takeIf { clients.containsKey(it) } ?: clients.keys.firstOrNull()
         }.stateIn(coroutineScope, WhileSubscribed(), null)
 
-    override val guilds: StateFlow<List<GuildEntry>> = selectedMatrixClients.flatMapLatest { clients ->
+    override val canUseSelectedGuildAccount: StateFlow<Boolean> = selectedGuildUserId
+        .map { it != null }
+        .stateIn(coroutineScope, WhileSubscribed(), false)
+
+    override val canUsePreferredCreationAccount: StateFlow<Boolean> = preferredCreationUserId
+        .map { it != null }
+        .stateIn(coroutineScope, WhileSubscribed(), false)
+
+    private val settings = get<MatrixMessengerSettingsHolder>()
+
+    private val persistedGuildOrder: StateFlow<List<String>> =
+        settings
+            .mapLatest { messengerSettings ->
+                readTacitGuildOrder(messengerSettings)
+            }
+            .stateIn(
+                coroutineScope,
+                WhileSubscribed(),
+                readTacitGuildOrder(settings.value)
+            )
+
+    private val runtimeGuildOrderOverride = MutableStateFlow<List<String>?>(null)
+
+    private val guildOrder: StateFlow<List<String>> =
+        combine(persistedGuildOrder, runtimeGuildOrderOverride) { persistedOrder, runtimeOrder ->
+            runtimeOrder ?: persistedOrder
+        }.stateIn(coroutineScope, WhileSubscribed(), persistedGuildOrder.value)
+
+    private val discoveredGuilds: StateFlow<List<GuildEntry>> = selectedMatrixClients.flatMapLatest { clients ->
         if (clients.isEmpty()) flowOf(emptyList())
         else combine(clients.map { matrixClient ->
             matrixClient.room.getAll()
@@ -186,6 +222,21 @@ private class TacitRoomListViewModelImpl(
             guildsByClient.toList().flatten().sortedBy { it.displayName ?: it.roomId.full }
         }
     }.stateIn(coroutineScope, WhileSubscribed(), emptyList())
+
+    override val guilds: StateFlow<List<GuildEntry>> =
+        combine(discoveredGuilds, guildOrder) { discoveredGuilds, currentOrder ->
+            if (discoveredGuilds.isEmpty()) {
+                emptyList()
+            } else {
+                val discoveredByKey = discoveredGuilds.associateBy { it.key() }
+                val orderedKeys = currentOrder.filter { discoveredByKey.containsKey(it) }
+                val orderedGuilds = orderedKeys.mapNotNull { discoveredByKey[it] }
+                val unorderedGuilds = discoveredGuilds
+                    .filterNot { guild -> orderedKeys.contains(guild.key()) }
+                    .sortedBy { guild -> guild.displayName ?: guild.roomId.full }
+                orderedGuilds + unorderedGuilds
+            }
+        }.stateIn(coroutineScope, WhileSubscribed(), emptyList())
 
     override val guildAvatars: StateFlow<Map<String, ByteArray?>> =
         combine(guilds, selectedMatrixClients) { allGuilds, clients -> allGuilds to clients }
@@ -216,12 +267,12 @@ private class TacitRoomListViewModelImpl(
             }.stateIn(coroutineScope, WhileSubscribed(), emptyMap())
 
     private val guildChildren: StateFlow<Map<RoomId, Set<String>>> =
-        combine(selectedGuild, selectedMatrixClients) { guild, clients ->
-            guild to clients
-        }.flatMapLatest { (guild, clients) ->
+        combine(selectedGuild, selectedGuildUserId, selectedMatrixClients) { guild, guildUserId, clients ->
+            Triple(guild, guildUserId, clients)
+        }.flatMapLatest { (guild, guildUserId, clients) ->
             if (guild == null) flowOf(emptyMap())
             else {
-                val client = clients.find { it.userId == guild.userId }
+                val client = clients.find { it.userId == guildUserId }
                 if (client == null) flowOf(emptyMap())
                 else client.room.getAllState(guild.roomId, ChildEventContent::class)
                     .flattenValues()
@@ -255,16 +306,30 @@ private class TacitRoomListViewModelImpl(
             }
         }.stateIn(coroutineScope, WhileSubscribed(), emptyMap())
 
-    private val roomDerived: StateFlow<List<RoomDerived>> = typedElements.flatMapLatest { rooms ->
+    private val allGuildChildRoomIds: StateFlow<Set<RoomId>> = allGuildChildrenByGuild
+        .map { childrenByGuild ->
+            childrenByGuild.values
+                .flatten()
+                .toSet()
+        }
+        .stateIn(coroutineScope, WhileSubscribed(), emptySet())
+
+    private val roomDerived: StateFlow<List<TacitRoomDerived>> = typedElements.flatMapLatest { rooms ->
         if (rooms.isEmpty()) flowOf(emptyList())
         else combine(rooms.map { room ->
             combine(
                 room.isLoaded,
                 room.roomName,
                 room.isDirectRoom,
-            ) { isLoaded, roomName, isDirect ->
-                Triple(isLoaded, roomName, isDirect)
-            }.flatMapLatest { (isLoaded, roomName, isDirect) ->
+                room.isSpaceRoom,
+            ) { isLoaded, roomName, isDirect, isSpace ->
+                RoomDerivedIdentityState(
+                    isLoaded = isLoaded,
+                    roomName = roomName,
+                    isDirect = isDirect,
+                    isSpace = isSpace,
+                )
+            }.flatMapLatest { identity ->
                 combine(
                     room.isInvite,
                     room.isKnock,
@@ -275,12 +340,13 @@ private class TacitRoomListViewModelImpl(
                     val knockState = isKnock == true
                     val leaveState = isLeave == true
                     val isMembershipKnown = isInvite != null && isKnock != null && isLeave != null
-                    val isJoined = isLoaded && isMembershipKnown && !inviteState && !knockState && !leaveState
-                    RoomDerived(
+                    val isJoined = identity.isLoaded && isMembershipKnown && !inviteState && !knockState && !leaveState
+                    TacitRoomDerived(
                         room = room,
                         roomId = room.roomId,
-                        roomName = roomName,
-                        isDirect = isDirect,
+                        roomName = identity.roomName,
+                        isDirect = identity.isDirect,
+                        isSpace = identity.isSpace,
                         isInvite = inviteState,
                         isKnock = knockState,
                         isLeave = leaveState,
@@ -292,11 +358,25 @@ private class TacitRoomListViewModelImpl(
         }) { it.toList() }
     }.stateIn(coroutineScope, WhileSubscribed(), emptyList())
 
+    private val selectedGuildClient: Flow<MatrixClient?> =
+        combine(
+            selectedGuildUserId,
+            matrixClients,
+            selectedMatrixClientUserIds
+        ) { guildUserId, clients, selectedUserIds ->
+            guildUserId
+                ?.takeIf { selectedUserIds.contains(it) }
+                ?.let { clients[it] }
+        }
+
     private val unknownDisplayNames: StateFlow<Map<RoomId, String>> =
         combine(selectedGuild, selectedGuildClient, guildChildren, roomDerived) { guild, client, children, rooms ->
-            UnknownDisplayNamesInput(guild = guild, client = client, children = children, rooms = rooms)
-        }.mapLatest { (guild, client, children, rooms) ->
-            if (guild == null || client == null) return@mapLatest emptyMap()
+            TacitUnknownDisplayNamesContext(guild, client, children, rooms)
+        }.mapLatest { context ->
+            val guild = context.guild ?: return@mapLatest emptyMap()
+            val client = context.client ?: return@mapLatest emptyMap()
+            val children = context.children
+            val rooms = context.rooms
             val knownRoomIds = rooms.map { it.roomId }.toSet()
             val unknownRoomIds = children.keys.filterNot { knownRoomIds.contains(it) }.toSet()
             if (unknownRoomIds.isEmpty()) return@mapLatest emptyMap()
@@ -313,17 +393,23 @@ private class TacitRoomListViewModelImpl(
         }.stateIn(coroutineScope, WhileSubscribed(), emptyMap())
 
     override val visibleRooms: StateFlow<List<TacitRoomListElementViewModel>> =
-        combine(roomDerived, mode, guildChildren) { rooms, mode, children ->
+        combine(roomDerived, mode, guildChildren, allGuildChildRoomIds) { rooms, mode, children, allGuildChildIds ->
             when (mode) {
-                RoomListMode.DirectMessages -> rooms.filter { it.isJoined && it.isDirect }
+                RoomListMode.DirectMessages -> rooms.filter { room ->
+                    room.isJoined && (room.isDirect || isDmGroupRoom(room, allGuildChildIds))
+                }
+
                 is RoomListMode.GuildChannels -> rooms.filter { it.isJoined && !it.isDirect && children.containsKey(it.roomId) }
             }.map { it.room }
         }.stateIn(coroutineScope, WhileSubscribed(), emptyList())
 
     override val inviteRooms: StateFlow<List<TacitRoomListElementViewModel>> =
-        combine(roomDerived, mode, guildChildren) { rooms, mode, children ->
+        combine(roomDerived, mode, guildChildren, allGuildChildRoomIds) { rooms, mode, children, allGuildChildIds ->
             when (mode) {
-                RoomListMode.DirectMessages -> rooms.filter { it.isInvite }
+                RoomListMode.DirectMessages -> rooms.filter { room ->
+                    room.isInvite && (room.isDirect || isDmGroupRoom(room, allGuildChildIds))
+                }
+
                 is RoomListMode.GuildChannels -> rooms.filter {
                     it.isInvite && !it.isDirect && (it.roomId == mode.guild.roomId || children.containsKey(it.roomId))
                 }
@@ -384,8 +470,11 @@ private class TacitRoomListViewModelImpl(
             }
         }.stateIn(coroutineScope, WhileSubscribed(), emptyList())
 
-    override val dmUnreadCount: StateFlow<Int> = roomDerived
-        .map { rooms -> rooms.count { it.isJoined && it.isUnread } }
+    override val dmUnreadCount: StateFlow<Int> = combine(roomDerived, allGuildChildRoomIds) { rooms, allGuildChildIds ->
+        rooms.count { room ->
+            room.isUnread && room.isJoined && (room.isDirect || isDmGroupRoom(room, allGuildChildIds))
+        }
+    }
         .stateIn(coroutineScope, WhileSubscribed(), 0)
 
     override val guildUnreadCounts: StateFlow<Map<String, Int>> =
@@ -400,24 +489,92 @@ private class TacitRoomListViewModelImpl(
             }
         }.stateIn(coroutineScope, WhileSubscribed(), emptyMap())
 
-    override val selectedGuildInviteFallback: StateFlow<GuildEntry?> = combine(mode, inviteRooms) { mode, invites ->
-        val selected = (mode as? RoomListMode.GuildChannels)?.guild
-        if (selected != null && selected.isInvite && invites.none { it.roomId == selected.roomId }) selected else null
-    }.stateIn(coroutineScope, WhileSubscribed(), null)
-
     override fun selectGuild(guild: GuildEntry?) {
         _selectedGuild.update { guild }
     }
 
-    override suspend fun acceptGuildInvite(guild: GuildEntry): Result<RoomId> {
-        val client = selectedMatrixClients.value.find { it.userId == guild.userId }
-            ?: return Result.failure(IllegalStateException("No account available for this guild invite."))
-        return client.acceptRoomInvite(roomId = guild.roomId)
+    private fun resolveGuildClient(guild: GuildEntry): MatrixClient? {
+        if (!selectedMatrixClientUserIds.value.contains(guild.userId)) return null
+        return matrixClients.value[guild.userId]
     }
 
-    override suspend fun declineGuildInvite(guild: GuildEntry): Result<Unit> {
-        val client = selectedMatrixClients.value.find { it.userId == guild.userId }
-            ?: return Result.failure(IllegalStateException("No account available for this guild invite."))
-        return client.declineRoomInvite(roomId = guild.roomId)
+    private fun resolvePreferredCreationClient(): MatrixClient? =
+        preferredCreationUserId.value?.let { matrixClients.value[it] }
+
+    private val actions = TacitRoomListActions(
+        scope = coroutineScope,
+        reportError = { message -> reportError(message) },
+        onGuildSelected = ::selectGuild,
+        onRoomSelected = delegate::selectRoom,
+        resolveGuildClient = ::resolveGuildClient,
+        resolvePreferredCreationClient = ::resolvePreferredCreationClient,
+    )
+
+    override val createGuildInProgress: StateFlow<Boolean> = actions.createGuildInProgress
+    override val createChannelInProgress: StateFlow<Boolean> = actions.createChannelInProgress
+    override val joiningChannelRoomId: StateFlow<RoomId?> = actions.joiningChannelRoomId
+    override val inviteToGuildInProgress: StateFlow<Boolean> = actions.inviteToGuildInProgress
+    override val createDirectMessageInProgress: StateFlow<Boolean> = actions.createDirectMessageInProgress
+    override val createGroupChannelInProgress: StateFlow<Boolean> = actions.createGroupChannelInProgress
+    override val guildInviteActionInProgress: StateFlow<Boolean> = actions.guildInviteActionInProgress
+
+    override fun createGuild(name: String, topic: String, createDefaultChannel: Boolean) =
+        actions.createGuild(name, topic, createDefaultChannel)
+
+    override fun createChannel(guild: GuildEntry, name: String, topic: String) =
+        actions.createChannel(guild, name, topic)
+
+    override fun joinChannel(guild: GuildEntry, channel: SpaceChannelEntry) =
+        actions.joinChannel(guild, channel)
+
+    override suspend fun searchUsersForGuild(guild: GuildEntry, query: String): Result<List<UserDirectoryEntry>> {
+        val client = resolveGuildClient(guild)
+            ?: return Result.failure(IllegalStateException("No account available for this guild."))
+        return client.searchUserDirectory(query)
     }
+
+    override fun inviteUserToGuild(guild: GuildEntry, userId: String, reason: String) =
+        actions.inviteUserToGuild(guild, userId, reason)
+
+    override suspend fun searchUsersForDirectMessages(query: String): Result<List<UserDirectoryEntry>> {
+        val client = resolvePreferredCreationClient()
+            ?: return Result.failure(IllegalStateException("No active Matrix account available."))
+        return client.searchUserDirectory(query)
+    }
+
+    override fun startDirectMessage(userId: String) = actions.startDirectMessage(userId)
+
+    override fun createGroupChannel(name: String, topic: String) =
+        actions.createGroupChannel(name, topic)
+
+    override fun acceptGuildInvite(guild: GuildEntry) = actions.acceptGuildInvite(guild)
+
+    override fun declineGuildInvite(guild: GuildEntry) = actions.declineGuildInvite(guild)
+
+    override fun reorderGuild(fromIndex: Int, toIndex: Int) {
+        val current = guilds.value
+        if (fromIndex !in current.indices || toIndex !in current.indices || fromIndex == toIndex) return
+        val reordered = current.toMutableList()
+        val moved = reordered.removeAt(fromIndex)
+        reordered.add(toIndex, moved)
+        val reorderedKeys = reordered.map { it.key() }
+        runtimeGuildOrderOverride.value = reorderedKeys
+        coroutineScope.launch {
+            settings.update {
+                writeTacitGuildOrder(reorderedKeys)
+            }
+        }
+    }
+
+    private fun isDmGroupRoom(
+        room: TacitRoomDerived,
+        allGuildChildRoomIds: Set<RoomId>,
+    ): Boolean = !room.isDirect && !room.isSpace && !allGuildChildRoomIds.contains(room.roomId)
 }
+
+private data class RoomDerivedIdentityState(
+    val isLoaded: Boolean,
+    val roomName: String?,
+    val isDirect: Boolean,
+    val isSpace: Boolean,
+)

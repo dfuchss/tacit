@@ -160,6 +160,7 @@ kotlin {
                     implementation(compose.desktop.currentOs)
                 }
                 implementation(sharedLibs.kotlinx.coroutines.swing)
+                implementation("com.vdurmont:emoji-java:5.1.1")
             }
         }
         iosMain {

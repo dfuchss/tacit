@@ -2,6 +2,8 @@ package org.fuchss.matrix.tacit.viewmodel.room.timeline
 
 import de.connect2x.trixnity.client.flattenValues
 import de.connect2x.trixnity.client.media
+import de.connect2x.trixnity.client.room
+import de.connect2x.trixnity.client.store.avatarUrl
 import de.connect2x.trixnity.client.user
 import de.connect2x.trixnity.core.model.EventId
 import de.connect2x.trixnity.core.model.RoomId
@@ -11,10 +13,9 @@ import de.connect2x.trixnity.messenger.viewmodel.MatrixClientViewModelContext
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.TimelineViewModel
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.TimelineViewModelFactory
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.OpenMentionCallback
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.flow.SharingStarted.Companion.WhileSubscribed
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.fuchss.matrix.tacit.viewmodel.room.timeline.entry.ChannelMemberEntry
 import org.fuchss.matrix.tacit.viewmodel.util.findExistingDirectMessageRoom
@@ -43,6 +44,7 @@ internal object TacitTimelineViewModelFactory : TimelineViewModelFactory {
     }
 }
 
+@OptIn(ExperimentalCoroutinesApi::class)
 private class TacitTimelineViewModelImpl(
     private val delegate: TimelineViewModel,
     viewModelContext: MatrixClientViewModelContext,
@@ -92,6 +94,55 @@ private class TacitTimelineViewModelImpl(
             )
         }
         .stateIn(coroutineScope, WhileSubscribed(), emptyList())
+
+    override val typingMembers: StateFlow<List<ChannelMemberEntry>> = matrixClient.room.usersTyping
+        .map { typingByRoom ->
+            typingByRoom[roomId]?.users
+                .orEmpty()
+                .filterNot { it == matrixClient.userId }
+                .sortedBy { it.full }
+        }
+        .distinctUntilChanged()
+        .flatMapLatest { typingUsers ->
+            if (typingUsers.isEmpty()) {
+                flowOf(emptyList())
+            } else {
+                combine(typingUsers.map { typingUserId ->
+                    matrixClient.user.getById(roomId, typingUserId).map { roomUser ->
+                        val displayName = roomUser?.name?.ifBlank { null } ?: typingUserId.full
+                        val avatarUri = roomUser?.avatarUrl?.ifBlank { null }
+                        val avatarImage = avatarUri?.let { uri ->
+                            avatarCache.getOrPut(uri) {
+                                matrixClient.media
+                                    .getThumbnail(uri = uri, width = 48L, height = 48L)
+                                    .getOrNull()
+                                    ?.toByteArray(maxSize = 512L * 1024L)
+                            }
+                        }
+                        ChannelMemberEntry(
+                            userId = typingUserId,
+                            displayName = displayName,
+                            isSelf = false,
+                            avatarImage = avatarImage,
+                        )
+                    }
+                }) { entries ->
+                    entries.toList().sortedBy { it.displayName.lowercase() }
+                }
+            }
+        }
+        .stateIn(coroutineScope, WhileSubscribed(), emptyList())
+
+    override val typingIndicatorText: StateFlow<String?> = typingMembers
+        .map { typing ->
+            when (typing.size) {
+                0 -> null
+                1 -> "${typing[0].displayName} is typing..."
+                2 -> "${typing[0].displayName} and ${typing[1].displayName} are typing..."
+                else -> "${typing[0].displayName}, ${typing[1].displayName} +${typing.size - 2} are typing..."
+            }
+        }
+        .stateIn(coroutineScope, WhileSubscribed(), null)
 
     init {
         coroutineScope.launch {

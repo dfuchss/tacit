@@ -5,18 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoDelete
@@ -30,8 +19,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.CollectionItemInfo
 import androidx.compose.ui.semantics.collectionItemInfo
@@ -50,11 +39,7 @@ import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.messag
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.message.bubble.MessageBubbleView
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedUserAvatar
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.BaseTimelineElementHolderViewModel
-import org.fuchss.matrix.tacit.tacitMessageHoverBackground
-import org.fuchss.matrix.tacit.tacitMessageOwnHoverBackground
-import org.fuchss.matrix.tacit.tacitMessageQuickActionsBackground
-import org.fuchss.matrix.tacit.tacitMessageQuickActionsBorder
-import org.fuchss.matrix.tacit.tacitTextMuted
+import org.fuchss.matrix.tacit.*
 
 class TacitFlatMessageView : MessageBubbleView {
     @Composable
@@ -100,10 +85,10 @@ private fun TacitFlatMessageContainer(
     val allReactionsOpen = remember { mutableStateOf(false) }
     val showActionMenu = remember { mutableStateOf(false) }
     val showInlineTime = hoverMessage.value ||
-        hoverQuickActions.value ||
-        showActionMenu.value ||
-        quickReactionsOpen.value ||
-        allReactionsOpen.value
+            hoverQuickActions.value ||
+            showActionMenu.value ||
+            quickReactionsOpen.value ||
+            allReactionsOpen.value
     val hoverInteractionSource = remember { MutableInteractionSource() }
 
     val timelineElementHolder = uiState.timelineElementHolder
@@ -188,7 +173,7 @@ private fun TacitFlatMessageContainer(
                         collectionItemInfo = CollectionItemInfo(index, 1, 0, 1)
                         this.text = AnnotatedString(
                             "${sender?.name ?: i18n.commonUnknown()} (${holder.formattedTime}): " +
-                                (element?.let { timelineElementViewSelector.a11yLabel(it, i18n) } ?: "")
+                                    (element?.let { timelineElementViewSelector.a11yLabel(it, i18n) } ?: "")
                         )
                     }
                     .padding(horizontal = 4.dp, vertical = 2.dp)

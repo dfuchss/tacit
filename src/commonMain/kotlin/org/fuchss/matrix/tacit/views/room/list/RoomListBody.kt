@@ -86,85 +86,92 @@ internal fun RoomListBody(
 
             else -> {
                 val listState = rememberLazyListState()
-                LazyColumn(
-                    modifier = Modifier.Companion.fillMaxSize().padding(horizontal = 8.dp, vertical = 8.dp),
-                    state = listState,
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 8.dp, vertical = 8.dp),
                 ) {
-                    if (mode.isDirectMessages()) {
-                        item {
-                            DmOverview(visibleRooms)
-                            Spacer(Modifier.Companion.height(8.dp))
-                        }
-                    }
                     if (visibleRooms.isNotEmpty()) {
-                        item {
-                            RoomListSectionLabel(mode.roomsSectionTitle())
+                        if (mode.isDirectMessages()) {
+                            DmOverview(visibleRooms)
+                            Spacer(Modifier.height(8.dp))
                         }
-                        itemsIndexed(
-                            items = visibleRooms,
-                            key = { _, element -> element.roomId.full },
-                        ) { _, room ->
-                            ChannelRow(
-                                roomListViewModel = roomListViewModel,
-                                room = room,
-                                selectedRoomId = selectedRoomId,
-                                mode = mode,
-                            )
-                        }
+                        RoomListSectionLabel(mode.roomsSectionTitle())
                     }
 
-                    if (inviteRooms.isNotEmpty()) {
-                        item {
-                            RoomListSectionLabel("INVITES")
-                        }
-                        itemsIndexed(
-                            items = inviteRooms,
-                            key = { _, element -> "invite:${element.roomId.full}" },
-                        ) { _, room ->
-                            ChannelRow(
-                                roomListViewModel = roomListViewModel,
-                                room = room,
-                                selectedRoomId = selectedRoomId,
-                                mode = mode,
-                                showInviteActions = true,
-                                onAcceptInvite = {
-                                    room.acceptInvitation()
-                                    roomListViewModel.selectRoom(room.roomId)
-                                },
-                                onDeclineInvite = {
-                                    room.rejectInvitation()
-                                },
-                            )
-                        }
-                    }
-
-                    if (selectedGuildInviteVisible) {
-                        item {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 14.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Text(
-                                    text = selectedGuildInviteName ?: selectedGuildInviteRoomId.full,
-                                    color = tacitText,
-                                    modifier = Modifier.weight(1f),
-                                    maxLines = 1,
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        state = listState,
+                    ) {
+                        if (visibleRooms.isNotEmpty()) {
+                            itemsIndexed(
+                                items = visibleRooms,
+                                key = { _, element -> element.roomId.full },
+                            ) { _, room ->
+                                ChannelRow(
+                                    roomListViewModel = roomListViewModel,
+                                    room = room,
+                                    selectedRoomId = selectedRoomId,
+                                    mode = mode,
                                 )
-                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    androidx.compose.material3.TextButton(onClick = { onDeclineSelectedGuildInvite?.invoke() }) {
-                                        Text("Decline")
-                                    }
-                                    androidx.compose.material3.TextButton(onClick = { onAcceptSelectedGuildInvite?.invoke() }) {
-                                        Text("Accept")
+                            }
+                        }
+
+                        if (inviteRooms.isNotEmpty()) {
+                            item {
+                                RoomListSectionLabel("INVITES")
+                            }
+                            itemsIndexed(
+                                items = inviteRooms,
+                                key = { _, element -> "invite:${element.roomId.full}" },
+                            ) { _, room ->
+                                ChannelRow(
+                                    roomListViewModel = roomListViewModel,
+                                    room = room,
+                                    selectedRoomId = selectedRoomId,
+                                    mode = mode,
+                                    showInviteActions = true,
+                                    onAcceptInvite = {
+                                        room.acceptInvitation()
+                                        roomListViewModel.selectRoom(room.roomId)
+                                    },
+                                    onDeclineInvite = {
+                                        room.rejectInvitation()
+                                    },
+                                )
+                            }
+                        }
+
+                        if (selectedGuildInviteVisible) {
+                            item {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 14.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Text(
+                                        text = selectedGuildInviteName ?: selectedGuildInviteRoomId.full,
+                                        color = tacitText,
+                                        modifier = Modifier.weight(1f),
+                                        maxLines = 1,
+                                    )
+                                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        androidx.compose.material3.TextButton(onClick = { onDeclineSelectedGuildInvite?.invoke() }) {
+                                            Text("Decline")
+                                        }
+                                        androidx.compose.material3.TextButton(onClick = { onAcceptSelectedGuildInvite?.invoke() }) {
+                                            Text("Accept")
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
-                    item {
-                        Spacer(Modifier.Companion.height(14.dp))
+                        item {
+                            Spacer(Modifier.height(14.dp))
+                        }
                     }
                 }
             }

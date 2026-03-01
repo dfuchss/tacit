@@ -15,17 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import de.connect2x.trixnity.messenger.viewmodel.util.EventReactions
-import org.fuchss.matrix.tacit.tacitAccentSoft
-import org.fuchss.matrix.tacit.tacitMessageReactionsRowBackground
-import org.fuchss.matrix.tacit.tacitMessageReactionsRowBorder
-import org.fuchss.matrix.tacit.tacitMessageReactionsRowOwnBackground
-import org.fuchss.matrix.tacit.tacitReactionChipBackground
-import org.fuchss.matrix.tacit.tacitReactionChipBorder
-import org.fuchss.matrix.tacit.tacitReactionChipSelectedBackground
-import org.fuchss.matrix.tacit.tacitReactionChipSelectedBorder
-import org.fuchss.matrix.tacit.tacitReactionCountBackground
-import org.fuchss.matrix.tacit.tacitReactionCountSelectedBackground
-import org.fuchss.matrix.tacit.tacitText
+import org.fuchss.matrix.tacit.*
 
 @Composable
 internal fun TacitMessageReactions(

@@ -1,8 +1,12 @@
 package org.fuchss.matrix.tacit.views.room.list
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -17,12 +21,18 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import de.connect2x.trixnity.messenger.compose.view.files.toImageBitmap
 import de.connect2x.trixnity.messenger.compose.view.pointerMoveFilter
 import org.fuchss.matrix.tacit.*
@@ -30,6 +40,10 @@ import org.fuchss.matrix.tacit.generated.resources.Res
 import org.fuchss.matrix.tacit.generated.resources.tacit
 import org.fuchss.matrix.tacit.viewmodel.room.list.entry.GuildEntry
 import org.jetbrains.compose.resources.painterResource
+import kotlin.math.roundToInt
+
+private val guildPillSize: Dp = 52.dp
+private val guildPillSpacing: Dp = 10.dp
 
 @Composable
 internal fun GuildRail(
@@ -39,8 +53,31 @@ internal fun GuildRail(
     dmUnreadCount: Int,
     guildUnreadCounts: Map<String, Int>,
     onSelectGuild: (GuildEntry?) -> Unit,
+    onReorderGuild: (fromIndex: Int, toIndex: Int) -> Unit,
     onCreateGuild: () -> Unit,
 ) {
+    val density = LocalDensity.current
+    val guildStepPx = remember(density) { with(density) { (guildPillSize + guildPillSpacing).toPx() } }
+    var draggingGuildKey by remember { mutableStateOf<String?>(null) }
+    var dragFromIndex by remember { mutableStateOf<Int?>(null) }
+    var dropIndex by remember { mutableStateOf<Int?>(null) }
+    var dragOffsetY by remember { mutableFloatStateOf(0f) }
+
+    fun resetDragState() {
+        draggingGuildKey = null
+        dragFromIndex = null
+        dropIndex = null
+        dragOffsetY = 0f
+    }
+
+    val hintBeforeIndex = remember(dragFromIndex, dropIndex, guilds) {
+        val from = dragFromIndex
+        val to = dropIndex
+        if (from == null || to == null || guilds.isEmpty() || from !in guilds.indices || to !in guilds.indices || from == to) null
+        else if (to > from) (to + 1).coerceAtMost(guilds.size)
+        else to
+    }
+
     Column(
         modifier = Modifier
             .fillMaxHeight()
@@ -63,25 +100,113 @@ internal fun GuildRail(
             unreadCount = dmUnreadCount,
         )
 
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(guildPillSpacing))
 
         LazyColumn(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(guildPillSpacing),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            itemsIndexed(guilds, key = { _, g -> "${g.userId.full}:${g.roomId.full}" }) { _, guild ->
-                GuildPill(
-                    label = guild.guildLabel(),
-                    selected = selectedGuild?.roomId == guild.roomId && selectedGuild.userId == guild.userId,
-                    onClick = { onSelectGuild(guild) },
-                    avatarImage = guildAvatars[guild.key()],
-                    unreadCount = guildUnreadCounts[guild.key()] ?: 0,
-                )
+            itemsIndexed(guilds, key = { _, g -> "${g.userId.full}:${g.roomId.full}" }) { index, guild ->
+                val guildKey = guild.key()
+                if (hintBeforeIndex == index) {
+                    GuildDropHint()
+                }
+                Box(
+                    modifier = Modifier
+                        .zIndex(if (draggingGuildKey == guildKey) 5f else 0f)
+                        .graphicsLayer {
+                            if (draggingGuildKey == guildKey) {
+                                translationY = dragOffsetY
+                                scaleX = 1.04f
+                                scaleY = 1.04f
+                                shadowElevation = with(density) { 14.dp.toPx() }
+                            }
+                        }
+                        .alpha(if (draggingGuildKey == guildKey) 0.96f else 1f)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = { onSelectGuild(guild) },
+                        )
+                        .pointerInput(guilds, guildKey, index) {
+                            detectDragGestures(
+                                onDragStart = {
+                                    draggingGuildKey = guildKey
+                                    dragFromIndex = index
+                                    dropIndex = index
+                                    dragOffsetY = 0f
+                                },
+                                onDragEnd = {
+                                    val from = dragFromIndex
+                                    val to = dropIndex
+                                    resetDragState()
+                                    if (from != null && to != null && from in guilds.indices && to in guilds.indices && from != to) {
+                                        onReorderGuild(from, to)
+                                    }
+                                },
+                                onDragCancel = {
+                                    resetDragState()
+                                },
+                                onDrag = { change, dragAmount ->
+                                    if (draggingGuildKey != guildKey) return@detectDragGestures
+                                    change.consume()
+                                    dragOffsetY += dragAmount.y
+
+                                    val from = dragFromIndex ?: return@detectDragGestures
+                                    val newDropIndex = (from + (dragOffsetY / guildStepPx).roundToInt())
+                                        .coerceIn(0, guilds.lastIndex)
+                                    if (dropIndex != newDropIndex) {
+                                        dropIndex = newDropIndex
+                                    }
+                                },
+                            )
+                        }
+                ) {
+                    GuildPill(
+                        label = guild.guildLabel(),
+                        selected = selectedGuild?.roomId == guild.roomId && selectedGuild.userId == guild.userId,
+                        onClick = null,
+                        avatarImage = guildAvatars[guild.key()],
+                        unreadCount = guildUnreadCounts[guild.key()] ?: 0,
+                    )
+                }
+            }
+            if (hintBeforeIndex == guilds.size) {
+                item("guild-drop-hint-end") {
+                    GuildDropHint()
+                }
             }
         }
 
         GuildCreateButton(onClick = onCreateGuild)
+    }
+}
+
+@Composable
+private fun GuildDropHint() {
+    val pulseAlpha by rememberInfiniteTransition(label = "guildDropHintPulse").animateFloat(
+        initialValue = 0.38f,
+        targetValue = 0.92f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 700),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "guildDropHintAlpha",
+    )
+
+    Box(
+        modifier = Modifier
+            .size(guildPillSize),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(46.dp)
+                .clip(CircleShape)
+                .background(tacitRailButtonBackground.copy(alpha = 0.35f))
+                .border(width = 1.5.dp, color = accentColor.copy(alpha = pulseAlpha), shape = CircleShape),
+        )
     }
 }
 
@@ -92,7 +217,7 @@ private fun GuildCreateButton(onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .padding(top = 8.dp)
-            .size(52.dp)
+            .size(guildPillSize)
             .clip(CircleShape)
             .background(if (hovered) tacitRailButtonHoverBackground else tacitRailButtonBackground)
             .pointerMoveFilter(
@@ -120,7 +245,7 @@ private fun GuildCreateButton(onClick: () -> Unit) {
 private fun GuildPill(
     label: String?,
     selected: Boolean,
-    onClick: () -> Unit,
+    onClick: (() -> Unit)?,
     symbol: String? = null,
     dmIndicator: Boolean = false,
     isTacitHome: Boolean = false,
@@ -147,7 +272,7 @@ private fun GuildPill(
 
         Box(
             modifier = Modifier
-                .size(52.dp),
+                .size(guildPillSize),
             contentAlignment = Alignment.Center,
         ) {
             Box(
@@ -171,7 +296,10 @@ private fun GuildPill(
                             true
                         },
                     )
-                    .clickable(onClick = onClick),
+                    .then(
+                        if (onClick != null) Modifier.clickable(onClick = onClick)
+                        else Modifier
+                    ),
                 contentAlignment = Alignment.Center,
             ) {
                 if (isTacitHome) {
