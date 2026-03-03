@@ -7,8 +7,6 @@ import de.connect2x.lognity.config.CoreConfigExtension
 import de.connect2x.lognity.config.SerializableConfig
 import de.connect2x.lognity.config.setDefaultConfig
 import de.connect2x.trixnity.messenger.MatrixMultiMessengerService
-import de.connect2x.trixnity.messenger.notification.fcm.addFcmPushNotificationProvider
-import de.connect2x.trixnity.messenger.notification.unifiedpush.addUnifiedPushNotificationProvider
 import kotlinx.io.asSource
 import kotlinx.io.buffered
 
@@ -23,14 +21,7 @@ class TammyApplication : Application() {
         MatrixMultiMessengerService.configuration = {
             tammyConfiguration()
             appIcon = "status_icon.png"
-            addFcmPushNotificationProvider(
-                pushUrl = "https://sygnal.demo.timmy-messenger.de/_matrix/push/v1/notify",
-                pushAppId = "$appId.fcm",
-            )
-            addUnifiedPushNotificationProvider(
-                pushUrl = "https://ntfy.demo.timmy-messenger.de/_matrix/push/v1/notify",
-                pushAppId = "$appId.unifiedpush",
-            )
+            addNotificationProviders()
         }
     }
 }

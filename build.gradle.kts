@@ -1,17 +1,23 @@
 import de.connect2x.conventions.*
 import org.gradle.internal.extensions.stdlib.capitalized
+import org.gradle.kotlin.dsl.provideDelegate
 import org.gradle.nativeplatform.platform.internal.DefaultArchitecture
 import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
 import org.gradle.nativeplatform.platform.internal.DefaultOperatingSystem
-import org.gradle.nativeplatform.platform.internal.OperatingSystemInternal
+
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.compose.desktop.application.tasks.AbstractJPackageTask
 import org.jetbrains.kotlin.gradle.internal.ensureParentDirsCreated
+import java.io.BufferedReader
+import java.io.ByteArrayOutputStream
+import java.io.InputStreamReader
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
+import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.Paths
 
 
 plugins {
@@ -22,7 +28,7 @@ plugins {
     alias(sharedLibs.plugins.aboutLibraries.plugin)
     alias(libs.plugins.download.plugin)
     alias(sharedLibs.plugins.c2xConventions)
-    alias(sharedLibs.plugins.google.services) // TODO simply disable for F-Droid build
+    alias(sharedLibs.plugins.google.services)
     de.connect2x.tammy.plugins.flatpak
 }
 
@@ -176,8 +182,6 @@ kotlin {
                 implementation(sharedLibs.androidx.work.runtime.ktx)
                 implementation(sharedLibs.androidx.lifecycle.livedata.ktx)
                 implementation(sharedLibs.androidx.activity.compose)
-                implementation(sharedLibs.firebase.messaging)
-                implementation(libs.trixnity.messenger.notification.fcm)
                 implementation(libs.trixnity.messenger.notification.unifiedpush)
             }
         }
@@ -294,6 +298,21 @@ android {
     buildFeatures {
         compose = true
     }
+    productFlavors {
+        flavorDimensions.add("version")
+
+        // This flavor requires the Google Play Services to be available on the target device. Apps built with this
+        // configuration can't be published in F-Droid.
+        register("googlePlay") {
+            dimension = "version"
+        }
+
+        // This flavor removes the requirement of Google Play Services to be available on the target device. Apps built
+        // with this configuration are intented to be published on F-Droid.
+        register("libre") {
+            dimension = "version"
+        }
+    }
     defaultConfig {
         versionCode = System.getenv("CI_PIPELINE_IID")?.toInt() ?: 1
         versionName = appSuffixedVersion
@@ -341,6 +360,39 @@ android {
     }
 }
 
+// This MUST be loaded after the Android extension code because "googlePlayImplementation" is available after the
+// Android code was loaded. This inserts the FCM notification provider of Trixnity Messenger into the Google Play
+// product flavor source set.
+dependencies {
+    "googlePlayImplementation"(libs.trixnity.messenger.notification.fcm)
+    "googlePlayImplementation"(sharedLibs.firebase.messaging)
+}
+
+tasks.register("scanAndroidLibreForNonFreeClasses", Exec::class) {
+    group = "verification"
+    description = "Scanning the libre APK for non-free components like Google Services"
+    dependsOn("assembleLibreDebug")
+
+    val file = layout.buildDirectory.file("outputs/apk/libre/debug/Tammy-libre-debug.apk")
+    inputs.file(file).withPropertyName("apkFile")
+    commandLine("fdroid", "scanner", file.get().asFile.absolutePath, "-v")
+
+    val outputStream = ByteArrayOutputStream()
+    errorOutput = outputStream
+    doLast {
+        val problemClasses = outputStream.toByteArray().toString(Charsets.UTF_8).split("\n")
+            .filter { it.contains("Problem: found class") }
+            .map { it.split(": ")[2].replace("found class ", "") }
+        if (problemClasses.isNotEmpty()) {
+            problemClasses.forEach {
+                println("Found problem in $it")
+            }
+
+            throw GradleException("F-Droid scanner found ${problemClasses.size} problems")
+        }
+    }
+}
+
 val gitLabProjectUrl =
     "${System.getenv("CI_API_V4_URL")}/projects/${System.getenv("CI_PROJECT_ID")}"
 
@@ -361,13 +413,23 @@ data class Distribution(
 
 val distributions = listOf(
     Distribution(
-        "aab", "Android", "universal",
-        listOf("bundleRelease"),
+        "aab", "Android", "GooglePlay",
+        listOf("bundleGooglePlayRelease"),
         "$appName-release.aab"
     ),
     Distribution(
-        "apk", "Android", "universal",
-        listOf("assembleRelease"),
+        "apk", "Android", "GooglePlay",
+        listOf("assembleGooglePlayRelease"),
+        "$appName-release.apk"
+    ),
+    Distribution(
+        "aab", "Android", "Libre",
+        listOf("bundleLibreRelease"),
+        "$appName-release.aab"
+    ),
+    Distribution(
+        "apk", "Android", "Libre",
+        listOf("assembleLibreRelease"),
         "$appName-release.apk"
     ),
     Distribution(

@@ -22,12 +22,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.CollectionItemInfo
 import androidx.compose.ui.semantics.collectionItemInfo
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.text
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
 import androidx.compose.ui.zIndex
 import de.connect2x.trixnity.messenger.compose.view.DI
 import de.connect2x.trixnity.messenger.compose.view.get
@@ -134,6 +137,7 @@ private fun TacitFlatMessageContainer(
     ) {
         val rowSidePadding = if (maxWidth < 400.dp) 10.dp else 20.dp
         val incomingTextColumnOffset = 40.dp
+        val density = LocalDensity.current
 
         Column(
             modifier = Modifier
@@ -179,29 +183,26 @@ private fun TacitFlatMessageContainer(
                     .padding(horizontal = 4.dp, vertical = 2.dp)
             ) {
                 if (!isPreview && showInlineTime) {
-                    val quickActionModifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(end = 6.dp)
-                        .offset(y = (-16).dp)
-                        .zIndex(40f)
-
-                    Box(
-                        modifier = Modifier
-                            .matchParentSize()
-                            .zIndex(30f)
-                            .graphicsLayer { clip = false }
+                    Popup(
+                        alignment = Alignment.TopEnd,
+                        offset = IntOffset(
+                            x = with(density) { -(rowSidePadding + 6.dp).roundToPx() },
+                            y = with(density) { (-16).dp.roundToPx() },
+                        ),
                     ) {
                         Box(
-                            modifier = quickActionModifier.pointerMoveFilter(
-                                onEnter = {
-                                    hoverQuickActions.value = true
-                                    true
-                                },
-                                onExit = {
-                                    hoverQuickActions.value = false
-                                    true
-                                },
-                            )
+                            modifier = Modifier
+                                .graphicsLayer { clip = false }
+                                .pointerMoveFilter(
+                                    onEnter = {
+                                        hoverQuickActions.value = true
+                                        true
+                                    },
+                                    onExit = {
+                                        hoverQuickActions.value = false
+                                        true
+                                    },
+                                )
                         ) {
                             Row(
                                 modifier = Modifier
@@ -226,16 +227,15 @@ private fun TacitFlatMessageContainer(
                                         showActionMenu.value = false
                                     }
                                 }
-                                Box {
-                                    TacitQuickActionButton(label = "⋯") { showActionMenu.value = true }
-                                    TacitMessageActionDropdown(
-                                        expanded = showActionMenu.value,
-                                        onDismiss = { showActionMenu.value = false },
-                                        actions = actions,
-                                        additionalContextActions = additionalContextActions,
-                                    )
-                                }
+                                TacitQuickActionButton(label = "⋯") { showActionMenu.value = true }
                             }
+
+                            TacitMessageActionDropdown(
+                                expanded = showActionMenu.value,
+                                onDismiss = { showActionMenu.value = false },
+                                actions = actions,
+                                additionalContextActions = additionalContextActions,
+                            )
                             if (canReact) {
                                 TacitQuickReactionPickerMenu(
                                     expanded = quickReactionsOpen.value,

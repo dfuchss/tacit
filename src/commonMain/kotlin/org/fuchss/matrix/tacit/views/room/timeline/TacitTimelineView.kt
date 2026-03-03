@@ -59,8 +59,12 @@ class TacitTimelineView : TimelineView {
 
         val focusManager = LocalFocusManager.current
 
+        val showTypingIndicator =
+            remember { timelineViewModel.canLoadAfter.throttleFirst(300.milliseconds) }
+                .collectAsState(false).value == false
+
         val initialFirstVisibleItemIndex =
-            getInitialFirstVisibleItemIndex(timelineViewModel, timelineViewElements.value)
+            getInitialFirstVisibleItemIndex(timelineViewModel, timelineViewElements.value, showTypingIndicator)
         Box(modifier = Modifier.weight(1.0f, fill = true)) {
             if (isTimelineLoading || initialFirstVisibleItemIndex == null) {
                 Box(Modifier.fillMaxSize()) {
@@ -69,18 +73,22 @@ class TacitTimelineView : TimelineView {
             } else {
                 val listState =
                     rememberLazyListState(initialFirstVisibleItemIndex = initialFirstVisibleItemIndex)
-                val showTypingIndicator =
-                    remember { timelineViewModel.canLoadAfter.throttleFirst(300.milliseconds) }
-                        .collectAsState(false).value == false
 
                 LaunchedEffect(scrollTo, timelineViewElements.value, showTypingIndicator) {
-                    if (scrollTo == null) return@LaunchedEffect
-                    val index = withTimeoutOrNull(5.seconds) {
-                        timelineViewElements.value.indexOfFirst { it.key == scrollTo }
-                    } ?: -1
-                    if (index >= 0) {
-                        listState.animateScrollToItem(if (showTypingIndicator) index + 1 else index)
-                        scrollTo = null
+                    if (scrollTo != null) {
+                        val index = withTimeoutOrNull(5.seconds) {
+                            timelineViewElements.value.indexOfFirst { it.key == scrollTo }
+                        } ?: -1
+                        if (index >= 0) {
+                            listState.animateScrollToItem(
+                                when {
+                                    index == 0 && showTypingIndicator -> 0
+                                    showTypingIndicator -> index + 1
+                                    else -> index
+                                }
+                            )
+                            scrollTo = null
+                        }
                     }
                 }
 

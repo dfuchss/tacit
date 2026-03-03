@@ -11,7 +11,7 @@
             android:theme="@style/Theme.AppCompat.NoActionBar"
             android:supportsRtl="true">
         <activity
-                android:name="de.connect2x.trixnity.messenger.compose.view.MatrixMultiMessengerActivity"
+                android:name="de.connect2x.messenger.compose.view.MatrixMultiMessengerActivity"
                 android:allowTaskReparenting="true"
                 android:configChanges="colorMode|density|fontScale|keyboard|keyboardHidden|layoutDirection|locale|mcc|mnc|navigation|orientation|screenLayout|screenSize|smallestScreenSize|touchscreen|uiMode|fontWeightAdjustment"
                 android:exported="true"
