@@ -6,6 +6,7 @@ import de.connect2x.lognity.backend.DefaultBackend
 import de.connect2x.lognity.config.CoreConfigExtension
 import de.connect2x.lognity.config.SerializableConfig
 import de.connect2x.lognity.config.setDefaultConfig
+import de.connect2x.tammy.addNotificationProviders
 import de.connect2x.trixnity.messenger.MatrixMultiMessengerService
 import kotlinx.io.asSource
 import kotlinx.io.buffered
