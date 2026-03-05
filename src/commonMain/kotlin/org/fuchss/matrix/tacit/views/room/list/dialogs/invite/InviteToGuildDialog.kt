@@ -14,6 +14,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import de.connect2x.trixnity.messenger.compose.view.DI
+import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.theme.components
 import de.connect2x.trixnity.messenger.compose.view.theme.components.*
 import kotlinx.coroutines.delay
@@ -21,6 +23,7 @@ import org.fuchss.matrix.tacit.tacitSearchResultBackground
 import org.fuchss.matrix.tacit.tacitSearchResultBorder
 import org.fuchss.matrix.tacit.tacitTextMuted
 import org.fuchss.matrix.tacit.viewmodel.util.UserDirectoryEntry
+import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 import org.fuchss.matrix.tacit.views.room.list.dmInitials
 
 @Composable
@@ -33,6 +36,7 @@ internal fun InviteToGuildDialog(
     onDismiss: () -> Unit,
     onInviteMember: (userId: String, reason: String) -> Unit,
 ) {
+    val i18n = DI.get<TacitI18nView>()
     var userId by remember { mutableStateOf("") }
     var reason by remember { mutableStateOf("") }
     var searchInProgress by remember { mutableStateOf(false) }
@@ -56,7 +60,7 @@ internal fun InviteToGuildDialog(
             },
             onFailure = { throwable ->
                 searchResults = emptyList()
-                searchError = throwable.message ?: "Search failed."
+                searchError = throwable.message ?: i18n.tacitSearchFailed()
             }
         )
         searchInProgress = false
@@ -64,27 +68,27 @@ internal fun InviteToGuildDialog(
 
     ThemedModalDialog(onDismissRequest = onDismiss) {
         ModalDialogHeader {
-            Text("Invite to Guild")
+            Text(i18n.tacitInviteToGuildTitle())
         }
         ModalDialogContent {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    "Invite a Matrix user to join $guildName.",
+                    i18n.tacitInviteUserToGuild(guildName),
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 OutlinedTextField(
                     value = userId,
                     onValueChange = { userId = it },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Matrix user ID") },
-                    placeholder = { Text("@alice:example.org or display name") },
+                    label = { Text(i18n.tacitMatrixUserIdLabel()) },
+                    placeholder = { Text(i18n.tacitUserIdPlaceholder()) },
                     maxLines = 1,
                 )
                 if (canSearchUsers && userId.trim().length >= 2) {
                     when {
                         searchInProgress -> {
                             Text(
-                                "Searching users...",
+                                i18n.tacitSearchingUsers(),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = tacitTextMuted,
                             )
@@ -153,12 +157,12 @@ internal fun InviteToGuildDialog(
                     value = reason,
                     onValueChange = { reason = it },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Reason (optional)") },
+                    label = { Text(i18n.tacitReasonOptionalLabel()) },
                     maxLines = 2,
                 )
                 if (!canInviteMember) {
                     Text(
-                        "No account available for this guild.",
+                        i18n.tacitNoAccountForGuild(),
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
                     )
@@ -171,14 +175,14 @@ internal fun InviteToGuildDialog(
                 onClick = onDismiss,
                 enabled = !isInviting,
             ) {
-                Text("Cancel")
+                Text(i18n.commonCancel())
             }
             ThemedButton(
                 style = MaterialTheme.components.primaryButton,
                 onClick = { onInviteMember(userId, reason) },
                 enabled = !isInviting && canInviteMember && userId.isNotBlank(),
             ) {
-                Text(if (isInviting) "Inviting..." else "Send Invite")
+                Text(if (isInviting) i18n.tacitInvitingInProgress() else i18n.tacitSendInvite())
             }
         }
     }

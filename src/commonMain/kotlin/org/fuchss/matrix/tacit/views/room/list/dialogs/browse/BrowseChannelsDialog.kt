@@ -17,10 +17,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import de.connect2x.trixnity.core.model.RoomId
+import de.connect2x.trixnity.messenger.compose.view.DI
+import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.theme.components
 import de.connect2x.trixnity.messenger.compose.view.theme.components.*
 import org.fuchss.matrix.tacit.*
 import org.fuchss.matrix.tacit.viewmodel.room.list.entry.SpaceChannelEntry
+import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 
 @Composable
 internal fun BrowseChannelsDialog(
@@ -31,9 +34,10 @@ internal fun BrowseChannelsDialog(
     onDismiss: () -> Unit,
     onJoinChannel: (SpaceChannelEntry) -> Unit,
 ) {
+    val i18n = DI.get<TacitI18nView>()
     ThemedModalDialog(onDismissRequest = onDismiss) {
         ModalDialogHeader {
-            Text("Browse Rooms")
+            Text(i18n.tacitBrowseRoomsTitle())
         }
         ModalDialogContent {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -55,7 +59,7 @@ internal fun BrowseChannelsDialog(
                             color = tacitTextMuted,
                         )
                         Text(
-                            text = "Discover and join rooms",
+                            text = i18n.tacitDiscoverAndJoinRooms(),
                             style = MaterialTheme.typography.bodyMedium,
                             color = tacitText,
                         )
@@ -63,13 +67,13 @@ internal fun BrowseChannelsDialog(
                 }
                 if (!canJoinChannels) {
                     Text(
-                        "No account available for this guild.",
+                        i18n.tacitNoAccountForGuild(),
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
                     )
                 } else if (channels.isEmpty()) {
                     Text(
-                        "No discoverable rooms in this guild yet.",
+                        i18n.tacitNoDiscoverableRooms(),
                         style = MaterialTheme.typography.bodySmall,
                         color = tacitTextMuted,
                     )
@@ -104,7 +108,7 @@ internal fun BrowseChannelsDialog(
                                     )
                                 }
                                 if (channel.isJoined) {
-                                    StatusChip("JOINED", accentColor)
+                                    StatusChip(i18n.tacitJoined(), accentColor)
                                 } else if (!channel.isJoinable) {
                                     StatusChip(channel.status.uppercase(), tacitTextMuted)
                                 } else {
@@ -113,7 +117,7 @@ internal fun BrowseChannelsDialog(
                                         onClick = { onJoinChannel(channel) },
                                         enabled = canJoinChannels && joiningRoomId == null,
                                     ) {
-                                        Text(if (joiningRoomId == channel.roomId) "Joining..." else "Join")
+                                        Text(if (joiningRoomId == channel.roomId) i18n.tacitJoiningInProgress() else i18n.roomListJoin())
                                     }
                                 }
                             }
@@ -128,7 +132,7 @@ internal fun BrowseChannelsDialog(
                 onClick = onDismiss,
                 enabled = joiningRoomId == null,
             ) {
-                Text("Close")
+                Text(i18n.commonClose())
             }
         }
     }

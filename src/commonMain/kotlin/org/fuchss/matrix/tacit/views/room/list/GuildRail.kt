@@ -33,12 +33,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import de.connect2x.trixnity.messenger.compose.view.DI
 import de.connect2x.trixnity.messenger.compose.view.files.toImageBitmap
+import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.pointerMoveFilter
 import org.fuchss.matrix.tacit.*
 import org.fuchss.matrix.tacit.generated.resources.Res
 import org.fuchss.matrix.tacit.generated.resources.tacit
 import org.fuchss.matrix.tacit.viewmodel.room.list.entry.GuildEntry
+import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 import org.jetbrains.compose.resources.painterResource
 import kotlin.math.roundToInt
 
@@ -212,6 +215,7 @@ private fun GuildDropHint() {
 
 @Composable
 private fun GuildCreateButton(onClick: () -> Unit) {
+    val i18n = DI.get<TacitI18nView>()
     var hovered by remember { mutableStateOf(false) }
 
     Box(
@@ -235,7 +239,7 @@ private fun GuildCreateButton(onClick: () -> Unit) {
     ) {
         Icon(
             Icons.Default.Add,
-            contentDescription = "Create guild",
+            contentDescription = i18n.tacitCreateGuildDescriptionIcon(),
             tint = if (hovered) Color.White else accentColor
         )
     }
@@ -252,6 +256,7 @@ private fun GuildPill(
     avatarImage: ByteArray? = null,
     unreadCount: Int = 0,
 ) {
+    val i18n = DI.get<TacitI18nView>()
     var hovered by remember { mutableStateOf(false) }
     val pillShape = if (selected) RoundedCornerShape(15.dp) else CircleShape
 
@@ -305,7 +310,7 @@ private fun GuildPill(
                 if (isTacitHome) {
                     Image(
                         painter = painterResource(Res.drawable.tacit),
-                        contentDescription = "Tacit",
+                        contentDescription = i18n.tacitAppName(),
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .fillMaxSize()
@@ -343,7 +348,7 @@ private fun GuildPill(
                     ) {
                         Icon(
                             Icons.AutoMirrored.Filled.Chat,
-                            contentDescription = "Direct messages",
+                            contentDescription = i18n.tacitDirectMessagesDescription(),
                             tint = tacitRailIconTint,
                             modifier = Modifier.size(9.dp),
                         )

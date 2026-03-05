@@ -20,10 +20,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.dp
+import de.connect2x.trixnity.messenger.compose.view.DI
 import de.connect2x.trixnity.messenger.compose.view.common.Tooltip
+import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.theme.components
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedIconButton
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedSlider
+import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 import kotlin.math.abs
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -34,10 +37,8 @@ internal fun TacitColorPicker(
     defaultColor: Color,
     color: Color,
     onColorSelected: (Color) -> Unit,
-    hueLabel: String = "Hue",
-    saturationLabel: String = "Saturation",
-    brightnessLabel: String = "Brightness",
 ) {
+    val i18n = DI.get<TacitI18nView>()
     var hue by remember { mutableFloatStateOf(0f) }
     var saturation by remember { mutableFloatStateOf(0f) }
     var value by remember { mutableFloatStateOf(0f) }
@@ -100,7 +101,7 @@ internal fun TacitColorPicker(
     }
 
     Spacer(Modifier.height(12.dp))
-    Text(hueLabel, style = MaterialTheme.typography.labelMedium)
+    Text(i18n.tacitColorHue(), style = MaterialTheme.typography.labelMedium)
     ThemedSlider(
         value = hue,
         onValueChange = {
@@ -115,7 +116,7 @@ internal fun TacitColorPicker(
     )
 
     Spacer(Modifier.height(8.dp))
-    Text(saturationLabel, style = MaterialTheme.typography.labelMedium)
+    Text(i18n.tacitColorSaturation(), style = MaterialTheme.typography.labelMedium)
     ThemedSlider(
         value = saturation,
         onValueChange = {
@@ -135,7 +136,7 @@ internal fun TacitColorPicker(
     )
 
     Spacer(Modifier.height(8.dp))
-    Text(brightnessLabel, style = MaterialTheme.typography.labelMedium)
+    Text(i18n.tacitColorBrightness(), style = MaterialTheme.typography.labelMedium)
     ThemedSlider(
         value = value,
         onValueChange = {

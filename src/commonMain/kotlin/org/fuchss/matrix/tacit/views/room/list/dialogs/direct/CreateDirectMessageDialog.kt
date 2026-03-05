@@ -14,6 +14,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import de.connect2x.trixnity.messenger.compose.view.DI
+import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.theme.components
 import de.connect2x.trixnity.messenger.compose.view.theme.components.*
 import kotlinx.coroutines.delay
@@ -21,6 +23,7 @@ import org.fuchss.matrix.tacit.tacitSearchResultBackground
 import org.fuchss.matrix.tacit.tacitSearchResultBorder
 import org.fuchss.matrix.tacit.tacitTextMuted
 import org.fuchss.matrix.tacit.viewmodel.util.UserDirectoryEntry
+import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 import org.fuchss.matrix.tacit.views.room.list.dmInitials
 
 @Composable
@@ -34,6 +37,7 @@ internal fun CreateDirectMessageDialog(
     onDismiss: () -> Unit,
     onStartDirectMessage: (userId: String) -> Unit,
 ) {
+    val i18n = DI.get<TacitI18nView>()
     val hasPresetUser = !presetUserId.isNullOrBlank()
     var userId by remember(presetUserId) { mutableStateOf(presetUserId.orEmpty()) }
     var searchInProgress by remember { mutableStateOf(false) }
@@ -57,7 +61,7 @@ internal fun CreateDirectMessageDialog(
             },
             onFailure = { throwable ->
                 searchResults = emptyList()
-                searchError = throwable.message ?: "Search failed."
+                searchError = throwable.message ?: i18n.tacitSearchFailed()
             }
         )
         searchInProgress = false
@@ -65,19 +69,19 @@ internal fun CreateDirectMessageDialog(
 
     ThemedModalDialog(onDismissRequest = onDismiss) {
         ModalDialogHeader {
-            Text(if (hasPresetUser) "Start Chat" else "Start Direct Message")
+            Text(if (hasPresetUser) i18n.tacitStartChat() else i18n.tacitStartDirectMessage())
         }
         ModalDialogContent {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (hasPresetUser) {
                     val targetDisplayName = presetDisplayName?.ifBlank { null } ?: userId
                     Text(
-                        "Open a direct message with $targetDisplayName?",
+                        i18n.tacitOpenDirectMessageWith(targetDisplayName),
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 } else {
                     Text(
-                        "Search for a user or enter a Matrix user ID.",
+                        i18n.tacitSearchUserOrEnterMatrixId(),
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 }
@@ -85,8 +89,8 @@ internal fun CreateDirectMessageDialog(
                     value = userId,
                     onValueChange = { if (!hasPresetUser) userId = it },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Matrix user ID") },
-                    placeholder = { Text("@alice:example.org or display name") },
+                    label = { Text(i18n.tacitMatrixUserIdLabel()) },
+                    placeholder = { Text(i18n.tacitUserIdPlaceholder()) },
                     maxLines = 1,
                     enabled = !hasPresetUser,
                 )
@@ -94,7 +98,7 @@ internal fun CreateDirectMessageDialog(
                     when {
                         searchInProgress -> {
                             Text(
-                                "Searching users...",
+                                i18n.tacitSearchingUsers(),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = tacitTextMuted,
                             )
@@ -161,7 +165,7 @@ internal fun CreateDirectMessageDialog(
                 }
                 if (!canStartDirectMessage) {
                     Text(
-                        "No active Matrix account available.",
+                        i18n.tacitNoActiveAccount(),
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
                     )
@@ -174,14 +178,14 @@ internal fun CreateDirectMessageDialog(
                 onClick = onDismiss,
                 enabled = !isStartingDirectMessage,
             ) {
-                Text("Cancel")
+                Text(i18n.commonCancel())
             }
             ThemedButton(
                 style = MaterialTheme.components.primaryButton,
                 onClick = { onStartDirectMessage(userId) },
                 enabled = !isStartingDirectMessage && canStartDirectMessage && userId.isNotBlank(),
             ) {
-                Text(if (isStartingDirectMessage) "Starting..." else "Start Chat")
+                Text(if (isStartingDirectMessage) i18n.tacitStartingInProgress() else i18n.tacitStartChat())
             }
         }
     }

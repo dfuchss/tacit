@@ -16,11 +16,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import de.connect2x.trixnity.messenger.compose.view.DI
+import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.pointerMoveFilter
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.RoomHeaderView
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.RoomHeaderViewImpl
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.RoomHeaderViewModel
 import org.fuchss.matrix.tacit.*
+import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 
 class TacitRoomHeaderView(
     private val delegate: RoomHeaderView = RoomHeaderViewImpl(),
@@ -60,6 +63,7 @@ private fun MembersPaneToggleButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val i18n = DI.get<TacitI18nView>()
     var hovered by remember { mutableStateOf(false) }
     val background = when {
         active -> tacitMembersButtonActiveBackground
@@ -94,7 +98,7 @@ private fun MembersPaneToggleButton(
     ) {
         Icon(
             imageVector = Icons.Default.Person,
-            contentDescription = "Toggle members pane",
+            contentDescription = i18n.tacitToggleMembersPane(),
             tint = iconColor,
             modifier = Modifier.size(16.dp),
         )

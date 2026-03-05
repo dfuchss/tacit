@@ -16,9 +16,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import de.connect2x.trixnity.messenger.compose.view.DI
+import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedUserAvatar
 import org.fuchss.matrix.tacit.*
 import org.fuchss.matrix.tacit.viewmodel.room.timeline.entry.ChannelMemberEntry
+import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 import org.fuchss.matrix.tacit.views.room.list.dialogs.direct.CreateDirectMessageDialog
 
 @Composable
@@ -27,6 +30,7 @@ internal fun ChannelMembersPane(
     onMemberClick: (ChannelMemberEntry, onNeedsConfirmation: () -> Unit) -> Unit,
     onConfirmStartDirectMessage: (ChannelMemberEntry) -> Unit,
 ) {
+    val i18n = DI.get<TacitI18nView>()
     var selectedMemberForDm by remember { mutableStateOf<ChannelMemberEntry?>(null) }
 
     Column(
@@ -37,7 +41,7 @@ internal fun ChannelMembersPane(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text(
-            text = "Members \u00b7 ${roomMembers.size}",
+            text = i18n.tacitMembersTitle(roomMembers.size),
             color = tacitText,
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.Companion.SemiBold,
@@ -49,7 +53,7 @@ internal fun ChannelMembersPane(
                 contentAlignment = Alignment.Companion.Center,
             ) {
                 Text(
-                    text = "No members to show",
+                    text = i18n.tacitNoMembersToShow(),
                     color = tacitTextMuted,
                     style = MaterialTheme.typography.bodySmall,
                 )
@@ -62,6 +66,7 @@ internal fun ChannelMembersPane(
                 items(roomMembers, key = { it.userId.full }) { member ->
                     MemberRow(
                         member = member,
+                        i18n = i18n,
                         clickable = !member.isSelf,
                         onClick = {
                             onMemberClick(member) {
@@ -95,6 +100,7 @@ internal fun ChannelMembersPane(
 @Composable
 private fun MemberRow(
     member: ChannelMemberEntry,
+    i18n: TacitI18nView,
     clickable: Boolean,
     onClick: () -> Unit,
 ) {
@@ -117,7 +123,7 @@ private fun MemberRow(
 
         Column(modifier = Modifier.Companion.weight(1f)) {
             Text(
-                text = if (member.isSelf) "${member.displayName} (You)" else member.displayName,
+                text = if (member.isSelf) i18n.tacitYouSuffix(member.displayName) else member.displayName,
                 color = tacitText,
                 style = MaterialTheme.typography.bodyMedium,
                 maxLines = 1,

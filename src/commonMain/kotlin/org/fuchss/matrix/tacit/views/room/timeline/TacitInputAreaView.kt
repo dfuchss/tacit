@@ -21,7 +21,6 @@ import androidx.compose.ui.unit.dp
 import de.connect2x.trixnity.messenger.compose.view.DI
 import de.connect2x.trixnity.messenger.compose.view.collectAsTextFieldValueState
 import de.connect2x.trixnity.messenger.compose.view.get
-import de.connect2x.trixnity.messenger.compose.view.i18n.I18nView
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.*
 import de.connect2x.trixnity.messenger.compose.view.theme.components
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedSurface
@@ -29,6 +28,7 @@ import de.connect2x.trixnity.messenger.viewmodel.room.timeline.InputAreaViewMode
 import org.fuchss.matrix.tacit.tacitSearchResultBackground
 import org.fuchss.matrix.tacit.tacitSearchResultBorder
 import org.fuchss.matrix.tacit.tacitText
+import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 
 private data class EmojiShortcodeMatch(
     val startIndex: Int,
@@ -39,7 +39,7 @@ private data class EmojiShortcodeMatch(
 class TacitInputAreaView : InputAreaView {
     @Composable
     override fun create(inputAreaViewModel: InputAreaViewModel) {
-        val i18n = DI.get<I18nView>()
+        val i18n = DI.get<TacitI18nView>()
         val isReplyTo = inputAreaViewModel.isReply.collectAsState().value
         val canSendMessages = inputAreaViewModel.isAllowedToSendMessages.collectAsState().value
         val isEdit = inputAreaViewModel.isReplace.collectAsState().value

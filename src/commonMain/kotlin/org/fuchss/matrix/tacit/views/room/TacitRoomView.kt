@@ -12,7 +12,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import de.connect2x.trixnity.messenger.compose.view.DI
 import de.connect2x.trixnity.messenger.compose.view.TWO_PANE_THRESHOLD
+import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.room.RoomView
 import de.connect2x.trixnity.messenger.compose.view.room.SETTINGS_WEIGHT
 import de.connect2x.trixnity.messenger.compose.view.room.TIMELINE_WEIGHT
@@ -29,6 +31,7 @@ import kotlinx.coroutines.launch
 import org.fuchss.matrix.tacit.*
 import org.fuchss.matrix.tacit.viewmodel.room.timeline.TacitTimelineViewModel
 import org.fuchss.matrix.tacit.views.LocalTacitRoomListHidden
+import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 
 class TacitRoomView : RoomView {
     @Composable
@@ -156,6 +159,7 @@ private fun TimelinePane(
     showSettingsButton: Boolean,
     showBackButton: Boolean,
 ) {
+    val i18n = DI.get<TacitI18nView>()
     val activeTimeline = roomViewModel.timelineStack.subscribeAsState().value.active.instance
     if (activeTimeline is TimelineRouter.Wrapper.None) {
         Box(
@@ -166,7 +170,7 @@ private fun TimelinePane(
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                text = "Select a channel from the list to continue.",
+                text = i18n.tacitSelectChannelHint(),
                 color = tacitTextMuted,
                 style = MaterialTheme.typography.bodyMedium,
             )

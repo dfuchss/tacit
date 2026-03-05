@@ -13,7 +13,10 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import de.connect2x.trixnity.messenger.compose.view.DI
+import de.connect2x.trixnity.messenger.compose.view.get
 import org.fuchss.matrix.tacit.tacitTextMuted
+import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 
 @Composable
 internal fun TacitAttributionFooter(
@@ -24,6 +27,7 @@ internal fun TacitAttributionFooter(
     overflow: TextOverflow = TextOverflow.Ellipsis,
 ) {
     val uriHandler = LocalUriHandler.current
+    val i18n = DI.get<TacitI18nView>()
 
     Row(
         modifier = modifier,
@@ -31,7 +35,7 @@ internal fun TacitAttributionFooter(
         horizontalArrangement = horizontalArrangement,
     ) {
         Text(
-            text = "Built by ",
+            text = i18n.tacitFooterBuiltByPrefix(),
             color = tacitTextMuted,
             style = textStyle,
             maxLines = maxLines,
@@ -45,18 +49,36 @@ internal fun TacitAttributionFooter(
             maxLines = maxLines,
             overflow = overflow,
             modifier = Modifier.clickable {
-                uriHandler.openUri("https://github.com/dfuchss")
+                uriHandler.openUri("https://fuchss.org")
             },
         )
         Text(
-            text = " · Powered by ",
+            text = i18n.tacitFooterForkedFromPrefix(),
             color = tacitTextMuted,
             style = textStyle,
             maxLines = maxLines,
             overflow = overflow,
         )
         Text(
-            text = "trixnity messenger",
+            text = "Tammy",
+            color = MaterialTheme.colorScheme.primary,
+            style = textStyle,
+            textDecoration = TextDecoration.Underline,
+            maxLines = maxLines,
+            overflow = overflow,
+            modifier = Modifier.clickable {
+                uriHandler.openUri("https://gitlab.com/connect2x/tammy")
+            },
+        )
+        Text(
+            text = i18n.tacitFooterPoweredByPrefix(),
+            color = tacitTextMuted,
+            style = textStyle,
+            maxLines = maxLines,
+            overflow = overflow,
+        )
+        Text(
+            text = "trixnity-messenger",
             color = MaterialTheme.colorScheme.primary,
             style = textStyle,
             textDecoration = TextDecoration.Underline,
@@ -65,13 +87,6 @@ internal fun TacitAttributionFooter(
             modifier = Modifier.clickable {
                 uriHandler.openUri("https://gitlab.com/connect2x/trixnity-messenger/trixnity-messenger")
             },
-        )
-        Text(
-            text = " · Alpha stage: do not use production accounts.",
-            color = tacitTextMuted,
-            style = textStyle,
-            maxLines = maxLines,
-            overflow = overflow,
         )
     }
 }

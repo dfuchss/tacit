@@ -2,6 +2,7 @@ package org.fuchss.matrix.tacit.views.room.list
 
 import androidx.compose.ui.graphics.Color
 import de.connect2x.trixnity.core.model.events.m.Presence
+import de.connect2x.trixnity.messenger.compose.view.i18n.I18nView
 import org.fuchss.matrix.tacit.accentColor
 
 internal fun dmInitials(name: String): String {
@@ -20,7 +21,7 @@ internal fun dmPresenceColor(presence: Presence?): Color = when (presence) {
     else -> Color.Transparent
 }
 
-internal fun dmPresenceLabel(presence: Presence?): String? = when (presence) {
-    Presence.ONLINE -> "Online"
+internal fun dmPresenceLabel(presence: Presence?, i18n: I18nView): String? = when (presence) {
+    Presence.ONLINE -> i18n.presenceOnline()
     else -> null
 }

@@ -2,7 +2,9 @@ package org.fuchss.matrix.tacit
 
 import de.connect2x.trixnity.client.MatrixClientConfiguration
 import de.connect2x.trixnity.messenger.ConfigureMatrixClientConfiguration
+import de.connect2x.trixnity.messenger.compose.view.i18n.I18nView
 import de.connect2x.trixnity.messenger.compose.view.room.RoomView
+import de.connect2x.trixnity.messenger.compose.view.room.settings.ChangeRoomAvatarView
 import de.connect2x.trixnity.messenger.compose.view.room.settings.RoomSettingsView
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.InputAreaView
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.RoomHeaderView
@@ -16,19 +18,25 @@ import de.connect2x.trixnity.messenger.compose.view.roomlist.header.ShowSearchVi
 import de.connect2x.trixnity.messenger.compose.view.root.MainView
 import de.connect2x.trixnity.messenger.compose.view.root.MessengerView
 import de.connect2x.trixnity.messenger.compose.view.settings.*
+import de.connect2x.trixnity.messenger.viewmodel.room.settings.ChangeRoomAvatarViewModelFactory
 import de.connect2x.trixnity.messenger.viewmodel.room.settings.RoomSettingsViewModelFactory
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.TimelineViewModelFactory
 import de.connect2x.trixnity.messenger.viewmodel.roomlist.RoomListElementViewModelFactory
 import de.connect2x.trixnity.messenger.viewmodel.roomlist.RoomListViewModelFactory
+import de.connect2x.trixnity.messenger.viewmodel.settings.AppearanceSettingsViewModelFactory
 import org.fuchss.matrix.tacit.viewmodel.room.list.TacitRoomListElementViewModelFactory
 import org.fuchss.matrix.tacit.viewmodel.room.list.TacitRoomListViewModelFactory
+import org.fuchss.matrix.tacit.viewmodel.room.settings.TacitChangeRoomAvatarViewModelFactory
 import org.fuchss.matrix.tacit.viewmodel.room.settings.TacitRoomSettingsViewModelFactory
 import org.fuchss.matrix.tacit.viewmodel.room.timeline.TacitTimelineViewModelFactory
+import org.fuchss.matrix.tacit.viewmodel.settings.TacitAppearanceSettingsViewModelFactory
 import org.fuchss.matrix.tacit.views.*
+import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 import org.fuchss.matrix.tacit.views.room.TacitRoomHeaderView
 import org.fuchss.matrix.tacit.views.room.TacitRoomSettingsView
 import org.fuchss.matrix.tacit.views.room.TacitRoomView
 import org.fuchss.matrix.tacit.views.room.list.TacitRoomListView
+import org.fuchss.matrix.tacit.views.room.settings.TacitChangeRoomAvatarView
 import org.fuchss.matrix.tacit.views.room.timeline.TacitInputAreaView
 import org.fuchss.matrix.tacit.views.room.timeline.TacitTimelineView
 import org.fuchss.matrix.tacit.views.room.timeline.TacitTypingIndicatorView
@@ -43,10 +51,14 @@ fun tammyTacitModule() = module {
     }
 
     single<RoomListView> { TacitRoomListView() }
+    single<TacitI18nView> { TacitI18nView(get(), get(), get(), get()) }
+    single<I18nView> { get<TacitI18nView>() }
     single<RoomListViewModelFactory> { TacitRoomListViewModelFactory }
     single<RoomListElementViewModelFactory> { TacitRoomListElementViewModelFactory }
     single<TimelineViewModelFactory> { TacitTimelineViewModelFactory }
+    single<AppearanceSettingsViewModelFactory> { TacitAppearanceSettingsViewModelFactory }
     single<RoomSettingsViewModelFactory> { TacitRoomSettingsViewModelFactory }
+    single<ChangeRoomAvatarViewModelFactory> { TacitChangeRoomAvatarViewModelFactory }
     single<MainView> { TacitMainView() }
     single<MessengerView> { TacitMessengerView() }
     single<ShowSearchView> { TacitShowSearchView() }
@@ -55,6 +67,7 @@ fun tammyTacitModule() = module {
     single<RoomView> { TacitRoomView() }
     single<RoomHeaderView> { TacitRoomHeaderView() }
     single<RoomSettingsView> { TacitRoomSettingsView() }
+    single<ChangeRoomAvatarView> { TacitChangeRoomAvatarView() }
     single<TypingIndicatorView> { TacitTypingIndicatorView() }
     single<InputAreaView> { TacitInputAreaView() }
     single<ReadMarkerView> { TacitReadMarkerView() }

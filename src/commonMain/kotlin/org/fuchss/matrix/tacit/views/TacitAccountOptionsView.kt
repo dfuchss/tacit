@@ -18,17 +18,17 @@ import de.connect2x.trixnity.messenger.MatrixMessengerConfiguration
 import de.connect2x.trixnity.messenger.compose.view.DI
 import de.connect2x.trixnity.messenger.compose.view.common.Tooltip
 import de.connect2x.trixnity.messenger.compose.view.get
-import de.connect2x.trixnity.messenger.compose.view.i18n.I18nView
 import de.connect2x.trixnity.messenger.compose.view.roomlist.header.AccountOptionsView
 import de.connect2x.trixnity.messenger.compose.view.theme.components
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedIconButton
 import de.connect2x.trixnity.messenger.viewmodel.roomlist.AccountViewModel
 import de.connect2x.trixnity.messenger.viewmodel.roomlist.RoomListViewModel
+import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 
 class TacitAccountOptionsView : AccountOptionsView {
     @Composable
     override fun create(accountViewModel: AccountViewModel, roomListViewModel: RoomListViewModel) {
-        val i18n = DI.get<I18nView>()
+        val i18n = DI.get<TacitI18nView>()
         val appName = DI.get<MatrixMessengerConfiguration>().appName
         val settingsLabel = i18n.commonSettings().capitalize(Locale.current)
         val aboutLabel = i18n.accountAboutTheApp(appName)

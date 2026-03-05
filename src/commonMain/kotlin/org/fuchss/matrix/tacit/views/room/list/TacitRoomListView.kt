@@ -13,7 +13,6 @@ import androidx.compose.ui.unit.dp
 import de.connect2x.trixnity.core.model.RoomId
 import de.connect2x.trixnity.messenger.compose.view.DI
 import de.connect2x.trixnity.messenger.compose.view.get
-import de.connect2x.trixnity.messenger.compose.view.i18n.I18nView
 import de.connect2x.trixnity.messenger.compose.view.roomlist.RoomListView
 import de.connect2x.trixnity.messenger.viewmodel.roomlist.RoomListViewModel
 import de.connect2x.trixnity.messenger.viewmodel.util.ErrorType
@@ -27,6 +26,7 @@ import org.fuchss.matrix.tacit.viewmodel.room.list.TacitRoomListElementViewModel
 import org.fuchss.matrix.tacit.viewmodel.room.list.TacitRoomListViewModel
 import org.fuchss.matrix.tacit.viewmodel.room.list.entry.GuildEntry
 import org.fuchss.matrix.tacit.viewmodel.room.list.selectedGuildOrNull
+import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 import org.fuchss.matrix.tacit.views.room.list.dialogs.browse.BrowseChannelsDialogContainer
 import org.fuchss.matrix.tacit.views.room.list.dialogs.create.CreateChannelDialogContainer
 import org.fuchss.matrix.tacit.views.room.list.dialogs.create.CreateGroupChannelDialogContainer
@@ -41,7 +41,7 @@ class TacitRoomListView : RoomListView {
     override fun create(roomListViewModel: RoomListViewModel) {
         val tacitRoomListViewModel = roomListViewModel as? TacitRoomListViewModel
             ?: error("TacitRoomListView requires RoomListViewModelFactory to provide TacitRoomListViewModel.")
-        val i18n = DI.get<I18nView>()
+        val i18n = DI.get<TacitI18nView>()
         LaunchedEffect(Unit) {
             roomListViewModel.showSearch.value = false
         }
@@ -126,7 +126,7 @@ class TacitRoomListView : RoomListView {
             onAcceptSelectedGuildInvite = {
                 val targetGuild = selectedGuildInviteFallback
                 if (targetGuild == null) {
-                    tacitRoomListViewModel.reportError("No account available for this guild invite.")
+                    tacitRoomListViewModel.reportError(i18n.tacitNoAccountForGuildInviteError())
                     return@RoomListContent
                 }
                 if (guildInviteActionInProgress) return@RoomListContent
@@ -135,7 +135,7 @@ class TacitRoomListView : RoomListView {
             onDeclineSelectedGuildInvite = {
                 val targetGuild = selectedGuildInviteFallback
                 if (targetGuild == null) {
-                    tacitRoomListViewModel.reportError("No account available for this guild invite.")
+                    tacitRoomListViewModel.reportError(i18n.tacitNoAccountForGuildInviteError())
                     return@RoomListContent
                 }
                 if (guildInviteActionInProgress) return@RoomListContent
@@ -252,7 +252,7 @@ private fun AutoDismissError(
 @Composable
 private fun RoomListContent(
     roomListViewModel: RoomListViewModel,
-    i18n: I18nView,
+    i18n: TacitI18nView,
     guilds: List<GuildEntry>,
     guildAvatars: Map<String, ByteArray?>,
     mode: RoomListMode,
@@ -306,6 +306,7 @@ private fun RoomListContent(
                 .background(tacitLayer)
         ) {
             GuildHero(
+                i18n = i18n,
                 selectedGuild = mode.selectedGuildOrNull,
                 visibleRoomsCount = visibleRooms.size,
             )
@@ -313,6 +314,7 @@ private fun RoomListContent(
             when (mode) {
                 is RoomListMode.DirectMessages -> {
                     DmChannelToolbar(
+                        i18n = i18n,
                         roomListViewModel = roomListViewModel,
                         canCreateRoom = canCreateNewRoomWithAccount,
                         onCreateRoom = onCreateRoom,
@@ -322,6 +324,7 @@ private fun RoomListContent(
 
                 is RoomListMode.GuildChannels -> {
                     GuildChannelToolbar(
+                        i18n = i18n,
                         roomListViewModel,
                         canCreateNewRoomWithAccount,
                         onCreateRoom,

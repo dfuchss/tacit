@@ -22,9 +22,11 @@ import de.connect2x.trixnity.messenger.compose.view.collectAsTextFieldValueState
 import de.connect2x.trixnity.messenger.compose.view.pointerMoveFilter
 import de.connect2x.trixnity.messenger.viewmodel.roomlist.RoomListViewModel
 import org.fuchss.matrix.tacit.*
+import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 
 @Composable
 internal fun DmChannelToolbar(
+    i18n: TacitI18nView,
     roomListViewModel: RoomListViewModel,
     canCreateRoom: Boolean,
     onCreateRoom: () -> Unit,
@@ -47,8 +49,9 @@ internal fun DmChannelToolbar(
             ToolbarSearchField(
                 searchText = searchText,
                 onSearchTextChange = { searchText = it },
-                placeholder = "Search friends",
+                placeholder = i18n.tacitSearchFriendsPlaceholder(),
                 searchVerticalPadding = searchVerticalPadding,
+                clearSearchLabel = i18n.tacitClearSearchDescription(),
                 onClear = { roomListViewModel.searchTerm.update("") },
             )
             ToolbarActionsRow(
@@ -56,14 +59,14 @@ internal fun DmChannelToolbar(
             ) {
                 ToolbarIconButton(
                     icon = Icons.Default.Add,
-                    contentDescription = "New DM",
+                    contentDescription = i18n.tacitNewDmDescription(),
                     onClick = onCreateRoom,
                     enabled = canCreateRoom,
                     primary = true,
                 )
                 ToolbarIconButton(
                     icon = Icons.Default.GroupAdd,
-                    contentDescription = "New group chat",
+                    contentDescription = i18n.tacitNewGroupChatDescription(),
                     onClick = onCreateGroupChannel,
                     enabled = canCreateRoom,
                 )
@@ -74,6 +77,7 @@ internal fun DmChannelToolbar(
 
 @Composable
 internal fun GuildChannelToolbar(
+    i18n: TacitI18nView,
     roomListViewModel: RoomListViewModel,
     canCreateRoom: Boolean,
     onCreateRoom: () -> Unit,
@@ -100,8 +104,9 @@ internal fun GuildChannelToolbar(
             ToolbarSearchField(
                 searchText = searchText,
                 onSearchTextChange = { searchText = it },
-                placeholder = "Search rooms",
+                placeholder = i18n.tacitSearchRoomsPlaceholder(),
                 searchVerticalPadding = searchVerticalPadding,
+                clearSearchLabel = i18n.tacitClearSearchDescription(),
                 onClear = { roomListViewModel.searchTerm.update("") },
             )
             ToolbarActionsRow(
@@ -109,7 +114,7 @@ internal fun GuildChannelToolbar(
             ) {
                 ToolbarIconButton(
                     icon = Icons.Default.Add,
-                    contentDescription = "New channel",
+                    contentDescription = i18n.tacitNewChannelDescription(),
                     onClick = onCreateRoom,
                     enabled = canCreateRoom,
                     primary = true,
@@ -117,7 +122,7 @@ internal fun GuildChannelToolbar(
                 if (onBrowseChannels != null) {
                     ToolbarIconButton(
                         icon = Icons.Default.Search,
-                        contentDescription = "Browse rooms",
+                        contentDescription = i18n.tacitBrowseRoomsDescription(),
                         onClick = onBrowseChannels,
                         enabled = true,
                     )
@@ -125,7 +130,7 @@ internal fun GuildChannelToolbar(
                 if (onInviteToGuild != null) {
                     ToolbarIconButton(
                         icon = Icons.Default.PersonAdd,
-                        contentDescription = "Invite members",
+                        contentDescription = i18n.tacitInviteMembersDescription(),
                         onClick = onInviteToGuild,
                         enabled = canInviteToGuild,
                     )
@@ -133,7 +138,7 @@ internal fun GuildChannelToolbar(
                 if (onOpenGuildSettings != null) {
                     ToolbarIconButton(
                         icon = Icons.Default.Settings,
-                        contentDescription = "Guild settings",
+                        contentDescription = i18n.tacitGuildSettingsDescription(),
                         onClick = onOpenGuildSettings,
                         enabled = canEditGuildSettings,
                     )
@@ -149,6 +154,7 @@ private fun RowScope.ToolbarSearchField(
     onSearchTextChange: (androidx.compose.ui.text.input.TextFieldValue) -> Unit,
     placeholder: String,
     searchVerticalPadding: androidx.compose.ui.unit.Dp,
+    clearSearchLabel: String,
     onClear: () -> Unit,
 ) {
     var searchHovered by remember { mutableStateOf(false) }
@@ -196,7 +202,7 @@ private fun RowScope.ToolbarSearchField(
                     if (searchText.text.isNotBlank()) {
                         Icon(
                             Icons.Default.Close,
-                            contentDescription = "Clear search",
+                            contentDescription = clearSearchLabel,
                             tint = tacitInputPlaceholder,
                             modifier = Modifier
                                 .size(16.dp)

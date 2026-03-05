@@ -34,7 +34,6 @@ import androidx.compose.ui.window.Popup
 import androidx.compose.ui.zIndex
 import de.connect2x.trixnity.messenger.compose.view.DI
 import de.connect2x.trixnity.messenger.compose.view.get
-import de.connect2x.trixnity.messenger.compose.view.i18n.I18nView
 import de.connect2x.trixnity.messenger.compose.view.pointerMoveFilter
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.RedactionWarning
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.TimelineElementViewSelector
@@ -43,6 +42,7 @@ import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.messag
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedUserAvatar
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.BaseTimelineElementHolderViewModel
 import org.fuchss.matrix.tacit.*
+import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 
 class TacitFlatMessageView : MessageBubbleView {
     @Composable
@@ -77,7 +77,7 @@ private fun TacitFlatMessageContainer(
     index: Int,
     content: @Composable (showActionMenu: () -> Unit) -> Unit,
 ) {
-    val i18n = DI.get<I18nView>()
+    val i18n = DI.get<TacitI18nView>()
     val timelineElementViewSelector = DI.get<TimelineElementViewSelector>()
     val element = holder.element.collectAsState().value
     val sender = holder.sender.collectAsState().value

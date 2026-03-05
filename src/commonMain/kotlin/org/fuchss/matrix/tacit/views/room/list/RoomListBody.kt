@@ -19,7 +19,6 @@ import androidx.compose.ui.unit.dp
 import de.connect2x.trixnity.core.model.RoomId
 import de.connect2x.trixnity.messenger.compose.view.DI
 import de.connect2x.trixnity.messenger.compose.view.get
-import de.connect2x.trixnity.messenger.compose.view.i18n.I18nView
 import de.connect2x.trixnity.messenger.compose.view.theme.components
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedButton
 import de.connect2x.trixnity.messenger.viewmodel.roomlist.RoomListViewModel
@@ -30,11 +29,12 @@ import org.fuchss.matrix.tacit.viewmodel.room.list.RoomListMode
 import org.fuchss.matrix.tacit.viewmodel.room.list.TacitRoomListElementViewModel
 import org.fuchss.matrix.tacit.viewmodel.room.list.isDirectMessages
 import org.fuchss.matrix.tacit.viewmodel.room.list.roomsSectionTitle
+import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 
 @Composable
 internal fun RoomListBody(
     roomListViewModel: RoomListViewModel,
-    i18n: I18nView,
+    i18n: TacitI18nView,
     mode: RoomListMode,
     selectedRoomId: RoomId?,
     visibleRooms: List<TacitRoomListElementViewModel>,
@@ -64,9 +64,9 @@ internal fun RoomListBody(
 
             !hasAnyRooms && mode is RoomListMode.GuildChannels -> {
                 RoomListEmptyState(
-                    title = "No joined rooms in this guild",
-                    description = "Browse available rooms to get started.",
-                    actionLabel = "Browse Rooms",
+                    title = i18n.tacitNoJoinedRoomsInGuildTitle(),
+                    description = i18n.tacitNoJoinedRoomsInGuildDescription(),
+                    actionLabel = i18n.tacitBrowseRoomsAction(),
                     onAction = onBrowseRooms,
                 )
             }
@@ -79,8 +79,8 @@ internal fun RoomListBody(
 
             !hasAnyRooms && mode.isDirectMessages() -> {
                 RoomListEmptyState(
-                    title = "No direct messages yet",
-                    description = "Start a conversation or join a room.",
+                    title = i18n.tacitNoDirectMessagesYet(),
+                    description = i18n.tacitNoDirectMessagesDescription(),
                 )
             }
 
@@ -115,13 +115,14 @@ internal fun RoomListBody(
                                     room = room,
                                     selectedRoomId = selectedRoomId,
                                     mode = mode,
+                                    i18n = i18n,
                                 )
                             }
                         }
 
                         if (inviteRooms.isNotEmpty()) {
                             item {
-                                RoomListSectionLabel("INVITES")
+                                RoomListSectionLabel(i18n.tacitInvitesSection())
                             }
                             itemsIndexed(
                                 items = inviteRooms,
@@ -132,6 +133,7 @@ internal fun RoomListBody(
                                     room = room,
                                     selectedRoomId = selectedRoomId,
                                     mode = mode,
+                                    i18n = i18n,
                                     showInviteActions = true,
                                     onAcceptInvite = {
                                         room.acceptInvitation()
@@ -160,10 +162,10 @@ internal fun RoomListBody(
                                     )
                                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                         androidx.compose.material3.TextButton(onClick = { onDeclineSelectedGuildInvite?.invoke() }) {
-                                            Text("Decline")
+                                            Text(i18n.tacitDecline())
                                         }
                                         androidx.compose.material3.TextButton(onClick = { onAcceptSelectedGuildInvite?.invoke() }) {
-                                            Text("Accept")
+                                            Text(i18n.tacitAccept())
                                         }
                                     }
                                 }
@@ -244,7 +246,7 @@ private fun RoomListSectionLabel(text: String) {
 
 @Composable
 internal fun EmptyRoomList(roomListViewModel: RoomListViewModel) {
-    val i18n = DI.get<I18nView>()
+    val i18n = DI.get<TacitI18nView>()
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(Modifier.padding(horizontal = 20.dp)) {
             Text(i18n.roomListNoRoom())

@@ -12,17 +12,19 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.fuchss.matrix.tacit.*
 import org.fuchss.matrix.tacit.viewmodel.room.list.entry.GuildEntry
+import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 
 @Composable
 internal fun GuildHero(
+    i18n: TacitI18nView,
     selectedGuild: GuildEntry?,
     visibleRoomsCount: Int,
 ) {
-    val title = selectedGuild?.displayName?.ifBlank { null } ?: selectedGuild?.roomId?.full ?: "All DMs"
+    val title = selectedGuild?.displayName?.ifBlank { null } ?: selectedGuild?.roomId?.full ?: i18n.tacitAllDms()
     val subtitle = if (selectedGuild == null) {
-        "$visibleRoomsCount rooms"
+        i18n.tacitRoomsCount(visibleRoomsCount)
     } else {
-        "$visibleRoomsCount rooms in this guild"
+        i18n.tacitRoomsInGuildCount(visibleRoomsCount)
     }
 
     Box(

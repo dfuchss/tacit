@@ -25,7 +25,6 @@ import de.connect2x.trixnity.messenger.compose.view.common.LoadingSpinner
 import de.connect2x.trixnity.messenger.compose.view.common.modifier.rovingFocusContainer
 import de.connect2x.trixnity.messenger.compose.view.common.modifier.rovingFocusItem
 import de.connect2x.trixnity.messenger.compose.view.get
-import de.connect2x.trixnity.messenger.compose.view.i18n.I18nView
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.*
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.TimelineElementHolder
 import de.connect2x.trixnity.messenger.compose.view.theme.components
@@ -36,6 +35,7 @@ import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.Timeline
 import de.connect2x.trixnity.messenger.viewmodel.util.throttleFirst
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.withTimeoutOrNull
+import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
@@ -46,7 +46,7 @@ private val timelineEndPadding = (10 + additionalEndPadding).dp
 class TacitTimelineView : TimelineView {
     @Composable
     override fun ColumnScope.create(timelineViewModel: TimelineViewModel) {
-        val i18n = DI.get<I18nView>()
+        val i18n = DI.get<TacitI18nView>()
         var scrollTo by remember { mutableStateOf<String?>(null) }
         LaunchedEffect(Unit) {
             timelineViewModel.scrollTo.drop(1).collect { scrollTo = it }

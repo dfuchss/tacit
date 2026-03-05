@@ -18,12 +18,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import de.connect2x.trixnity.core.model.RoomId
 import de.connect2x.trixnity.core.model.events.m.Presence
+import de.connect2x.trixnity.messenger.compose.view.DI
+import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.pointerMoveFilter
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedUserAvatar
 import de.connect2x.trixnity.messenger.viewmodel.roomlist.RoomListViewModel
 import org.fuchss.matrix.tacit.*
 import org.fuchss.matrix.tacit.viewmodel.room.list.RoomListMode
 import org.fuchss.matrix.tacit.viewmodel.room.list.TacitRoomListElementViewModel
+import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 
 @Composable
 internal fun ChannelRow(
@@ -31,6 +34,7 @@ internal fun ChannelRow(
     room: TacitRoomListElementViewModel,
     selectedRoomId: RoomId?,
     mode: RoomListMode,
+    i18n: TacitI18nView,
     showInviteActions: Boolean = false,
     onAcceptInvite: (() -> Unit)? = null,
     onDeclineInvite: (() -> Unit)? = null,
@@ -119,7 +123,7 @@ internal fun ChannelRow(
                     modifier = Modifier.weight(1f, fill = false),
                 )
                 if (isDirectRoom) {
-                    val presenceLabel = dmPresenceLabel(presence)
+                    val presenceLabel = dmPresenceLabel(presence, i18n)
                     if (presenceLabel != null) {
                         Text(
                             text = presenceLabel,
@@ -184,14 +188,14 @@ internal fun ChannelRow(
                     enabled = !inviteActionInProgress,
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
                 ) {
-                    Text("Decline")
+                    Text(i18n.tacitDecline())
                 }
                 TextButton(
                     onClick = { onAcceptInvite?.invoke() },
                     enabled = !inviteActionInProgress,
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
                 ) {
-                    Text("Accept")
+                    Text(i18n.tacitAccept())
                 }
             }
         }
@@ -202,6 +206,7 @@ internal fun ChannelRow(
 internal fun DmOverview(
     rooms: List<TacitRoomListElementViewModel>,
 ) {
+    val i18n = DI.get<TacitI18nView>()
     val unread = rooms.count { room -> room.isUnread.collectAsState().value == true }
     val online = rooms.count { room -> room.presence.collectAsState().value == Presence.ONLINE }
     Column(
@@ -214,68 +219,23 @@ internal fun DmOverview(
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             DmStatTile(
-                title = "Chats",
+                title = i18n.tacitDmStatChats(),
                 value = rooms.size.toString(),
                 modifier = Modifier.weight(1f),
                 valueColor = tacitText,
             )
             DmStatTile(
-                title = "Online",
+                title = i18n.tacitDmStatOnline(),
                 value = online.toString(),
                 modifier = Modifier.weight(1f),
                 valueColor = accentColor,
             )
             DmStatTile(
-                title = "Unread",
+                title = i18n.tacitDmStatUnread(),
                 value = unread.toString(),
                 modifier = Modifier.weight(1f),
                 valueColor = tacitAccentSoft,
             )
-        }
-        if (rooms.isNotEmpty()) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                rooms.take(6).forEach { room ->
-                    val roomName = room.roomName.collectAsState().value
-                    val roomImageInitials = room.roomImageInitials.collectAsState().value
-                    val roomImage = room.roomImage.collectAsState().value
-                    val presence = room.presence.collectAsState().value
-                    Box(modifier = Modifier.size(28.dp), contentAlignment = Alignment.BottomEnd) {
-                        ThemedUserAvatar(
-                            initials = roomImageInitials ?: dmInitials(roomName ?: room.roomId.full),
-                            image = roomImage,
-                            size = 26.dp,
-                        )
-                        if (dmPresenceVisible(presence)) {
-                            Box(
-                                modifier = Modifier
-                                    .size(8.dp)
-                                    .clip(CircleShape)
-                                    .background(dmPresenceColor(presence)),
-                            )
-                        }
-                    }
-                }
-                if (rooms.size > 6) {
-                    Box(
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .background(tacitCardBackgroundAlt)
-                            .padding(horizontal = 7.dp, vertical = 5.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = "+${rooms.size - 6}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = tacitTextMuted,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                    }
-                }
-            }
         }
     }
 }
