@@ -5,7 +5,7 @@ import de.connect2x.trixnity.messenger.compose.view.common.contrastByLuminance
 import de.connect2x.trixnity.messenger.compose.view.common.deriveFromHue
 import de.connect2x.trixnity.messenger.compose.view.common.hue
 
-private val tacitDefaultAccentColor = Color(0xFF7EF57D)
+private val tacitDefaultAccentColor = Color(0xFF3BB2FA)
 private var tacitAccentHue = tacitDefaultAccentColor.hue
 
 internal fun updateTacitAccentColor(color: Color) {

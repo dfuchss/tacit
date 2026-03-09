@@ -26,13 +26,32 @@ Tacit is based on [Trixnity Messenger](https://gitlab.com/connect2x/trixnity-mes
 ## Screenshots
 
 ### DMs / Group Chats
-![DM view](.images/typing_ui.jpg)
+![DM view](.images/overview.png)
+
+### Invites
+![Invite view](.images/invite.png)
+
+### Chatting
+![Chat view](.images/chatting.png)
+
+### Emoji picker while typing :)
+![Emoji picker](.images/emoji_picker.png)
 
 ### Spaces / Guilds
-![Guild view](.images/guild_ui.jpg)
+A matrix space is translated to the idea of guilds in Tacit. Guilds only contain rooms. All DMs and group chats are outside of guilds. Guilds can be used to organize rooms, e.g. by topic, project, or team.
 
-### Emojis while typing :)
-![Emoji picker](.images/emoji_picker.jpg)
+#### Create your guilds
+![Create guild](.images/guild_create.png)
+
+#### Guild overview
+![Guild overview](.images/guild_ui.png)
+
+#### Invite to guild
+![Guild invite](.images/guild_invite.png)
+
+### About
+![About](.images/about.png)
+
 
 ## Development / Building
 
