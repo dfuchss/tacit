@@ -3,7 +3,7 @@
 appPublishedVersion = "2.0.6" # The current published version of this app
 appVersion = "2.0.6" # The next version of this app
 
-trixnityMessenger = "4.2.3" # https://gitlab.com/connect2x/trixnity-messenger/trixnity-messenger/-/packages
+trixnityMessenger = "4.2.4-SNAPSHOT.CI-20260309.195007" # https://gitlab.com/connect2x/trixnity-messenger/trixnity-messenger/-/packages
 
 downloadGradlePlugin = "5.7.0" # https://github.com/michel-kraemer/gradle-download-task/releases
 copyWebpackPlugin = "12.0.2" # https://github.com/webpack-contrib/copy-webpack-plugin/releases

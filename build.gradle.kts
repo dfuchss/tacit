@@ -44,8 +44,10 @@ val appSuffixedVersion = withVersionSuffix(appVersion)
 val appName = "Tacit"
 val appId = "org.fuchss.matrix.tacit"
 val appHomepage = "https://fuchss.org/projects/tacit"
-val privacyInfo = File("website/content/privacy.de-DE.md").readText().substringAfterMarkdownFrontMatter()
-val imprint = File("website/content/imprint.de-DE.md").readText().substringAfterMarkdownFrontMatter()
+val privacyInfo =
+    File("website/content/privacy.de-DE.md").readText().substringAfterMarkdownFrontMatter()
+val imprint =
+    File("website/content/imprint.de-DE.md").readText().substringAfterMarkdownFrontMatter()
 
 group = "org.fuchss.matrix"
 version = appSuffixedVersion
@@ -57,7 +59,8 @@ val webDistributionDir: Provider<Directory> = project.layout.buildDirectory.dir(
 val appDistributionDir: Provider<Directory> = distributionDir.map { it.dir("app") }
 
 val os: DefaultOperatingSystem = DefaultNativePlatform.getCurrentOperatingSystem()
-val arch: DefaultArchitecture = DefaultArchitecture(DefaultNativePlatform.getCurrentArchitecture().name)
+val arch: DefaultArchitecture =
+    DefaultArchitecture(DefaultNativePlatform.getCurrentArchitecture().name)
 
 enum class BuildFlavor { PROD, DEV }
 
@@ -114,7 +117,7 @@ kotlin {
     defaultCompilerOptions()
     withAndroid(minSdk = libs.versions.androidMinSdk)
     withJvm()
-    withJs {
+    withWeb {
         withBrowser {
             commonWebpackConfig {
                 showProgress = true
@@ -413,24 +416,24 @@ data class Distribution(
 
 val distributions = listOf(
     Distribution(
-        "aab", "Android", "GooglePlay",
+        "aab", "Android", "googlePlay",
         listOf("bundleGooglePlayRelease"),
-        "$appName-release.aab"
+        "$appName-googlePlay-release.aab"
     ),
     Distribution(
-        "apk", "Android", "GooglePlay",
+        "apk", "Android", "googlePlay",
         listOf("assembleGooglePlayRelease"),
-        "$appName-release.apk"
+        "$appName-googlePlay-release.apk"
     ),
     Distribution(
-        "aab", "Android", "Libre",
+        "aab", "Android", "libre",
         listOf("bundleLibreRelease"),
-        "$appName-release.aab"
+        "$appName-libre-release.aab"
     ),
     Distribution(
-        "apk", "Android", "Libre",
+        "apk", "Android", "libre",
         listOf("assembleLibreRelease"),
-        "$appName-release.apk"
+        "$appName-libre-release.apk"
     ),
     Distribution(
         "zip", "Linux", "x64",
@@ -581,11 +584,16 @@ val notarizeReleaseMsix by tasks.registering(Exec::class) {
         "sign",
         "/v",
         "/debug",
-        "/fd", "SHA256",
-        "/tr", "http://timestamp.acs.microsoft.com",
-        "/td", "SHA256",
-        "/dlib", "C:/MicrosoftArtifactSigningClientTools/Azure.CodeSigning.Dlib.dll",
-        "/dmdf", project.layout.projectDirectory.file("azure_artifact_signing_metadata.json").asFile.absolutePath,
+        "/fd",
+        "SHA256",
+        "/tr",
+        "http://timestamp.acs.microsoft.com",
+        "/td",
+        "SHA256",
+        "/dlib",
+        "C:/MicrosoftArtifactSigningClientTools/Azure.CodeSigning.Dlib.dll",
+        "/dmdf",
+        project.layout.projectDirectory.file("azure_artifact_signing_metadata.json").asFile.absolutePath,
     )
     args(misxDistribution.originalFileName)
     dependsOn(packageReleaseMsix)
@@ -735,10 +743,10 @@ val webZipDistribution = distributions.first { it.type == "zip" && it.platform =
 
 val packageReleaseWebZip by tasks.registering(Zip::class) {
     group = "compose desktop"
-    from(webDistributionDir.map { it.dir("js/productionExecutable") })
+    from(webDistributionDir.map { it.dir("composeWebCompatibility/productionExecutable") })
     archiveFileName.set(webZipDistribution.originalFileName)
     destinationDirectory.set(zipDistributionDir)
-    dependsOn.add("jsBrowserDistribution")
+    dependsOn.add("composeCompatibilityBrowserDistribution")
 }
 
 val uploadWebZipDistributable by tasks.registering {
@@ -763,22 +771,28 @@ val uploadPlatformDistributable by tasks.registering {
 
 val uploadAndroidDistributable by tasks.registering {
     group = "release"
-    val aabDistribution = distributions.first { it.type == "aab" && it.platform == "Android" }
-    val apkDistribution = distributions.first { it.type == "apk" && it.platform == "Android" }
+    val aabDistributions = distributions.filter { it.type == "aab" && it.platform == "Android" }
+    val apkDistributions = distributions.filter { it.type == "apk" && it.platform == "Android" }
     doLast {
-        uploadToPackageRegistry(
-            layout.buildDirectory.get()
-                .file("outputs/bundle/release/${aabDistribution.originalFileName}").asFile.toPath(),
-            aabDistribution
-        )
-        uploadToPackageRegistry(
-            layout.buildDirectory.get()
-                .file("outputs/apk/release/${apkDistribution.originalFileName}").asFile.toPath(),
-            apkDistribution
-        )
+        for (distribution in aabDistributions) {
+            val path =
+                "outputs/bundle/${distribution.architecture}Release/${distribution.originalFileName}"
+            uploadToPackageRegistry(
+                layout.buildDirectory.get().file(path).asFile.toPath(),
+                distribution
+            )
+        }
+        for (distribution in apkDistributions) {
+            val path =
+                "outputs/apk/${distribution.architecture}/release/${distribution.originalFileName}"
+            uploadToPackageRegistry(
+                layout.buildDirectory.get().file(path).asFile.toPath(),
+                distribution
+            )
+        }
     }
-    dependsOn.addAll(aabDistribution.tasks)
-    dependsOn.addAll(apkDistribution.tasks)
+    dependsOn.addAll(aabDistributions.flatMap { it.tasks })
+    dependsOn.addAll(apkDistributions.flatMap { it.tasks })
 }
 
 // #####################################################################################################################
