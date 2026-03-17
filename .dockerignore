@@ -1,0 +1,13 @@
+/.git
+/.gitignore
+/.DS_Store
+/.idea
+/.gradle
+/.kotlin
+/build
+**/build
+/bin
+/local.properties
+/debug.keystore
+/azure_artifact_signing_metadata.json
+/trixnity-messenger
