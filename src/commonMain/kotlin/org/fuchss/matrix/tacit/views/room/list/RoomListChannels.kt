@@ -122,16 +122,6 @@ internal fun ChannelRow(
                     fontWeight = if (isUnread && !selected) FontWeight.SemiBold else FontWeight.Normal,
                     modifier = Modifier.weight(1f, fill = false),
                 )
-                if (isDirectRoom) {
-                    val presenceLabel = dmPresenceLabel(presence, i18n)
-                    if (presenceLabel != null) {
-                        Text(
-                            text = presenceLabel,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (selected) tacitTextOnSelected else tacitTextSubtle,
-                        )
-                    }
-                }
             }
             if (!lastMessage.isNullOrBlank()) {
                 Text(

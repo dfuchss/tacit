@@ -21,7 +21,3 @@ internal fun dmPresenceColor(presence: Presence?): Color = when (presence) {
     else -> Color.Transparent
 }
 
-internal fun dmPresenceLabel(presence: Presence?, i18n: I18nView): String? = when (presence) {
-    Presence.ONLINE -> i18n.presenceOnline()
-    else -> null
-}
