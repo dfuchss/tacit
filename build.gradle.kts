@@ -211,27 +211,10 @@ dependencies {
     debugImplementation(sharedLibs.compose.ui.test.android.manifest)
 }
 
-val distributionJavaHome = when {
-    DefaultNativePlatform.host().operatingSystem.isMacOsX -> {
-        javaToolchains.launcherFor {
-            languageVersion.set(JavaLanguageVersion.of(24))
-            vendor.set(JvmVendorSpec.ADOPTIUM)
-        }
-    }
-
-    else -> {
-        javaToolchains.launcherFor {
-            languageVersion.set(JavaLanguageVersion.of(25))
-            vendor.set(JvmVendorSpec.JETBRAINS)
-        }
-    }
-}.get().metadata.installationPath.asFile.absolutePath
-
 compose {
     desktop {
         application {
             mainClass = "$appId.Main"
-            javaHome = distributionJavaHome
             jvmArgs("-Xmx2G")
 
             buildTypes.release.proguard {
