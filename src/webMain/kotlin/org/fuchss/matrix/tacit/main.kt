@@ -7,7 +7,7 @@ import de.connect2x.lognity.config.SerializableConfig
 import de.connect2x.lognity.config.withDefaultConfig
 import de.connect2x.trixnity.messenger.compose.view.startMultiMessenger
 import io.ktor.http.*
-import kotlinx.browser.window
+import web.window.window
 
 suspend fun main() {
     Backend.set(DefaultBackend)
