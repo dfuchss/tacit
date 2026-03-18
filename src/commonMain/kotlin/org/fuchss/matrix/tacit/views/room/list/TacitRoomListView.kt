@@ -1,6 +1,7 @@
 package org.fuchss.matrix.tacit.views.room.list
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
@@ -15,12 +16,16 @@ import de.connect2x.trixnity.messenger.compose.view.DI
 import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.roomlist.RoomListView
 import de.connect2x.trixnity.messenger.viewmodel.roomlist.RoomListViewModel
+import de.connect2x.trixnity.messenger.viewmodel.roomlist.RoomListViewModel.UserSyncStates
 import de.connect2x.trixnity.messenger.viewmodel.util.ErrorType
 import kotlinx.coroutines.delay
 import org.fuchss.matrix.tacit.TacitRoomNavigationState
 import org.fuchss.matrix.tacit.tacitBorder
 import org.fuchss.matrix.tacit.tacitLayer
 import org.fuchss.matrix.tacit.tacitShell
+import org.fuchss.matrix.tacit.tacitWarningBannerBg
+import org.fuchss.matrix.tacit.tacitWarningBannerBorder
+import org.fuchss.matrix.tacit.tacitWarningBannerText
 import org.fuchss.matrix.tacit.viewmodel.room.list.RoomListMode
 import org.fuchss.matrix.tacit.viewmodel.room.list.TacitRoomListElementViewModel
 import org.fuchss.matrix.tacit.viewmodel.room.list.TacitRoomListViewModel
@@ -74,6 +79,7 @@ class TacitRoomListView : RoomListView {
         val createDirectMessageInProgress = tacitRoomListViewModel.createDirectMessageInProgress.collectAsState().value
         val createGroupChannelInProgress = tacitRoomListViewModel.createGroupChannelInProgress.collectAsState().value
         val guildInviteActionInProgress = tacitRoomListViewModel.guildInviteActionInProgress.collectAsState().value
+        val syncStates = roomListViewModel.syncStates.collectAsState().value
 
         LaunchedEffect(pendingRoomIdToOpen, tacitRooms) {
             val pendingRoomId = pendingRoomIdToOpen ?: return@LaunchedEffect
@@ -122,6 +128,7 @@ class TacitRoomListView : RoomListView {
             error = error,
             errorType = errorType,
             onDismissError = { roomListViewModel.errorDismiss() },
+            syncStates = syncStates,
             selectedGuildInviteFallback = selectedGuildInviteFallback,
             onAcceptSelectedGuildInvite = {
                 val targetGuild = selectedGuildInviteFallback
@@ -268,6 +275,7 @@ private fun RoomListContent(
     error: String?,
     errorType: ErrorType,
     onDismissError: () -> Unit,
+    syncStates: UserSyncStates,
     selectedGuildInviteFallback: GuildEntry?,
     onAcceptSelectedGuildInvite: () -> Unit,
     onDeclineSelectedGuildInvite: () -> Unit,
@@ -337,6 +345,7 @@ private fun RoomListContent(
                 }
             }
 
+            OfflineWarningBanner(i18n, syncStates)
             RoomListErrors(
                 error = error,
                 errorType = errorType,
@@ -361,6 +370,41 @@ private fun RoomListContent(
                 onDeclineSelectedGuildInvite = onDeclineSelectedGuildInvite,
             )
         }
+    }
+}
+
+@Composable
+private fun OfflineWarningBanner(
+    i18n: TacitI18nView,
+    syncStates: UserSyncStates,
+) {
+    if (syncStates.failedFor.isEmpty()) return
+    val title = i18n.tacitOfflineTitle()
+    val description = if (syncStates.failedForAll) {
+        i18n.tacitOfflineAllDescription()
+    } else {
+        i18n.tacitOfflineSomeDescription(syncStates.joinFailedToString())
+    }
+    Column(
+        modifier = Modifier
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(tacitWarningBannerBg)
+            .border(1.dp, tacitWarningBannerBorder, RoundedCornerShape(12.dp))
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleSmall,
+            color = tacitWarningBannerText,
+        )
+        Text(
+            text = description,
+            style = MaterialTheme.typography.bodySmall,
+            color = tacitWarningBannerText,
+        )
     }
 }
 

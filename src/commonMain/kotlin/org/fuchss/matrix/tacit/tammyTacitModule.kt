@@ -13,6 +13,7 @@ import de.connect2x.trixnity.messenger.compose.view.room.timeline.TypingIndicato
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.ReadMarkerView
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.message.bubble.MessageBubbleView
 import de.connect2x.trixnity.messenger.compose.view.roomlist.RoomListView
+import de.connect2x.trixnity.messenger.compose.view.roomlist.RoomListContainerView
 import de.connect2x.trixnity.messenger.compose.view.roomlist.header.AccountOptionsView
 import de.connect2x.trixnity.messenger.compose.view.roomlist.header.ShowSearchView
 import de.connect2x.trixnity.messenger.compose.view.root.MainView
@@ -36,6 +37,7 @@ import org.fuchss.matrix.tacit.views.room.TacitRoomHeaderView
 import org.fuchss.matrix.tacit.views.room.TacitRoomSettingsView
 import org.fuchss.matrix.tacit.views.room.TacitRoomView
 import org.fuchss.matrix.tacit.views.room.list.TacitRoomListView
+import org.fuchss.matrix.tacit.views.room.list.TacitRoomListContainerView
 import org.fuchss.matrix.tacit.views.room.settings.TacitChangeRoomAvatarView
 import org.fuchss.matrix.tacit.views.room.timeline.TacitInputAreaView
 import org.fuchss.matrix.tacit.views.room.timeline.TacitTimelineView
@@ -51,6 +53,7 @@ fun tammyTacitModule() = module {
     }
 
     single<RoomListView> { TacitRoomListView() }
+    single<RoomListContainerView> { TacitRoomListContainerView() }
     single<TacitI18nView> { TacitI18nView(get(), get(), get(), get()) }
     single<I18nView> { get<TacitI18nView>() }
     single<RoomListViewModelFactory> { TacitRoomListViewModelFactory }

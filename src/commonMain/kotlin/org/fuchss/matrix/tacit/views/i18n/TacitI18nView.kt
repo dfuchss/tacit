@@ -420,6 +420,21 @@ open class TacitI18nView(
         DE - "Kein DM-Kontakt gefunden, um ein Profil zu öffnen."
     }
 
+    open fun tacitOfflineTitle() = translate {
+        EN - "Offline"
+        DE - "Offline"
+    }
+
+    open fun tacitOfflineAllDescription() = translate {
+        EN - "No connection to your Matrix server. Messages will be sent once you are back online."
+        DE - "Keine Verbindung zum Matrix-Server. Nachrichten werden gesendet, sobald du wieder online bist."
+    }
+
+    open fun tacitOfflineSomeDescription(accounts: String) = translate {
+        EN - "Some accounts are offline: $accounts"
+        DE - "Einige Konten sind offline: $accounts"
+    }
+
 
     open fun tacitVerified() = translate {
         EN - "Verified"
