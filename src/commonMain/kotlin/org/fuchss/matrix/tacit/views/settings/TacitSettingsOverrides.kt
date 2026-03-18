@@ -31,6 +31,7 @@ import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 class TacitAccountSetupWizardStepList : AccountSetupWizardStepList {
     override val steps = listOf(
         AccountSetupWizardStep.ExplanationStep,
+        AccountSetupWizardStep.PrivacySettingsStep,
         AccountSetupWizardStep.NotificationSettingsStep,
         AccountSetupWizardStep.VerificationStep,
         AccountSetupWizardStep.ConfirmationStep,
@@ -48,6 +49,7 @@ class TacitUserSettingsView : UserSettingsView {
                     AccountsInfoButton(userSettingsViewModel)
                     NotificationsSettingsButton(userSettingsViewModel)
                     AppearanceSettingsButton(userSettingsViewModel)
+                    PrivacySettingsButton(userSettingsViewModel)
                     DeviceSettingsButton(userSettingsViewModel)
                     ProfilesSettingsButton(userSettingsViewModel)
                 }

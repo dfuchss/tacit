@@ -1,11 +1,8 @@
 package org.fuchss.matrix.tacit.views.room
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
@@ -399,19 +396,19 @@ private fun DmUserVerificationSection(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(
-            text = i18n.tacitUserVerificationTitle(),
+            text = i18n.tacitUserProfileTitle(),
             style = MaterialTheme.typography.titleMedium,
             color = tacitText,
         )
         Text(
-            text = i18n.tacitUserVerificationDescription(),
+            text = i18n.tacitUserProfileDescription(),
             style = MaterialTheme.typography.bodySmall,
             color = tacitTextMuted,
         )
 
         if (entries.isEmpty()) {
             Text(
-                text = i18n.tacitNoDmContactForVerification(),
+                text = i18n.tacitNoDmContactForProfile(),
                 style = MaterialTheme.typography.bodySmall,
                 color = tacitTextMuted,
             )
@@ -426,6 +423,7 @@ private fun DmUserVerificationSection(
                     .fillMaxWidth()
                     .background(tacitPanelHigh, RoundedCornerShape(12.dp))
                     .border(1.dp, tacitBorder, RoundedCornerShape(12.dp))
+                    .clickable { onOpenVerification(entry.userId) }
                     .padding(horizontal = 10.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -447,12 +445,6 @@ private fun DmUserVerificationSection(
                         style = MaterialTheme.typography.bodySmall,
                         color = tacitTextMuted,
                     )
-                }
-                Button(
-                    onClick = { onOpenVerification(entry.userId) },
-                    colors = ButtonDefaults.buttonColors(containerColor = tacitActionPrimaryBackground),
-                ) {
-                    Text(if (entry.status == TacitDmVerificationStatus.VERIFIED) i18n.tacitOpenAction() else i18n.commonVerify())
                 }
             }
         }

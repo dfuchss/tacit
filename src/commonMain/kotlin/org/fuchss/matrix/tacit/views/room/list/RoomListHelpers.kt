@@ -2,7 +2,6 @@ package org.fuchss.matrix.tacit.views.room.list
 
 import androidx.compose.ui.graphics.Color
 import de.connect2x.trixnity.core.model.events.m.Presence
-import de.connect2x.trixnity.messenger.compose.view.i18n.I18nView
 import org.fuchss.matrix.tacit.accentColor
 
 internal fun dmInitials(name: String): String {

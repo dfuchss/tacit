@@ -5,6 +5,13 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Reply
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Report
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -12,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
@@ -27,6 +35,7 @@ internal val tacitQuickReactionShortcuts = listOf("👍", "❤️", "😂", "�
 
 internal class TacitMessageActionMenuEntry(
     val label: String,
+    val icon: ImageVector,
     val color: Color,
     private val action: () -> Unit,
 ) {
@@ -48,11 +57,30 @@ internal fun tacitMessageActionMenuEntries(
 ): List<TacitMessageActionMenuEntry> {
     val deleteColor = MaterialTheme.colorScheme.error
     return buildList {
-        if (canReply) add(TacitMessageActionMenuEntry(i18n.replyMessage(), tacitText, onReply))
-        if (canEdit) add(TacitMessageActionMenuEntry(i18n.editMessage(), tacitText, onEdit))
-        add(TacitMessageActionMenuEntry(i18n.infoMessage(), tacitText, onShowInfo))
-        if (canReport) add(TacitMessageActionMenuEntry(i18n.reportMessage(), tacitText, onReport))
-        if (canRedact) add(TacitMessageActionMenuEntry(i18n.redactMessage(), deleteColor, onDelete))
+        if (canReply) add(
+            TacitMessageActionMenuEntry(
+                i18n.replyMessage(),
+                Icons.AutoMirrored.Outlined.Reply, tacitText, onReply
+            )
+        )
+        if (canEdit) add(TacitMessageActionMenuEntry(i18n.editMessage(), Icons.Outlined.Edit, tacitText, onEdit))
+        add(TacitMessageActionMenuEntry(i18n.infoMessage(), Icons.Outlined.Info, tacitText, onShowInfo))
+        if (canReport) add(
+            TacitMessageActionMenuEntry(
+                i18n.reportMessage(),
+                Icons.Outlined.Report,
+                tacitText,
+                onReport
+            )
+        )
+        if (canRedact) add(
+            TacitMessageActionMenuEntry(
+                i18n.redactMessage(),
+                Icons.Outlined.Delete,
+                deleteColor,
+                onDelete
+            )
+        )
     }
 }
 
@@ -71,6 +99,7 @@ internal fun TacitMessageActionDropdown(
         actions.forEach { action ->
             TacitMessageActionDropdownItem(
                 label = action.label,
+                icon = action.icon,
                 color = action.color,
                 onClick = action::invoke,
             )
@@ -82,12 +111,14 @@ internal fun TacitMessageActionDropdown(
 @Composable
 private fun TacitMessageActionDropdownItem(
     label: String,
+    icon: ImageVector,
     color: Color,
     onClick: () -> Unit,
 ) {
     ThemedDropdownMenuItem(
         text = { Text(label, color = color) },
         onClick = onClick,
+        leadingIcon = { Icon(icon, null, tint = color) },
     )
 }
 

@@ -405,25 +405,21 @@ open class TacitI18nView(
         DE - "Gilden-Einstellungen"
     }
 
-    open fun tacitUserVerificationTitle() = translate {
-        EN - "User Verification"
-        DE - "Benutzerverifizierung"
+    open fun tacitUserProfileTitle() = translate {
+        EN - "User profile"
+        DE - "Benutzerprofil"
     }
 
-    open fun tacitUserVerificationDescription() = translate {
-        EN - "Verify your DM contact to confirm identity and device trust."
-        DE - "Verifiziere deinen DM-Kontakt, um Identität und Gerätevertrauen zu bestätigen."
+    open fun tacitUserProfileDescription() = translate {
+        EN - "Open a profile to verify or block the user."
+        DE - "Profil öffnen, um den Nutzer zu verifizieren oder zu blockieren."
     }
 
-    open fun tacitNoDmContactForVerification() = translate {
-        EN - "No DM contact found for verification."
-        DE - "Kein DM-Kontakt zur Verifizierung gefunden."
+    open fun tacitNoDmContactForProfile() = translate {
+        EN - "No DM contact found to open a profile."
+        DE - "Kein DM-Kontakt gefunden, um ein Profil zu öffnen."
     }
 
-    open fun tacitOpenAction() = translate {
-        EN - "Open"
-        DE - "Öffnen"
-    }
 
     open fun tacitVerified() = translate {
         EN - "Verified"
