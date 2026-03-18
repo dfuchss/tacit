@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Bump Trixnity Messenger to 4.3.0
+- Bump Trixnity Messenger to 4.3.1
 
 ### Deprecated
 
