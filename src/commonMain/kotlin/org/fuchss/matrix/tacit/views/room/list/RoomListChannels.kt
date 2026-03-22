@@ -1,6 +1,7 @@
 package org.fuchss.matrix.tacit.views.room.list
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -88,24 +89,35 @@ internal fun ChannelRow(
             .padding(horizontal = 10.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        ThemedUserAvatar(
-            initials = roomImageInitials ?: dmInitials(channelTitle),
-            image = roomImage,
-            size = 28.dp,
-        )
         Box(
             modifier = Modifier
-                .width(12.dp)
-                .height(8.dp)
-                .padding(start = 4.dp),
-            contentAlignment = Alignment.Center,
+                .width(40.dp),
+            contentAlignment = Alignment.CenterStart,
         ) {
             if (isDirectRoom && dmPresenceVisible(presence)) {
                 Box(
                     modifier = Modifier
-                        .size(8.dp)
+                        .size(36.dp)
                         .clip(CircleShape)
-                        .background(dmPresenceColor(presence)),
+                        .background(dmPresenceColor(presence).copy(alpha = 0.18f))
+                        .border(
+                            width = 1.5.dp,
+                            color = dmPresenceColor(presence).copy(alpha = if (selected) 0.95f else 0.72f),
+                            shape = CircleShape,
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    ThemedUserAvatar(
+                        initials = roomImageInitials ?: dmInitials(channelTitle),
+                        image = roomImage,
+                        size = 28.dp,
+                    )
+                }
+            } else {
+                ThemedUserAvatar(
+                    initials = roomImageInitials ?: dmInitials(channelTitle),
+                    image = roomImage,
+                    size = 28.dp,
                 )
             }
         }
