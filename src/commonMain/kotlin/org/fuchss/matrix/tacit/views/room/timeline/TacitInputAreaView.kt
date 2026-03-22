@@ -139,7 +139,7 @@ class TacitInputAreaView : InputAreaView {
                             Text(
                                 i18n.inputAreaCannotSendMessages(),
                                 modifier = Modifier.padding(10.dp).align(Alignment.Center),
-                                color = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.75f),
+                                color = tacitText,
                             )
                         }
                     }
