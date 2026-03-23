@@ -66,7 +66,6 @@ fun tammyTacitModule() = module {
     single<MessengerView> { TacitMessengerView() }
     single<ShowSearchView> { TacitShowSearchView() }
     single<AccountOptionsView> { TacitAccountOptionsView() }
-    // single<AddMatrixAccountViewModelFactory> { PasswordOnlyAddMatrixAccountViewModelFactory }
     single<RoomView> { TacitRoomView() }
     single<RoomHeaderView> { TacitRoomHeaderView() }
     single<RoomSettingsView> { TacitRoomSettingsView() }
