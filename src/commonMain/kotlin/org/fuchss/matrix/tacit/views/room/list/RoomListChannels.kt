@@ -189,12 +189,12 @@ internal fun ChannelRow(
                         fontWeight = FontWeight.Bold,
                     )
                 }
-            } else if (isUnread && !selected) {
+            } else if (isUnread) {
                 Box(
                     modifier = Modifier
                         .size(8.dp)
                         .clip(CircleShape)
-                        .background(Color.White)
+                        .background(if (selected) tacitText else Color.White)
                 )
             }
 
