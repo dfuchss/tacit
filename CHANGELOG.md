@@ -10,12 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Add publishing on F-Droid
-- Support for Kotlin/WasmJs
-
 ### Changed
 
-- Bump Trixnity Messenger to 4.3.1
+- Bump Trixnity Messenger to 4.4.0
 
 ### Deprecated
 
@@ -24,6 +21,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Security
+
+## 2.1.0
+
+### Added
+
+- Add publishing on F-Droid
+- Support for Kotlin/WasmJs
+
+### Changed
+
+- Bump Trixnity Messenger to 4.3.1
+
+### Fixed
+
+- Use another gateway for UnifiedPush
 
 ## 2.0.6
 

@@ -10,7 +10,7 @@ fun MatrixMultiMessengerConfiguration.addNotificationProviders() {
         pushAppId = "$appId.fcm",
     )
     addUnifiedPushNotificationProvider(
-        pushUrl = "https://ntfy.demo.timmy-messenger.de/_matrix/push/v1/notify",
+        pushUrl = "https://matrix.gateway.unifiedpush.org/_matrix/push/v1/notify",
         pushAppId = "$appId.unifiedpush",
     )
 }

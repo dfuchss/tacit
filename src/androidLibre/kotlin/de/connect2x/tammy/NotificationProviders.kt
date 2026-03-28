@@ -5,7 +5,7 @@ import de.connect2x.trixnity.messenger.notification.unifiedpush.addUnifiedPushNo
 
 fun MatrixMultiMessengerConfiguration.addNotificationProviders() {
     addUnifiedPushNotificationProvider(
-        pushUrl = "https://ntfy.demo.timmy-messenger.de/_matrix/push/v1/notify",
+        pushUrl = "https://matrix.gateway.unifiedpush.org/_matrix/push/v1/notify",
         pushAppId = "$appId.unifiedpush",
     )
 }
