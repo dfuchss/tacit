@@ -28,12 +28,20 @@ import de.connect2x.trixnity.messenger.viewmodel.room.timeline.InputAreaViewMode
 import org.fuchss.matrix.tacit.tacitSurface
 import org.fuchss.matrix.tacit.tacitBorder
 import org.fuchss.matrix.tacit.tacitText
+import org.fuchss.matrix.tacit.viewmodel.room.timeline.findSlashCommandMatch
+import org.fuchss.matrix.tacit.viewmodel.room.timeline.slashCommandSuggestions
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 
 private data class EmojiShortcodeMatch(
     val startIndex: Int,
     val cursorIndex: Int,
     val query: String,
+)
+
+private data class ComposerSuggestion(
+    val title: String,
+    val subtitle: String? = null,
+    val leading: String? = null,
 )
 
 class TacitInputAreaView : InputAreaView {
@@ -51,11 +59,84 @@ class TacitInputAreaView : InputAreaView {
         val emojiSuggestions = remember(shortcodeMatch) {
             shortcodeMatch?.let { emojiShortcodeSuggestions(it.query) }.orEmpty()
         }
-        var selectedSuggestionIndex by remember(shortcodeMatch?.query, emojiSuggestions.size) { mutableStateOf(0) }
+        val slashCommandMatch = remember(textField.value) {
+            findSlashCommandMatch(
+                text = textField.value.text,
+                selectionStart = textField.value.selection.start,
+                selectionEnd = textField.value.selection.end,
+            )
+        }
+        val slashSuggestions = remember(slashCommandMatch) {
+            slashCommandMatch?.let { slashCommandSuggestions(it.query) }.orEmpty()
+        }
+        val showSlashSuggestions = canSendMessages &&
+                mentionSuggestions.isNullOrEmpty() &&
+                slashSuggestions.isNotEmpty() &&
+                slashCommandMatch != null
         val showEmojiSuggestions = canSendMessages &&
                 mentionSuggestions.isNullOrEmpty() &&
+                !showSlashSuggestions &&
                 emojiSuggestions.isNotEmpty() &&
                 shortcodeMatch != null
+        val suggestionItems = when {
+            showSlashSuggestions -> slashSuggestions.map {
+                ComposerSuggestion(
+                    title = "/${it.command}",
+                    subtitle = it.description,
+                )
+            }
+
+            showEmojiSuggestions -> emojiSuggestions.map {
+                ComposerSuggestion(
+                    title = ":${it.shortcode}:",
+                    leading = it.emoji,
+                )
+            }
+
+            else -> emptyList()
+        }
+        val suggestionsCount = when {
+            showSlashSuggestions -> slashSuggestions.size
+            showEmojiSuggestions -> emojiSuggestions.size
+            else -> 0
+        }
+        val suggestionQuery = slashCommandMatch?.query ?: shortcodeMatch?.query
+        var selectedSuggestionIndex by remember(suggestionQuery, suggestionsCount) { mutableStateOf(0) }
+        val applySelectedSuggestion: (() -> Boolean)? = when {
+            showSlashSuggestions -> {
+                {
+                    val match = findSlashCommandMatch(
+                        text = textField.value.text,
+                        selectionStart = textField.value.selection.start,
+                        selectionEnd = textField.value.selection.end,
+                    )
+                    val suggestion = slashSuggestions.getOrNull(selectedSuggestionIndex)
+                    if (match != null && suggestion != null) {
+                        textField.value = textField.value.replaceSlashCommand(match, suggestion.insertion)
+                        focusRequester.requestFocus()
+                        true
+                    } else {
+                        false
+                    }
+                }
+            }
+
+            showEmojiSuggestions -> {
+                {
+                    val match = textField.value.findShortcodeMatch()
+                    val suggestion = emojiSuggestions.getOrNull(selectedSuggestionIndex)
+                    if (match != null && suggestion != null) {
+                        textField.value = textField.value.replaceShortcode(match, suggestion.emoji)
+                        focusRequester.requestFocus()
+                        true
+                    } else {
+                        false
+                    }
+                }
+            }
+
+            else -> null
+        }
 
         ThemedSurface(
             style = MaterialTheme.components.inputAreaSurface,
@@ -67,14 +148,13 @@ class TacitInputAreaView : InputAreaView {
                 }
 
                 UserSelector(inputAreaViewModel, focusRequester)
-                if (showEmojiSuggestions) {
-                    EmojiShortcodeSuggestions(
-                        suggestions = emojiSuggestions,
+                if (suggestionItems.isNotEmpty()) {
+                    AutocompleteSuggestions(
+                        suggestions = suggestionItems,
                         selectedIndex = selectedSuggestionIndex,
-                        onSelect = { suggestion ->
-                            val match = textField.value.findShortcodeMatch() ?: return@EmojiShortcodeSuggestions
-                            textField.value = textField.value.replaceShortcode(match, suggestion.emoji)
-                            focusRequester.requestFocus()
+                        onSelect = { index ->
+                            selectedSuggestionIndex = index
+                            applySelectedSuggestion?.invoke()
                         },
                     )
                 }
@@ -85,33 +165,26 @@ class TacitInputAreaView : InputAreaView {
                         .height(IntrinsicSize.Max)
                         .padding(8.dp)
                         .onPreviewKeyEvent { keyEvent ->
-                            if (keyEvent.type != KeyEventType.KeyDown || !showEmojiSuggestions) return@onPreviewKeyEvent false
+                            val autocompleteVisible = showSlashSuggestions || showEmojiSuggestions
+                            if (keyEvent.type != KeyEventType.KeyDown || !autocompleteVisible) return@onPreviewKeyEvent false
                             when (keyEvent.key) {
                                 Key.DirectionDown -> {
                                     selectedSuggestionIndex =
-                                        if (selectedSuggestionIndex >= emojiSuggestions.lastIndex) 0
+                                        if (selectedSuggestionIndex >= suggestionsCount - 1) 0
                                         else selectedSuggestionIndex + 1
                                     true
                                 }
 
                                 Key.DirectionUp -> {
                                     selectedSuggestionIndex =
-                                        if (selectedSuggestionIndex <= 0) emojiSuggestions.lastIndex
+                                        if (selectedSuggestionIndex <= 0) suggestionsCount - 1
                                         else selectedSuggestionIndex - 1
                                     true
                                 }
 
                                 Key.Enter -> {
                                     if (keyEvent.isShiftPressed) return@onPreviewKeyEvent false
-                                    val match = textField.value.findShortcodeMatch()
-                                    val suggestion = emojiSuggestions.getOrNull(selectedSuggestionIndex)
-                                    if (match != null && suggestion != null) {
-                                        textField.value = textField.value.replaceShortcode(match, suggestion.emoji)
-                                        focusRequester.requestFocus()
-                                        true
-                                    } else {
-                                        false
-                                    }
+                                    applySelectedSuggestion?.invoke() == true
                                 }
 
                                 else -> false
@@ -150,10 +223,10 @@ class TacitInputAreaView : InputAreaView {
 }
 
 @Composable
-private fun EmojiShortcodeSuggestions(
-    suggestions: List<TacitEmojiShortcode>,
+private fun AutocompleteSuggestions(
+    suggestions: List<ComposerSuggestion>,
     selectedIndex: Int,
-    onSelect: (TacitEmojiShortcode) -> Unit,
+    onSelect: (Int) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -173,22 +246,33 @@ private fun EmojiShortcodeSuggestions(
                         else Color.Transparent,
                         RoundedCornerShape(8.dp),
                     )
-                    .clickable { onSelect(suggestion) }
+                    .clickable { onSelect(index) }
                     .padding(horizontal = 10.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text(
-                    text = suggestion.emoji,
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-                Text(
-                    text = ":${suggestion.shortcode}:",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = tacitText,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                suggestion.leading?.let { leading ->
+                    Text(
+                        text = leading,
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = suggestion.title,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = tacitText,
+                    )
+                    suggestion.subtitle?.let { subtitle ->
+                        Text(
+                            text = subtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = tacitText,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
             }
         }
     }
@@ -236,6 +320,18 @@ private fun TextFieldValue.replaceShortcode(
         append(text.substring(match.cursorIndex))
     }
     val newCursor = match.startIndex + replacement.length
+    return TextFieldValue(
+        text = newText,
+        selection = TextRange(newCursor),
+    )
+}
+
+private fun TextFieldValue.replaceSlashCommand(
+    match: org.fuchss.matrix.tacit.viewmodel.room.timeline.TacitSlashCommandMatch,
+    replacement: String,
+): TextFieldValue {
+    val newText = replacement + text.substring(match.cursorIndex)
+    val newCursor = replacement.length
     return TextFieldValue(
         text = newText,
         selection = TextRange(newCursor),
