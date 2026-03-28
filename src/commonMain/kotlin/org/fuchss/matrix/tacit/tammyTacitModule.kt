@@ -11,6 +11,10 @@ import de.connect2x.trixnity.messenger.compose.view.room.timeline.RoomHeaderView
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.TimelineView
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.TypingIndicatorView
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.ReadMarkerView
+import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.TimelineElementView
+import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.message.EmoteRoomMessageTimelineElementView
+import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.message.NoticeRoomMessageTimelineElementView
+import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.message.TextRoomMessageTimelineElementView
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.message.bubble.MessageBubbleView
 import de.connect2x.trixnity.messenger.compose.view.roomlist.RoomListView
 import de.connect2x.trixnity.messenger.compose.view.roomlist.RoomListContainerView
@@ -42,9 +46,14 @@ import org.fuchss.matrix.tacit.views.room.list.TacitRoomListView
 import org.fuchss.matrix.tacit.views.room.list.TacitRoomListContainerView
 import org.fuchss.matrix.tacit.views.room.settings.TacitChangeRoomAvatarView
 import org.fuchss.matrix.tacit.views.room.timeline.TacitInputAreaView
+import org.fuchss.matrix.tacit.views.room.timeline.TacitEmoteRoomMessageTimelineElementViewImpl
+import org.fuchss.matrix.tacit.views.room.timeline.TacitNoticeRoomMessageTimelineElementViewImpl
+import org.fuchss.matrix.tacit.views.room.timeline.TacitTextRoomMessageTimelineElementViewImpl
 import org.fuchss.matrix.tacit.views.room.timeline.TacitTimelineView
 import org.fuchss.matrix.tacit.views.room.timeline.TacitTypingIndicatorView
 import org.fuchss.matrix.tacit.views.settings.*
+import org.koin.core.qualifier.named
+import org.koin.dsl.bind
 import org.koin.dsl.module
 
 fun tammyTacitModule() = module {
@@ -76,6 +85,15 @@ fun tammyTacitModule() = module {
     single<TypingIndicatorView> { TacitTypingIndicatorView() }
     single<InputAreaView> { TacitInputAreaView() }
     single<ReadMarkerView> { TacitReadMarkerView() }
+    single<TextRoomMessageTimelineElementView>(named<TextRoomMessageTimelineElementView>()) {
+        TacitTextRoomMessageTimelineElementViewImpl()
+    }.bind<TimelineElementView<*>>()
+    single<NoticeRoomMessageTimelineElementView>(named<NoticeRoomMessageTimelineElementView>()) {
+        TacitNoticeRoomMessageTimelineElementViewImpl()
+    }.bind<TimelineElementView<*>>()
+    single<EmoteRoomMessageTimelineElementView>(named<EmoteRoomMessageTimelineElementView>()) {
+        TacitEmoteRoomMessageTimelineElementViewImpl()
+    }.bind<TimelineElementView<*>>()
     single<MessageBubbleView> { TacitFlatMessageView() }
     single<TimelineView> { TacitTimelineView() }
     single<AccountSetupWizardStepList> { TacitAccountSetupWizardStepList() }
