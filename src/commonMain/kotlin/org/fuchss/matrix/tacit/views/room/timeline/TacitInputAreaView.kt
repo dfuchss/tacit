@@ -25,8 +25,8 @@ import de.connect2x.trixnity.messenger.compose.view.room.timeline.*
 import de.connect2x.trixnity.messenger.compose.view.theme.components
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedSurface
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.InputAreaViewModel
-import org.fuchss.matrix.tacit.tacitSearchResultBackground
-import org.fuchss.matrix.tacit.tacitSearchResultBorder
+import org.fuchss.matrix.tacit.tacitSurface
+import org.fuchss.matrix.tacit.tacitBorder
 import org.fuchss.matrix.tacit.tacitText
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 
@@ -159,8 +159,8 @@ private fun EmojiShortcodeSuggestions(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 4.dp)
-            .background(tacitSearchResultBackground, RoundedCornerShape(10.dp))
-            .border(1.dp, tacitSearchResultBorder, RoundedCornerShape(10.dp))
+            .background(tacitSurface, RoundedCornerShape(10.dp))
+            .border(1.dp, tacitBorder, RoundedCornerShape(10.dp))
             .padding(vertical = 4.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {

@@ -58,6 +58,11 @@ internal fun ChannelRow(
     val notificationCount = room.notificationCount.collectAsState().value
     var hovered by remember { mutableStateOf(false) }
     val showReadToggle = hovered && !showInviteActions
+    val itemSelectedBackground = tacitAccent(0.35f)
+    val itemHoverBackground = tacitSurfaceAlt
+    val itemUnreadBackground = tacitSurfaceAlt
+    val badgeBackground = accentColor
+    val badgeContent = tacitOnAccent(accentColor)
     val inviteActionInProgress = if (showInviteActions) {
         room.rejectInvitationInProgress.collectAsState().value
     } else {
@@ -71,9 +76,9 @@ internal fun ChannelRow(
             .clip(RoundedCornerShape(12.dp))
             .background(
                 when {
-                    selected -> tacitItemSelectedBackground
-                    hovered -> tacitItemHoverBackground
-                    isUnread -> tacitItemUnreadBackground
+                    selected -> itemSelectedBackground
+                    hovered -> itemHoverBackground
+                    isUnread -> itemUnreadBackground
                     else -> Color.Transparent
                 }
             )
@@ -149,7 +154,7 @@ internal fun ChannelRow(
                     Text(
                         text = lastMessage,
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (selected) tacitTextOnSelected else tacitTextSubtle,
+                        color = if (selected) tacitText else tacitTextMuted,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -159,7 +164,7 @@ internal fun ChannelRow(
             if (!time.isNullOrBlank()) {
                 Text(
                     text = time,
-                    color = if (selected) tacitTextOnSelected else tacitLabelSubtle,
+                    color = if (selected) tacitText else tacitTextMuted,
                     style = MaterialTheme.typography.labelSmall,
                     modifier = Modifier
                         .padding(end = 6.dp)
@@ -172,14 +177,14 @@ internal fun ChannelRow(
                 Box(
                     modifier = Modifier
                         .clip(CircleShape)
-                        .background(tacitBadgeSuccessBackground)
+                        .background(badgeBackground)
                         .padding(horizontal = 8.dp, vertical = 3.dp)
                         .alpha(if (showReadToggle) 0f else 1f),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
                         text = notificationCount,
-                        color = tacitBadgeSuccessContent,
+                        color = badgeContent,
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                     )
@@ -243,9 +248,9 @@ private fun ReadToggleButton(
     contentDescription: String,
 ) {
     var hovered by remember { mutableStateOf(false) }
-    val background = if (hovered) tacitActionHoverBackground else tacitActionBackground
-    val borderColor = tacitActionBorder
-    val iconTint = if (isUnread) tacitActionPrimaryIconTint else tacitActionIconTint
+    val background = if (hovered) tacitSurfaceAlt else tacitSurface
+    val borderColor = tacitBorder
+    val iconTint = if (isUnread) accentColor else tacitText
     val icon = if (isUnread) Icons.Default.MarkChatRead else Icons.Default.MarkAsUnread
 
     Box(
@@ -287,7 +292,7 @@ internal fun DmOverview(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(tacitCardBackground)
+            .background(tacitSurfaceAlt)
             .padding(10.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -308,7 +313,7 @@ internal fun DmOverview(
                 title = i18n.tacitDmStatUnread(),
                 value = unread.toString(),
                 modifier = Modifier.weight(1f),
-                valueColor = tacitAccentSoft,
+                valueColor = accentColor,
             )
         }
     }
@@ -324,14 +329,14 @@ private fun DmStatTile(
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(10.dp))
-            .background(tacitCardBackgroundAlt)
+            .background(tacitSurface)
             .padding(horizontal = 10.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         Text(
             text = title.uppercase(),
             style = MaterialTheme.typography.labelSmall,
-            color = tacitTextSubtle,
+            color = tacitTextMuted,
         )
         Text(
             text = value,

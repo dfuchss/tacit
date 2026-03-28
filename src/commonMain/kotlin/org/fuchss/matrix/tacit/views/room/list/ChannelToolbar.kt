@@ -40,7 +40,7 @@ internal fun DmChannelToolbar(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(tacitToolbarBackground)
+            .background(tacitSurface)
             .padding(horizontal = 8.dp, vertical = toolbarVerticalPadding),
     ) {
         Row(
@@ -95,7 +95,7 @@ internal fun GuildChannelToolbar(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(tacitToolbarBackground)
+            .background(tacitSurface)
             .padding(horizontal = 8.dp, vertical = toolbarVerticalPadding),
     ) {
         Row(
@@ -163,7 +163,7 @@ private fun RowScope.ToolbarSearchField(
             .weight(1f)
             .defaultMinSize(minWidth = 150.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(if (searchHovered) tacitInputBackgroundHover else tacitInputBackground)
+            .background(if (searchHovered) tacitSurfaceAlt else tacitSurface)
             .pointerMoveFilter(
                 onEnter = {
                     searchHovered = true
@@ -193,7 +193,7 @@ private fun RowScope.ToolbarSearchField(
                         if (searchText.text.isBlank()) {
                             Text(
                                 placeholder,
-                                color = tacitInputPlaceholder,
+                                color = tacitTextMuted,
                                 style = MaterialTheme.typography.bodySmall,
                             )
                         }
@@ -203,7 +203,7 @@ private fun RowScope.ToolbarSearchField(
                         Icon(
                             Icons.Default.Close,
                             contentDescription = clearSearchLabel,
-                            tint = tacitInputPlaceholder,
+                            tint = tacitTextMuted,
                             modifier = Modifier
                                 .size(16.dp)
                                 .clickable { onClear() },
@@ -239,21 +239,20 @@ private fun ToolbarIconButton(
 ) {
     var hovered by remember { mutableStateOf(false) }
     val background = when {
-        !enabled -> tacitActionDisabledBackground
-        primary && hovered -> tacitActionPrimaryHoverBackground
-        primary -> tacitActionPrimaryBackground
-        hovered -> tacitActionHoverBackground
-        else -> tacitActionBackground
+        !enabled -> tacitSurface
+        primary && hovered -> accentColor
+        primary -> tacitAccent(0.25f)
+        hovered -> tacitSurfaceAlt
+        else -> tacitSurface
     }
     val borderColor = when {
-        !enabled -> tacitActionDisabledBorder
-        primary -> tacitActionPrimaryBorder
-        else -> tacitActionBorder
+        !enabled -> tacitBorder
+        primary -> accentColor
+        else -> tacitBorder
     }
     val iconTint = when {
-        !enabled -> tacitActionDisabledIconTint
-        primary -> tacitActionPrimaryIconTint
-        else -> tacitActionIconTint
+        !enabled -> tacitTextMuted
+        else -> tacitText
     }
 
     Box(

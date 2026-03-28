@@ -41,7 +41,13 @@ import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.messag
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.message.bubble.MessageBubbleView
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedUserAvatar
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.BaseTimelineElementHolderViewModel
-import org.fuchss.matrix.tacit.*
+import org.fuchss.matrix.tacit.accentColor
+import org.fuchss.matrix.tacit.tacitAccent
+import org.fuchss.matrix.tacit.tacitBorder
+import org.fuchss.matrix.tacit.tacitSurface
+import org.fuchss.matrix.tacit.tacitSurfaceAlt
+import org.fuchss.matrix.tacit.tacitText
+import org.fuchss.matrix.tacit.tacitTextMuted
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 
 class TacitFlatMessageView : MessageBubbleView {
@@ -154,8 +160,8 @@ private fun TacitFlatMessageContainer(
                     .graphicsLayer { clip = false }
                     .background(
                         when {
-                            hoverMessage.value -> tacitMessageHoverBackground
-                            isOwnMessage -> tacitMessageOwnHoverBackground
+                            hoverMessage.value -> tacitSurfaceAlt.copy(alpha = 0.45f)
+                            isOwnMessage -> tacitAccent(0.18f)
                             else -> Color.Transparent
                         }
                     )
@@ -207,8 +213,8 @@ private fun TacitFlatMessageContainer(
                             Row(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(14.dp))
-                                    .background(tacitMessageQuickActionsBackground, RoundedCornerShape(14.dp))
-                                    .border(1.dp, tacitMessageQuickActionsBorder, RoundedCornerShape(14.dp))
+                                    .background(tacitSurface, RoundedCornerShape(14.dp))
+                                    .border(1.dp, tacitBorder, RoundedCornerShape(14.dp))
                                     .padding(horizontal = 5.dp, vertical = 4.dp),
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 verticalAlignment = Alignment.CenterVertically,

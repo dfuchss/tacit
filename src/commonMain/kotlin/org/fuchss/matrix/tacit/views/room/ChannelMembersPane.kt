@@ -19,7 +19,11 @@ import androidx.compose.ui.unit.dp
 import de.connect2x.trixnity.messenger.compose.view.DI
 import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedUserAvatar
-import org.fuchss.matrix.tacit.*
+import org.fuchss.matrix.tacit.tacitBorder
+import org.fuchss.matrix.tacit.tacitSurface
+import org.fuchss.matrix.tacit.tacitSurfaceAlt
+import org.fuchss.matrix.tacit.tacitText
+import org.fuchss.matrix.tacit.tacitTextMuted
 import org.fuchss.matrix.tacit.viewmodel.room.timeline.entry.ChannelMemberEntry
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 import org.fuchss.matrix.tacit.views.room.list.dialogs.direct.CreateDirectMessageDialog
@@ -36,7 +40,7 @@ internal fun ChannelMembersPane(
     Column(
         modifier = Modifier.Companion
             .fillMaxSize()
-            .background(tacitPanel)
+            .background(tacitSurface)
             .padding(horizontal = 10.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -108,7 +112,7 @@ private fun MemberRow(
         modifier = Modifier.Companion
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
-            .background(tacitPanelHigh)
+            .background(tacitSurfaceAlt)
             .border(1.dp, tacitBorder, androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
             .clickable(enabled = clickable, onClick = onClick)
             .padding(horizontal = 8.dp, vertical = 7.dp),

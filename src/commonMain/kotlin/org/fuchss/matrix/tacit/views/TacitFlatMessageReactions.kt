@@ -15,7 +15,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import de.connect2x.trixnity.messenger.viewmodel.util.EventReactions
-import org.fuchss.matrix.tacit.*
+import org.fuchss.matrix.tacit.accentColor
+import org.fuchss.matrix.tacit.tacitAccent
+import org.fuchss.matrix.tacit.tacitBorder
+import org.fuchss.matrix.tacit.tacitSurface
+import org.fuchss.matrix.tacit.tacitSurfaceAlt
+import org.fuchss.matrix.tacit.tacitText
 
 @Composable
 internal fun TacitMessageReactions(
@@ -27,10 +32,10 @@ internal fun TacitMessageReactions(
     Row(
         modifier = modifier
             .background(
-                if (isOwnMessage) tacitMessageReactionsRowOwnBackground else tacitMessageReactionsRowBackground,
+                if (isOwnMessage) tacitAccent(0.14f) else tacitSurface,
                 RoundedCornerShape(14.dp),
             )
-            .border(1.dp, tacitMessageReactionsRowBorder, RoundedCornerShape(14.dp))
+            .border(1.dp, tacitBorder, RoundedCornerShape(14.dp))
             .padding(horizontal = 6.dp, vertical = 3.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -58,12 +63,12 @@ private fun TacitReactionChip(
         modifier = Modifier
             .clip(RoundedCornerShape(11.dp))
             .background(
-                if (selected) tacitReactionChipSelectedBackground else tacitReactionChipBackground,
+                if (selected) tacitAccent(0.22f) else tacitSurface,
                 RoundedCornerShape(11.dp),
             )
             .border(
                 1.dp,
-                if (selected) tacitReactionChipSelectedBorder else tacitReactionChipBorder,
+                if (selected) accentColor else tacitBorder,
                 RoundedCornerShape(11.dp),
             )
             .clickable(onClick = onClick)
@@ -76,13 +81,13 @@ private fun TacitReactionChip(
         ) {
             Text(
                 text = reaction,
-                color = if (selected) tacitAccentSoft else tacitText,
+                color = if (selected) accentColor else tacitText,
             )
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
                     .background(
-                        if (selected) tacitReactionCountSelectedBackground else tacitReactionCountBackground,
+                        if (selected) tacitAccent(0.22f) else tacitSurfaceAlt,
                         RoundedCornerShape(8.dp),
                     )
                     .padding(horizontal = 5.dp, vertical = 0.dp),
@@ -90,7 +95,7 @@ private fun TacitReactionChip(
             ) {
                 Text(
                     text = count.toString(),
-                    color = if (selected) tacitAccentSoft else tacitText,
+                    color = if (selected) accentColor else tacitText,
                 )
             }
         }

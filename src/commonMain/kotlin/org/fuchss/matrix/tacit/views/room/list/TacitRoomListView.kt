@@ -21,11 +21,11 @@ import de.connect2x.trixnity.messenger.viewmodel.util.ErrorType
 import kotlinx.coroutines.delay
 import org.fuchss.matrix.tacit.TacitRoomNavigationState
 import org.fuchss.matrix.tacit.tacitBorder
-import org.fuchss.matrix.tacit.tacitLayer
-import org.fuchss.matrix.tacit.tacitShell
-import org.fuchss.matrix.tacit.tacitWarningBannerBg
-import org.fuchss.matrix.tacit.tacitWarningBannerBorder
-import org.fuchss.matrix.tacit.tacitWarningBannerText
+import org.fuchss.matrix.tacit.tacitSurface
+import org.fuchss.matrix.tacit.tacitBackground
+import org.fuchss.matrix.tacit.tacitWarningBg
+import org.fuchss.matrix.tacit.tacitWarningBorder
+import org.fuchss.matrix.tacit.tacitWarningText
 import org.fuchss.matrix.tacit.viewmodel.room.list.RoomListMode
 import org.fuchss.matrix.tacit.viewmodel.room.list.TacitRoomListElementViewModel
 import org.fuchss.matrix.tacit.viewmodel.room.list.TacitRoomListViewModel
@@ -291,7 +291,7 @@ private fun RoomListContent(
     Row(
         modifier = Modifier
             .fillMaxSize()
-            .background(tacitShell)
+            .background(tacitBackground)
             .padding(8.dp)
     ) {
         GuildRail(
@@ -311,7 +311,7 @@ private fun RoomListContent(
             modifier = Modifier
                 .fillMaxSize()
                 .clip(RoundedCornerShape(18.dp))
-                .background(tacitLayer)
+                .background(tacitSurface)
         ) {
             GuildHero(
                 i18n = i18n,
@@ -390,20 +390,20 @@ private fun OfflineWarningBanner(
             .padding(horizontal = 12.dp, vertical = 8.dp)
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(tacitWarningBannerBg)
-            .border(1.dp, tacitWarningBannerBorder, RoundedCornerShape(12.dp))
+            .background(tacitWarningBg)
+            .border(1.dp, tacitWarningBorder, RoundedCornerShape(12.dp))
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Text(
             text = title,
             style = MaterialTheme.typography.titleSmall,
-            color = tacitWarningBannerText,
+            color = tacitWarningText,
         )
         Text(
             text = description,
             style = MaterialTheme.typography.bodySmall,
-            color = tacitWarningBannerText,
+            color = tacitWarningText,
         )
     }
 }

@@ -7,8 +7,6 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import de.connect2x.trixnity.messenger.compose.view.common.deriveFromHue
-import de.connect2x.trixnity.messenger.compose.view.common.hue
 import de.connect2x.trixnity.messenger.compose.view.theme.ComponentStyles
 
 internal object TacitThemeBundle {
@@ -17,26 +15,26 @@ internal object TacitThemeBundle {
 
     fun decorateComponents(base: ComponentStyles): ComponentStyles {
         val commonBanner = base.commonBanner.copy(
-            color = tacitCommonBannerBg,
-            contentColor = tacitCommonBannerText,
-            border = BorderStroke(1.dp, tacitCommonBannerBorder),
-            focusedBorder = BorderStroke(1.dp, tacitCommonBannerBorder),
+            color = tacitSurfaceAlt,
+            contentColor = tacitText,
+            border = BorderStroke(1.dp, tacitBorder),
+            focusedBorder = BorderStroke(1.dp, tacitBorder),
         )
         val warningBanner = base.warningBanner.copy(
-            color = tacitWarningBannerBg,
-            contentColor = tacitWarningBannerText,
-            border = BorderStroke(1.dp, tacitWarningBannerBorder),
-            focusedBorder = BorderStroke(1.dp, tacitWarningBannerBorder),
+            color = tacitWarningBg,
+            contentColor = tacitWarningText,
+            border = BorderStroke(1.dp, tacitWarningBorder),
+            focusedBorder = BorderStroke(1.dp, tacitWarningBorder),
         )
         val errorBanner = base.errorBanner.copy(
-            color = tacitErrorBannerBg,
-            contentColor = tacitErrorBannerText,
-            border = BorderStroke(1.dp, tacitErrorBannerBorder),
-            focusedBorder = BorderStroke(1.dp, tacitErrorBannerBorder),
+            color = tacitErrorBg,
+            contentColor = tacitErrorText,
+            border = BorderStroke(1.dp, tacitErrorBorder),
+            focusedBorder = BorderStroke(1.dp, tacitErrorBorder),
         )
         val dropdownMenu = base.dropdownMenu.copy(
             shape = RoundedCornerShape(14.dp),
-            color = tacitPanelHigh,
+            color = tacitSurfaceAlt,
             tonalElevation = 2.dp,
             shadowElevation = 8.dp,
             border = BorderStroke(1.dp, tacitBorder),
@@ -54,53 +52,54 @@ internal object TacitThemeBundle {
             dropdownMenu = dropdownMenu,
             dropdownMenuItem = dropdownMenuItem,
             messageBubbleError = base.messageBubbleError.copy(
-                color = tacitErrorBannerBg,
-                contentColor = tacitErrorBannerText,
+                color = tacitErrorBg,
+                contentColor = tacitErrorText,
             ),
         )
     }
 
     fun createTacitColorScheme(accentColor: Color): ColorScheme {
         updateTacitAccentColor(accentColor)
-        val accentHue = accentColor.hue
-        val theme = { color: Color -> color.deriveFromHue(accentHue) }
+        val onAccent = tacitOnAccent(accentColor)
+        val accentSoft = tacitAccent(0.22f)
+        val accentSoftStrong = tacitAccent(0.35f)
         return darkColorScheme(
             primary = accentColor,
-            onPrimary = theme(Color(0xFF06270A)),
-            primaryContainer = theme(Color(0xFF2D8D41)),
-            onPrimaryContainer = theme(Color(0xFFDFF9DE)),
-            secondary = theme(Color(0xFF4FBF73)),
-            onSecondary = theme(Color(0xFF041D0D)),
-            secondaryContainer = theme(Color(0xFF183A27)),
-            onSecondaryContainer = theme(Color(0xFFBFEFCC)),
-            tertiary = theme(Color(0xFFA7F29A)),
-            onTertiary = theme(Color(0xFF06250A)),
-            tertiaryContainer = theme(Color(0xFF2A6A32)),
-            onTertiaryContainer = theme(Color(0xFFD1F8C6)),
-            error = Color(0xFFFFB4AB),
-            errorContainer = Color(0xFF93000A),
-            onError = Color(0xFF690005),
-            onErrorContainer = Color(0xFFFFDAD6),
-            background = tacitShell,
+            onPrimary = onAccent,
+            primaryContainer = accentSoftStrong,
+            onPrimaryContainer = tacitText,
+            secondary = accentColor,
+            onSecondary = onAccent,
+            secondaryContainer = accentSoft,
+            onSecondaryContainer = tacitText,
+            tertiary = accentColor,
+            onTertiary = onAccent,
+            tertiaryContainer = accentSoft,
+            onTertiaryContainer = tacitText,
+            error = tacitError,
+            errorContainer = tacitErrorBg,
+            onError = tacitOnAccent(tacitError),
+            onErrorContainer = tacitErrorText,
+            background = tacitBackground,
             onBackground = tacitText,
-            surface = tacitLayer,
+            surface = tacitSurface,
             onSurface = tacitText,
-            surfaceVariant = tacitPanel,
-            onSurfaceVariant = theme(Color(0xFFD0E5D7)),
+            surfaceVariant = tacitSurfaceAlt,
+            onSurfaceVariant = tacitTextMuted,
             outline = tacitBorder,
-            inverseOnSurface = theme(Color(0xFF152419)),
-            inverseSurface = theme(Color(0xFFDCEFE1)),
-            inversePrimary = theme(Color(0xFF2D8D41)),
+            inverseOnSurface = tacitBackground,
+            inverseSurface = tacitText,
+            inversePrimary = accentColor,
             surfaceTint = accentColor,
-            outlineVariant = theme(Color(0xFF274435)),
-            scrim = Color(0xFF000000),
-            surfaceDim = theme(Color(0xFF070D09)),
-            surfaceBright = tacitPanelHigh,
-            surfaceContainerLowest = theme(Color(0xFF050A07)),
-            surfaceContainerLow = theme(Color(0xFF0C1510)),
-            surfaceContainer = tacitLayer,
-            surfaceContainerHigh = tacitPanel,
-            surfaceContainerHighest = tacitPanelHigh,
+            outlineVariant = tacitBorder,
+            scrim = tacitBackground.copy(alpha = 0.65f),
+            surfaceDim = tacitBackground,
+            surfaceBright = tacitSurfaceAlt,
+            surfaceContainerLowest = tacitBackground,
+            surfaceContainerLow = tacitSurface,
+            surfaceContainer = tacitSurface,
+            surfaceContainerHigh = tacitSurface,
+            surfaceContainerHighest = tacitSurfaceAlt,
         )
     }
 }

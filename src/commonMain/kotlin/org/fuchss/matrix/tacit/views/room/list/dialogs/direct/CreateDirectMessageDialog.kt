@@ -19,8 +19,8 @@ import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.theme.components
 import de.connect2x.trixnity.messenger.compose.view.theme.components.*
 import kotlinx.coroutines.delay
-import org.fuchss.matrix.tacit.tacitSearchResultBackground
-import org.fuchss.matrix.tacit.tacitSearchResultBorder
+import org.fuchss.matrix.tacit.tacitSurface
+import org.fuchss.matrix.tacit.tacitBorder
 import org.fuchss.matrix.tacit.tacitTextMuted
 import org.fuchss.matrix.tacit.viewmodel.util.UserDirectoryEntry
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
@@ -109,8 +109,8 @@ internal fun CreateDirectMessageDialog(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(10.dp))
-                                    .background(tacitSearchResultBackground)
-                                    .border(1.dp, tacitSearchResultBorder, RoundedCornerShape(10.dp))
+                                    .background(tacitSurface)
+                                    .border(1.dp, tacitBorder, RoundedCornerShape(10.dp))
                                     .padding(vertical = 4.dp),
                                 verticalArrangement = Arrangement.spacedBy(2.dp),
                             ) {

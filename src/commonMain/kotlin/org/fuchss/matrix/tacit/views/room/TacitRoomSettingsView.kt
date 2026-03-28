@@ -281,7 +281,7 @@ private fun GuildSettingsContent(
         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 0.dp),
         verticalSpacing = 20.dp,
         showScrollbar = true,
-        columnModifier = Modifier.background(tacitPanelHigh.copy(alpha = 0.25f), RoundedCornerShape(12.dp)),
+        columnModifier = Modifier.background(tacitSurfaceAlt.copy(alpha = 0.25f), RoundedCornerShape(12.dp)),
     ) {
         CommonRoomSections(
             roomSettingsViewModel = roomSettingsViewModel,
@@ -334,13 +334,13 @@ private fun GuildSettings(
     val leaveWarningOpen = roomSettingsViewModel.leaveRoomWarningOpen.collectAsState().value
     val joinRule = roomSettingsViewModel.roomSettingsJoinRulesViewModel.joinRule.collectAsState().value
     val scroll = rememberScrollState()
-    val warningAccent = tacitWarningBannerBorder
-    val warningContainer = tacitWarningBannerBg
+    val warningAccent = tacitWarningBorder
+    val warningContainer = tacitWarningBg
 
     Box(
         Modifier
             .fillMaxSize()
-            .background(tacitPanel)
+            .background(tacitSurface)
     ) {
         Column {
             Row(
@@ -421,7 +421,7 @@ private fun DmUserVerificationSection(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(tacitPanelHigh, RoundedCornerShape(12.dp))
+                    .background(tacitSurfaceAlt, RoundedCornerShape(12.dp))
                     .border(1.dp, tacitBorder, RoundedCornerShape(12.dp))
                     .clickable { onOpenVerification(entry.userId) }
                     .padding(horizontal = 10.dp, vertical = 10.dp),

@@ -22,8 +22,8 @@ import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.theme.components
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedButton
 import de.connect2x.trixnity.messenger.viewmodel.roomlist.RoomListViewModel
-import org.fuchss.matrix.tacit.tacitLabelSubtle
-import org.fuchss.matrix.tacit.tacitPanel
+import org.fuchss.matrix.tacit.tacitTextMuted
+import org.fuchss.matrix.tacit.tacitSurface
 import org.fuchss.matrix.tacit.tacitText
 import org.fuchss.matrix.tacit.viewmodel.room.list.RoomListMode
 import org.fuchss.matrix.tacit.viewmodel.room.list.TacitRoomListElementViewModel
@@ -55,7 +55,7 @@ internal fun RoomListBody(
     Box(
         modifier = Modifier.Companion
             .fillMaxSize()
-            .background(tacitPanel)
+            .background(tacitSurface)
     ) {
         when {
             allRoomsEmpty && mode.isDirectMessages() && canCreateNewRoomWithAccount && !searchResultsEmpty -> {
@@ -203,7 +203,7 @@ private fun RoomListEmptyState(
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.Chat,
                 contentDescription = null,
-                tint = tacitLabelSubtle,
+                tint = tacitTextMuted,
                 modifier = Modifier.size(28.dp),
             )
             Spacer(Modifier.height(12.dp))
@@ -216,7 +216,7 @@ private fun RoomListEmptyState(
             Spacer(Modifier.height(6.dp))
             Text(
                 text = description,
-                color = tacitLabelSubtle,
+                color = tacitTextMuted,
                 style = MaterialTheme.typography.bodySmall,
                 textAlign = TextAlign.Center,
             )
@@ -237,7 +237,7 @@ private fun RoomListEmptyState(
 private fun RoomListSectionLabel(text: String) {
     Text(
         text = text,
-        color = tacitLabelSubtle,
+        color = tacitTextMuted,
         style = MaterialTheme.typography.labelSmall,
         fontWeight = FontWeight.Bold,
         modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),

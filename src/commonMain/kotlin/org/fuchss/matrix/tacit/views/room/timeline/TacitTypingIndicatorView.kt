@@ -20,7 +20,7 @@ import de.connect2x.trixnity.messenger.compose.view.room.timeline.TypingIndicato
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedUserAvatar
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.TimelineViewModel
 import org.fuchss.matrix.tacit.tacitBorder
-import org.fuchss.matrix.tacit.tacitCardBackgroundAlt
+import org.fuchss.matrix.tacit.tacitSurface
 import org.fuchss.matrix.tacit.tacitText
 import org.fuchss.matrix.tacit.tacitTextMuted
 import org.fuchss.matrix.tacit.viewmodel.room.timeline.TacitTimelineViewModel
@@ -44,7 +44,7 @@ class TacitTypingIndicatorView : TypingIndicatorView {
                     .fillMaxWidth()
                     .padding(start = 10.dp, end = 18.dp, top = 2.dp, bottom = 6.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(tacitCardBackgroundAlt.copy(alpha = 0.72f))
+                    .background(tacitSurface.copy(alpha = 0.72f))
                     .border(1.dp, tacitBorder.copy(alpha = 0.45f), RoundedCornerShape(12.dp))
                     .padding(horizontal = 10.dp, vertical = 7.dp),
                 verticalAlignment = Alignment.CenterVertically,

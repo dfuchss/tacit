@@ -40,7 +40,7 @@ class TacitRoomView : RoomView {
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
-                .background(tacitShell)
+                .background(tacitBackground)
                 .padding(8.dp)
         ) {
             val isSinglePane = this@BoxWithConstraints.maxWidth < TWO_PANE_THRESHOLD.dp
@@ -165,7 +165,7 @@ private fun TimelinePane(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(tacitPanel)
+                .background(tacitSurface)
                 .padding(20.dp),
             contentAlignment = Alignment.Center,
         ) {
@@ -193,7 +193,7 @@ private fun ModernPane(
         modifier = modifier
             .fillMaxHeight()
             .clip(RoundedCornerShape(16.dp))
-            .background(tacitLayer)
+            .background(tacitSurface)
             .border(1.dp, tacitBorder, RoundedCornerShape(16.dp))
             .padding(6.dp)
     ) {
@@ -201,7 +201,7 @@ private fun ModernPane(
             modifier = Modifier
                 .fillMaxSize()
                 .clip(RoundedCornerShape(12.dp))
-                .background(tacitPanel)
+                .background(tacitSurface)
         ) {
             content()
         }

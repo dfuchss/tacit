@@ -88,7 +88,7 @@ internal fun GuildRail(
             .clip(RoundedCornerShape(18.dp))
             .background(
                 Brush.verticalGradient(
-                    listOf(tacitRailGradientStart, tacitRailGradientMiddle, tacitRailGradientEnd)
+                    listOf(tacitBackground, tacitSurface, tacitBackground)
                 )
             )
             .padding(vertical = 10.dp),
@@ -207,7 +207,7 @@ private fun GuildDropHint() {
             modifier = Modifier
                 .size(46.dp)
                 .clip(CircleShape)
-                .background(tacitRailButtonBackground.copy(alpha = 0.35f))
+                .background(tacitSurface.copy(alpha = 0.35f))
                 .border(width = 1.5.dp, color = accentColor.copy(alpha = pulseAlpha), shape = CircleShape),
         )
     }
@@ -223,7 +223,7 @@ private fun GuildCreateButton(onClick: () -> Unit) {
             .padding(top = 8.dp)
             .size(guildPillSize)
             .clip(CircleShape)
-            .background(if (hovered) tacitRailButtonHoverBackground else tacitRailButtonBackground)
+            .background(if (hovered) tacitSurfaceAlt else tacitSurface)
             .pointerMoveFilter(
                 onEnter = {
                     hovered = true
@@ -286,9 +286,9 @@ private fun GuildPill(
                     .clip(pillShape)
                     .background(
                         when {
-                            selected -> tacitActionPrimaryBackground
-                            hovered -> tacitRailButtonHoverBackground
-                            else -> tacitRailButtonBackground
+                            selected -> tacitAccent(0.25f)
+                            hovered -> tacitSurfaceAlt
+                            else -> tacitSurface
                         }
                     )
                     .pointerMoveFilter(
@@ -343,13 +343,13 @@ private fun GuildPill(
                             .padding(3.dp)
                             .size(14.dp)
                             .clip(CircleShape)
-                            .background(tacitPanel),
+                            .background(tacitSurface),
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
                             Icons.AutoMirrored.Filled.Chat,
                             contentDescription = i18n.tacitDirectMessagesDescription(),
-                            tint = tacitRailIconTint,
+                            tint = tacitText,
                             modifier = Modifier.size(9.dp),
                         )
                     }
@@ -361,13 +361,13 @@ private fun GuildPill(
                         .align(Alignment.TopEnd)
                         .offset(x = 1.dp, y = (-1).dp)
                         .clip(CircleShape)
-                        .background(tacitBadgeSuccessBackground)
+                        .background(accentColor)
                         .padding(horizontal = 6.dp, vertical = 1.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
                         text = if (unreadCount > 99) "99+" else unreadCount.toString(),
-                        color = tacitBadgeSuccessContent,
+                        color = tacitOnAccent(accentColor),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,

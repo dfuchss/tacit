@@ -22,7 +22,14 @@ import de.connect2x.trixnity.messenger.compose.view.pointerMoveFilter
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.RoomHeaderView
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.RoomHeaderViewImpl
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.RoomHeaderViewModel
-import org.fuchss.matrix.tacit.*
+import org.fuchss.matrix.tacit.TacitRoomNavigationState
+import org.fuchss.matrix.tacit.accentColor
+import org.fuchss.matrix.tacit.tacitAccent
+import org.fuchss.matrix.tacit.tacitBorder
+import org.fuchss.matrix.tacit.tacitSurface
+import org.fuchss.matrix.tacit.tacitSurfaceAlt
+import org.fuchss.matrix.tacit.tacitText
+import org.fuchss.matrix.tacit.tacitTextMuted
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 
 class TacitRoomHeaderView(
@@ -66,16 +73,15 @@ private fun MembersPaneToggleButton(
     val i18n = DI.get<TacitI18nView>()
     var hovered by remember { mutableStateOf(false) }
     val background = when {
-        active -> tacitMembersButtonActiveBackground
-        hovered -> tacitMembersButtonHoverBackground
-        else -> tacitMembersButtonBackground
+        active -> tacitAccent(0.2f)
+        hovered -> tacitSurfaceAlt
+        else -> tacitSurface
     }
     val border = when {
-        active -> tacitMembersButtonActiveBorder
-        hovered -> tacitMembersButtonHoverBorder
-        else -> tacitMembersButtonBorder
+        active -> accentColor
+        else -> tacitBorder
     }
-    val iconColor = if (active) tacitMembersButtonActiveIconTint else tacitMembersButtonIconTint
+    val iconColor = if (active) tacitText else tacitTextMuted
 
     Box(
         modifier = modifier

@@ -21,7 +21,11 @@ import de.connect2x.trixnity.messenger.compose.view.DI
 import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.theme.components
 import de.connect2x.trixnity.messenger.compose.view.theme.components.*
-import org.fuchss.matrix.tacit.*
+import org.fuchss.matrix.tacit.accentColor
+import org.fuchss.matrix.tacit.tacitSurface
+import org.fuchss.matrix.tacit.tacitSurfaceAlt
+import org.fuchss.matrix.tacit.tacitText
+import org.fuchss.matrix.tacit.tacitTextMuted
 import org.fuchss.matrix.tacit.viewmodel.room.list.entry.SpaceChannelEntry
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 
@@ -47,7 +51,7 @@ internal fun BrowseChannelsDialog(
                         .clip(RoundedCornerShape(12.dp))
                         .background(
                             Brush.horizontalGradient(
-                                listOf(tacitHeroGradientStart, tacitDialogGradientMiddle, tacitDialogGradientEnd)
+                                listOf(tacitSurface, tacitSurfaceAlt, tacitSurface)
                             )
                         )
                         .padding(horizontal = 12.dp, vertical = 10.dp)
@@ -89,14 +93,14 @@ internal fun BrowseChannelsDialog(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(10.dp))
-                                    .background(tacitPanel)
+                                    .background(tacitSurface)
                                     .padding(horizontal = 10.dp, vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                         text = channel.displayName,
-                                        color = tacitDialogChannelText,
+                                        color = tacitText,
                                         style = MaterialTheme.typography.bodyMedium,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
@@ -146,7 +150,7 @@ private fun StatusChip(
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(999.dp))
-            .background(tacitChipBackground)
+            .background(tacitSurface)
             .padding(horizontal = 8.dp, vertical = 3.dp),
         contentAlignment = Alignment.Center,
     ) {

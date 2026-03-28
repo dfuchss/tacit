@@ -27,8 +27,8 @@ import de.connect2x.trixnity.messenger.compose.view.common.EmojiSelector
 import de.connect2x.trixnity.messenger.compose.view.i18n.I18nView
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedDropdownMenu
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedDropdownMenuItem
-import org.fuchss.matrix.tacit.tacitReactionPickerButtonBackground
-import org.fuchss.matrix.tacit.tacitReactionPickerButtonBorder
+import org.fuchss.matrix.tacit.tacitBorder
+import org.fuchss.matrix.tacit.tacitSurface
 import org.fuchss.matrix.tacit.tacitText
 
 internal val tacitQuickReactionShortcuts = listOf("👍", "❤️", "😂", "🎉", "🔥", "🚀", "👀", "✅", "🤔", "😮", "😢", "🙌")
@@ -190,8 +190,8 @@ private fun TacitQuickReactionPickerButton(
         modifier = Modifier
             .size(32.dp)
             .clip(RoundedCornerShape(10.dp))
-            .background(tacitReactionPickerButtonBackground, RoundedCornerShape(10.dp))
-            .border(1.dp, tacitReactionPickerButtonBorder, RoundedCornerShape(10.dp))
+            .background(tacitSurface, RoundedCornerShape(10.dp))
+            .border(1.dp, tacitBorder, RoundedCornerShape(10.dp))
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
@@ -207,8 +207,8 @@ internal fun TacitQuickActionButton(
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(10.dp))
-            .background(tacitReactionPickerButtonBackground, RoundedCornerShape(10.dp))
-            .border(1.dp, tacitReactionPickerButtonBorder, RoundedCornerShape(10.dp))
+            .background(tacitSurface, RoundedCornerShape(10.dp))
+            .border(1.dp, tacitBorder, RoundedCornerShape(10.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 6.dp, vertical = 2.dp),
         contentAlignment = Alignment.Center,
