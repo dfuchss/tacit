@@ -284,6 +284,8 @@ private fun ReadToggleButton(
 @Composable
 internal fun DmOverview(
     rooms: List<TacitRoomListElementViewModel>,
+    selectedFilter: DmFilter,
+    onFilterChange: (DmFilter) -> Unit,
 ) {
     val i18n = DI.get<TacitI18nView>()
     val unread = rooms.count { room -> room.isUnread.collectAsState().value == true }
@@ -302,21 +304,33 @@ internal fun DmOverview(
                 value = rooms.size.toString(),
                 modifier = Modifier.weight(1f),
                 valueColor = tacitText,
+                selected = selectedFilter == DmFilter.ALL,
+                onClick = { onFilterChange(DmFilter.ALL) },
             )
             DmStatTile(
                 title = i18n.tacitDmStatOnline(),
                 value = online.toString(),
                 modifier = Modifier.weight(1f),
                 valueColor = accentColor,
+                selected = selectedFilter == DmFilter.ONLINE,
+                onClick = { onFilterChange(DmFilter.ONLINE) },
             )
             DmStatTile(
                 title = i18n.tacitDmStatUnread(),
                 value = unread.toString(),
                 modifier = Modifier.weight(1f),
                 valueColor = accentColor,
+                selected = selectedFilter == DmFilter.UNREAD,
+                onClick = { onFilterChange(DmFilter.UNREAD) },
             )
         }
     }
+}
+
+internal enum class DmFilter {
+    ALL,
+    ONLINE,
+    UNREAD,
 }
 
 @Composable
@@ -325,11 +339,19 @@ private fun DmStatTile(
     value: String,
     modifier: Modifier = Modifier,
     valueColor: Color,
+    selected: Boolean,
+    onClick: () -> Unit,
 ) {
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(10.dp))
-            .background(tacitSurface)
+            .background(if (selected) tacitAccent(0.25f) else tacitSurface)
+            .border(
+                width = 1.dp,
+                color = if (selected) accentColor else tacitBorder,
+                shape = RoundedCornerShape(10.dp),
+            )
+            .clickable(onClick = onClick)
             .padding(horizontal = 10.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {

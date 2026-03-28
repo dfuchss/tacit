@@ -145,6 +145,16 @@ open class TacitI18nView(
         DE - "Starte eine Unterhaltung oder tritt einem Raum bei."
     }
 
+    open fun tacitNoOnlineDirectMessages() = translate {
+        EN - "No one is online right now."
+        DE - "Gerade ist niemand online."
+    }
+
+    open fun tacitNoUnreadDirectMessages() = translate {
+        EN - "No unread chats right now."
+        DE - "Derzeit keine ungelesenen Chats."
+    }
+
     open fun tacitInvitesSection() = translate {
         EN - "INVITES"
         DE - "EINLADUNGEN"

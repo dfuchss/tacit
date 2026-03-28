@@ -7,16 +7,24 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.filled.MarkChatRead
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import de.connect2x.trixnity.core.model.RoomId
+import de.connect2x.trixnity.core.model.events.m.Presence
 import de.connect2x.trixnity.messenger.compose.view.DI
 import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.theme.components
@@ -86,6 +94,18 @@ internal fun RoomListBody(
 
             else -> {
                 val listState = rememberLazyListState()
+                var dmFilter by remember { mutableStateOf(DmFilter.ALL) }
+                val filteredVisibleRooms = if (mode.isDirectMessages()) {
+                    visibleRooms.filter { room ->
+                        when (dmFilter) {
+                            DmFilter.ALL -> true
+                            DmFilter.UNREAD -> room.isUnread.collectAsState().value == true
+                            DmFilter.ONLINE -> room.presence.collectAsState().value == Presence.ONLINE
+                        }
+                    }
+                } else {
+                    visibleRooms
+                }
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -93,7 +113,17 @@ internal fun RoomListBody(
                 ) {
                     if (visibleRooms.isNotEmpty()) {
                         if (mode.isDirectMessages()) {
-                            DmOverview(visibleRooms)
+                            DmOverview(
+                                rooms = visibleRooms,
+                                selectedFilter = dmFilter,
+                                onFilterChange = { requested ->
+                                    dmFilter = if (requested == dmFilter && requested != DmFilter.ALL) {
+                                        DmFilter.ALL
+                                    } else {
+                                        requested
+                                    }
+                                },
+                            )
                             Spacer(Modifier.height(8.dp))
                         }
                         RoomListSectionLabel(mode.roomsSectionTitle())
@@ -105,19 +135,51 @@ internal fun RoomListBody(
                             .weight(1f),
                         state = listState,
                     ) {
-                        if (visibleRooms.isNotEmpty()) {
-                            itemsIndexed(
-                                items = visibleRooms,
-                                key = { _, element -> element.roomId.full },
-                            ) { _, room ->
-                                ChannelRow(
-                                    roomListViewModel = roomListViewModel,
-                                    room = room,
-                                    selectedRoomId = selectedRoomId,
-                                    mode = mode,
-                                    i18n = i18n,
-                                )
+                        if (filteredVisibleRooms.isEmpty() && inviteRooms.isEmpty() && !selectedGuildInviteVisible) {
+                            item {
+                                val emptyStateIcon = when {
+                                    mode.isDirectMessages() && dmFilter == DmFilter.ONLINE -> Icons.Default.Person
+                                    mode.isDirectMessages() && dmFilter == DmFilter.UNREAD -> Icons.Default.MarkChatRead
+                                    else -> Icons.AutoMirrored.Filled.Chat
+                                }
+                                val emptyStateText = when {
+                                    mode.isDirectMessages() && dmFilter == DmFilter.ONLINE -> i18n.tacitNoOnlineDirectMessages()
+                                    mode.isDirectMessages() && dmFilter == DmFilter.UNREAD -> i18n.tacitNoUnreadDirectMessages()
+                                    else -> i18n.tacitNoDirectMessagesDescription()
+                                }
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 24.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                ) {
+                                    Icon(
+                                        imageVector = emptyStateIcon,
+                                        contentDescription = null,
+                                        tint = tacitTextMuted,
+                                        modifier = Modifier.size(28.dp),
+                                    )
+                                    Text(
+                                        text = emptyStateText,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = tacitTextMuted,
+                                        textAlign = TextAlign.Center,
+                                    )
+                                }
                             }
+                        }
+                        itemsIndexed(
+                            items = filteredVisibleRooms,
+                            key = { _, element -> element.roomId.full },
+                        ) { _, room ->
+                            ChannelRow(
+                                roomListViewModel = roomListViewModel,
+                                room = room,
+                                selectedRoomId = selectedRoomId,
+                                mode = mode,
+                                i18n = i18n,
+                            )
                         }
 
                         if (inviteRooms.isNotEmpty()) {
