@@ -14,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import de.connect2x.trixnity.messenger.compose.view.common.Tooltip
 import de.connect2x.trixnity.messenger.viewmodel.util.EventReactions
 import org.fuchss.matrix.tacit.*
 
@@ -37,10 +38,12 @@ internal fun TacitMessageReactions(
     ) {
         reactionEntries.forEach { (reaction, infos) ->
             val reactedByMe = infos.any { it.isMe }
+            val reactedByNames = infos.joinToString { it.sender.name }
             TacitReactionChip(
                 reaction = reaction,
                 count = infos.size,
                 selected = reactedByMe,
+                reactedByNames = reactedByNames,
                 onClick = { onToggleReaction(reaction, reactedByMe) },
             )
         }
@@ -52,46 +55,49 @@ private fun TacitReactionChip(
     reaction: String,
     count: Int,
     selected: Boolean,
+    reactedByNames: String,
     onClick: () -> Unit,
 ) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(11.dp))
-            .background(
-                if (selected) tacitAccent(0.22f) else tacitSurface,
-                RoundedCornerShape(11.dp),
-            )
-            .border(
-                1.dp,
-                if (selected) accentColor else tacitBorder,
-                RoundedCornerShape(11.dp),
-            )
-            .clickable(onClick = onClick)
-            .padding(horizontal = 7.dp, vertical = 2.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(5.dp),
-            verticalAlignment = Alignment.CenterVertically,
+    Tooltip(tooltip = { Text(reactedByNames) }) {
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(11.dp))
+                .background(
+                    if (selected) tacitAccent(0.22f) else tacitSurface,
+                    RoundedCornerShape(11.dp),
+                )
+                .border(
+                    1.dp,
+                    if (selected) accentColor else tacitBorder,
+                    RoundedCornerShape(11.dp),
+                )
+                .clickable(onClick = onClick)
+                .padding(horizontal = 7.dp, vertical = 2.dp),
+            contentAlignment = Alignment.Center,
         ) {
-            Text(
-                text = reaction,
-                color = if (selected) accentColor else tacitText,
-            )
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(
-                        if (selected) tacitAccent(0.22f) else tacitSurfaceAlt,
-                        RoundedCornerShape(8.dp),
-                    )
-                    .padding(horizontal = 5.dp, vertical = 0.dp),
-                contentAlignment = Alignment.Center,
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = count.toString(),
+                    text = reaction,
                     color = if (selected) accentColor else tacitText,
                 )
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(
+                            if (selected) tacitAccent(0.22f) else tacitSurfaceAlt,
+                            RoundedCornerShape(8.dp),
+                        )
+                        .padding(horizontal = 5.dp, vertical = 0.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = count.toString(),
+                        color = if (selected) accentColor else tacitText,
+                    )
+                }
             }
         }
     }
