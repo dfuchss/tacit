@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoDelete
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -41,13 +42,7 @@ import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.messag
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.message.bubble.MessageBubbleView
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedUserAvatar
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.BaseTimelineElementHolderViewModel
-import org.fuchss.matrix.tacit.accentColor
-import org.fuchss.matrix.tacit.tacitAccent
-import org.fuchss.matrix.tacit.tacitBorder
-import org.fuchss.matrix.tacit.tacitSurface
-import org.fuchss.matrix.tacit.tacitSurfaceAlt
-import org.fuchss.matrix.tacit.tacitText
-import org.fuchss.matrix.tacit.tacitTextMuted
+import org.fuchss.matrix.tacit.*
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 
 class TacitFlatMessageView : MessageBubbleView {
@@ -233,7 +228,10 @@ private fun TacitFlatMessageContainer(
                                         showActionMenu.value = false
                                     }
                                 }
-                                TacitQuickActionButton(label = "⋯") { showActionMenu.value = true }
+                                TacitQuickActionButton(
+                                    label = "More",
+                                    icon = Icons.Default.MoreVert
+                                ) { showActionMenu.value = true }
                             }
 
                             TacitMessageActionDropdown(

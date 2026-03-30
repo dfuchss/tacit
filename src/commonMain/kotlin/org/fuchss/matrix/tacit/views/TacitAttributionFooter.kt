@@ -49,7 +49,7 @@ internal fun TacitAttributionFooter(
             maxLines = maxLines,
             overflow = overflow,
             modifier = Modifier.clickable {
-                uriHandler.openUri("https://fuchss.org")
+                uriHandler.openUri("https://fuchss.org/projects/tacit")
             },
         )
         Text(

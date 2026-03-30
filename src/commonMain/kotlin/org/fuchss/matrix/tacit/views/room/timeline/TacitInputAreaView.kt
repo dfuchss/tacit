@@ -25,8 +25,8 @@ import de.connect2x.trixnity.messenger.compose.view.room.timeline.*
 import de.connect2x.trixnity.messenger.compose.view.theme.components
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedSurface
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.InputAreaViewModel
-import org.fuchss.matrix.tacit.tacitSurface
 import org.fuchss.matrix.tacit.tacitBorder
+import org.fuchss.matrix.tacit.tacitSurface
 import org.fuchss.matrix.tacit.tacitText
 import org.fuchss.matrix.tacit.viewmodel.room.timeline.findSlashCommandMatch
 import org.fuchss.matrix.tacit.viewmodel.room.timeline.slashCommandSuggestions
@@ -277,12 +277,6 @@ private fun AutocompleteSuggestions(
         }
     }
 }
-
-private fun TextFieldValue.insert(insertion: String): TextFieldValue =
-    TextFieldValue(
-        text = text.substring(0, selection.start) + insertion + text.substring(selection.end),
-        selection = TextRange(selection.start + insertion.length),
-    )
 
 private fun TextFieldValue.findShortcodeMatch(): EmojiShortcodeMatch? {
     if (!selection.collapsed || selection.start == 0) return null

@@ -19,12 +19,7 @@ import de.connect2x.trixnity.messenger.compose.view.roomlist.header.AccountData
 import de.connect2x.trixnity.messenger.compose.view.roomlist.header.NotVerifiedBanner
 import de.connect2x.trixnity.messenger.compose.view.roomlist.header.SearchRoomsBanner
 import de.connect2x.trixnity.messenger.compose.view.theme.components
-import de.connect2x.trixnity.messenger.compose.view.theme.components.ModalDialogContent
-import de.connect2x.trixnity.messenger.compose.view.theme.components.ModalDialogFooter
-import de.connect2x.trixnity.messenger.compose.view.theme.components.ModalDialogHeader
-import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedButton
-import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedModalDialog
-import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedSurface
+import de.connect2x.trixnity.messenger.compose.view.theme.components.*
 import de.connect2x.trixnity.messenger.viewmodel.roomlist.RoomListViewModel
 import de.connect2x.trixnity.messenger.viewmodel.util.ErrorType
 

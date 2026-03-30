@@ -22,14 +22,7 @@ import de.connect2x.trixnity.messenger.compose.view.pointerMoveFilter
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.RoomHeaderView
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.RoomHeaderViewImpl
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.RoomHeaderViewModel
-import org.fuchss.matrix.tacit.TacitRoomNavigationState
-import org.fuchss.matrix.tacit.accentColor
-import org.fuchss.matrix.tacit.tacitAccent
-import org.fuchss.matrix.tacit.tacitBorder
-import org.fuchss.matrix.tacit.tacitSurface
-import org.fuchss.matrix.tacit.tacitSurfaceAlt
-import org.fuchss.matrix.tacit.tacitText
-import org.fuchss.matrix.tacit.tacitTextMuted
+import org.fuchss.matrix.tacit.*
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 
 class TacitRoomHeaderView(

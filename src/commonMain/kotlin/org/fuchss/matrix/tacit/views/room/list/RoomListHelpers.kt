@@ -13,8 +13,6 @@ internal fun dmInitials(name: String): String {
     }
 }
 
-internal fun dmPresenceVisible(presence: Presence?): Boolean = presence == Presence.ONLINE
-
 internal fun dmPresenceColor(presence: Presence?): Color = when (presence) {
     Presence.ONLINE -> accentColor
     else -> Color.Transparent

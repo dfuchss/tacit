@@ -2,35 +2,17 @@ package org.fuchss.matrix.tacit.views.room.timeline
 
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.SmartToy
-import androidx.compose.material3.Icon
-import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.LocalTextStyle
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import de.connect2x.trixnity.messenger.compose.view.DI
 import de.connect2x.trixnity.messenger.compose.view.Platform
@@ -40,25 +22,16 @@ import de.connect2x.trixnity.messenger.compose.view.i18n.I18nView
 import de.connect2x.trixnity.messenger.compose.view.richtext.RichTextColors
 import de.connect2x.trixnity.messenger.compose.view.richtext.RichTextDisplay
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.TimelineElementView
-import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.message.EmoteRoomMessageTimelineElementView
-import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.message.EmoteRoomMessageTimelineElementViewImpl
-import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.message.NoticeRoomMessageTimelineElementView
-import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.message.NoticeRoomMessageTimelineElementViewImpl
-import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.message.TextReplyInSendMessage
-import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.message.TextReplyInTimeline
-import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.message.TextRoomMessageTimelineElementView
-import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.message.TextRoomMessageTimelineElementViewImpl
+import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.message.*
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.message.bubble.MessageBubble
 import de.connect2x.trixnity.messenger.compose.view.theme.components
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedSelectionContainer
 import de.connect2x.trixnity.messenger.compose.view.theme.messengerColors
-import de.connect2x.trixnity.messenger.compose.view.util.toClipEntry
 import de.connect2x.trixnity.messenger.util.UriCaller
 import de.connect2x.trixnity.messenger.util.html.HtmlNode
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.BaseTimelineElementHolderViewModel
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.TimelineElementHolderViewModel
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.message.RoomMessageTimelineElementViewModel
-import kotlin.reflect.KClass
 
 internal data class TacitStandaloneSpoiler(
     val reason: String?,
@@ -68,11 +41,11 @@ private val standaloneSpoilerWrapperTags = setOf("#root", "html", "body", "div",
 
 internal fun extractStandaloneSpoiler(document: HtmlNode.HtmlElement): TacitStandaloneSpoiler? {
     val normalizedChildren = document.children.filterNotBlankTextNodes()
-    return when {
-        document.tag == "span" && document.attributes.containsKey("data-mx-spoiler") ->
+    return when (document.tag) {
+        "span" if document.attributes.containsKey("data-mx-spoiler") ->
             TacitStandaloneSpoiler(document.attributes["data-mx-spoiler"]?.ifBlank { null })
 
-        document.tag in standaloneSpoilerWrapperTags && normalizedChildren.size == 1 ->
+        in standaloneSpoilerWrapperTags if normalizedChildren.size == 1 ->
             (normalizedChildren.single() as? HtmlNode.HtmlElement)?.let(::extractStandaloneSpoiler)
 
         else -> null

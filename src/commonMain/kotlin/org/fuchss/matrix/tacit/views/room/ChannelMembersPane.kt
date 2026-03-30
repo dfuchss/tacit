@@ -19,11 +19,7 @@ import androidx.compose.ui.unit.dp
 import de.connect2x.trixnity.messenger.compose.view.DI
 import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedUserAvatar
-import org.fuchss.matrix.tacit.tacitBorder
-import org.fuchss.matrix.tacit.tacitSurface
-import org.fuchss.matrix.tacit.tacitSurfaceAlt
-import org.fuchss.matrix.tacit.tacitText
-import org.fuchss.matrix.tacit.tacitTextMuted
+import org.fuchss.matrix.tacit.*
 import org.fuchss.matrix.tacit.viewmodel.room.timeline.entry.ChannelMemberEntry
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 import org.fuchss.matrix.tacit.views.room.list.dialogs.direct.CreateDirectMessageDialog
@@ -38,7 +34,7 @@ internal fun ChannelMembersPane(
     var selectedMemberForDm by remember { mutableStateOf<ChannelMemberEntry?>(null) }
 
     Column(
-        modifier = Modifier.Companion
+        modifier = Modifier
             .fillMaxSize()
             .background(tacitSurface)
             .padding(horizontal = 10.dp, vertical = 12.dp),
@@ -48,13 +44,13 @@ internal fun ChannelMembersPane(
             text = i18n.tacitMembersTitle(roomMembers.size),
             color = tacitText,
             style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.Companion.SemiBold,
+            fontWeight = FontWeight.SemiBold,
         )
 
         if (roomMembers.isEmpty()) {
             Box(
-                modifier = Modifier.Companion.fillMaxSize(),
-                contentAlignment = Alignment.Companion.Center,
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = i18n.tacitNoMembersToShow(),
@@ -64,7 +60,7 @@ internal fun ChannelMembersPane(
             }
         } else {
             LazyColumn(
-                modifier = Modifier.Companion.fillMaxSize(),
+                modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 items(roomMembers, key = { it.userId.full }) { member ->
@@ -109,14 +105,14 @@ private fun MemberRow(
     onClick: () -> Unit,
 ) {
     Row(
-        modifier = Modifier.Companion
+        modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
             .background(tacitSurfaceAlt)
             .border(1.dp, tacitBorder, androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
             .clickable(enabled = clickable, onClick = onClick)
             .padding(horizontal = 8.dp, vertical = 7.dp),
-        verticalAlignment = Alignment.Companion.CenterVertically,
+        verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         ThemedUserAvatar(
@@ -125,20 +121,20 @@ private fun MemberRow(
             size = 28.dp,
         )
 
-        Column(modifier = Modifier.Companion.weight(1f)) {
+        Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = if (member.isSelf) i18n.tacitYouSuffix(member.displayName) else member.displayName,
                 color = tacitText,
                 style = MaterialTheme.typography.bodyMedium,
                 maxLines = 1,
-                overflow = TextOverflow.Companion.Ellipsis,
+                overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = member.userId.full,
                 color = tacitTextMuted,
                 style = MaterialTheme.typography.bodySmall,
                 maxLines = 1,
-                overflow = TextOverflow.Companion.Ellipsis,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }

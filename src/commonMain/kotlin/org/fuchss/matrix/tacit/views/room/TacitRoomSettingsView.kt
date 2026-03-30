@@ -29,8 +29,7 @@ import org.fuchss.matrix.tacit.viewmodel.room.settings.TacitDmVerificationStatus
 import org.fuchss.matrix.tacit.viewmodel.room.settings.TacitRoomSettingsViewModel
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 
-class TacitRoomSettingsView(
-) : RoomSettingsView {
+class TacitRoomSettingsView : RoomSettingsView {
     @Composable
     override fun create(roomSettingsViewModel: RoomSettingsViewModel, isSinglePane: Boolean) {
         val isDirect = roomSettingsViewModel.isDirect.collectAsState().value
@@ -123,7 +122,7 @@ private fun DmRoomSettings(
 
 @Composable
 private fun SettingsScrollableContent(
-    scrollState: androidx.compose.foundation.ScrollState,
+    scrollState: ScrollState,
     contentPadding: PaddingValues,
     verticalSpacing: androidx.compose.ui.unit.Dp,
     showScrollbar: Boolean,
@@ -251,7 +250,7 @@ private fun GroupRoomSettingsContent(
     roomSettingsViewModel: RoomSettingsViewModel,
     joinRule: JoinRulesEventContent.JoinRule,
     leaveRoomWarningOpen: Boolean,
-    scroll: androidx.compose.foundation.ScrollState,
+    scroll: ScrollState,
 ) {
     SettingsScrollableContent(
         scrollState = scroll,
@@ -274,7 +273,7 @@ private fun GuildSettingsContent(
     roomSettingsViewModel: RoomSettingsViewModel,
     joinRule: JoinRulesEventContent.JoinRule,
     leaveWarningOpen: Boolean,
-    scroll: androidx.compose.foundation.ScrollState,
+    scroll: ScrollState,
 ) {
     SettingsScrollableContent(
         scrollState = scroll,

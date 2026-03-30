@@ -201,7 +201,8 @@ private fun TacitQuickReactionPickerButton(
 
 @Composable
 internal fun TacitQuickActionButton(
-    label: String,
+    label: String? = null,
+    icon: ImageVector? = null,
     onClick: () -> Unit,
 ) {
     Box(
@@ -213,6 +214,10 @@ internal fun TacitQuickActionButton(
             .padding(horizontal = 6.dp, vertical = 2.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Text(label, color = tacitText)
+        if (icon != null) {
+            Icon(icon, contentDescription = label, tint = tacitText)
+        } else {
+            Text(label ?: "?", color = tacitText)
+        }
     }
 }

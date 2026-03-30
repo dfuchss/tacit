@@ -21,11 +21,7 @@ import de.connect2x.trixnity.messenger.compose.view.DI
 import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.theme.components
 import de.connect2x.trixnity.messenger.compose.view.theme.components.*
-import org.fuchss.matrix.tacit.accentColor
-import org.fuchss.matrix.tacit.tacitSurface
-import org.fuchss.matrix.tacit.tacitSurfaceAlt
-import org.fuchss.matrix.tacit.tacitText
-import org.fuchss.matrix.tacit.tacitTextMuted
+import org.fuchss.matrix.tacit.*
 import org.fuchss.matrix.tacit.viewmodel.room.list.entry.SpaceChannelEntry
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 

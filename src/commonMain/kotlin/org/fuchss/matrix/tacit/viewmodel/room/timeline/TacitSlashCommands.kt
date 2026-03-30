@@ -50,11 +50,11 @@ internal data class TacitSpoilerContent(
 )
 
 private data object SpoilerSlashCommand : TacitSlashCommand(
-        id = TacitSlashCommandId.SPOILER,
-        command = "spoiler",
+    id = TacitSlashCommandId.SPOILER,
+    command = "spoiler",
     description = "Hide text behind a spoiler. Use `reason | message` for a label.",
     usage = "/spoiler reason | message",
-    ) {
+) {
     override fun execute(context: TacitSlashCommandContext, rawArguments: String) {
         val spoiler = parseSpoilerContent(rawArguments.trim())
         if (spoiler.message.isNotBlank()) {
@@ -70,11 +70,11 @@ private data object SpoilerSlashCommand : TacitSlashCommand(
 }
 
 private data object MeSlashCommand : TacitSlashCommand(
-        id = TacitSlashCommandId.ME,
-        command = "me",
+    id = TacitSlashCommandId.ME,
+    command = "me",
     description = "Send an emote message.",
     usage = "/me waves",
-    ) {
+) {
     override fun execute(context: TacitSlashCommandContext, rawArguments: String) {
         val message = rawArguments.trim()
         if (message.isNotBlank()) {
@@ -84,11 +84,11 @@ private data object MeSlashCommand : TacitSlashCommand(
 }
 
 private data object NoticeSlashCommand : TacitSlashCommand(
-        id = TacitSlashCommandId.NOTICE,
-        command = "notice",
+    id = TacitSlashCommandId.NOTICE,
+    command = "notice",
     description = "Send a notice message instead of regular chat text.",
     usage = "/notice Maintenance starts in 10 minutes",
-    ) {
+) {
     override fun execute(context: TacitSlashCommandContext, rawArguments: String) {
         val message = rawArguments.trim()
         if (message.isNotBlank()) {
@@ -98,11 +98,11 @@ private data object NoticeSlashCommand : TacitSlashCommand(
 }
 
 private data object ShrugSlashCommand : TacitSlashCommand(
-        id = TacitSlashCommandId.SHRUG,
-        command = "shrug",
+    id = TacitSlashCommandId.SHRUG,
+    command = "shrug",
     description = "Append a shrug to your message.",
     usage = "/shrug shipping it",
-    ) {
+) {
     override fun execute(context: TacitSlashCommandContext, rawArguments: String) {
         val message = rawArguments.trim()
         context.send {
@@ -112,11 +112,11 @@ private data object ShrugSlashCommand : TacitSlashCommand(
 }
 
 private data object TableflipSlashCommand : TacitSlashCommand(
-        id = TacitSlashCommandId.TABLEFLIP,
-        command = "tableflip",
+    id = TacitSlashCommandId.TABLEFLIP,
+    command = "tableflip",
     description = "Append a table flip.",
     usage = "/tableflip tests are red",
-    ) {
+) {
     override fun execute(context: TacitSlashCommandContext, rawArguments: String) {
         val message = rawArguments.trim()
         context.send {
@@ -126,11 +126,11 @@ private data object TableflipSlashCommand : TacitSlashCommand(
 }
 
 private data object UnflipSlashCommand : TacitSlashCommand(
-        id = TacitSlashCommandId.UNFLIP,
-        command = "unflip",
+    id = TacitSlashCommandId.UNFLIP,
+    command = "unflip",
     description = "Append a table unflip.",
     usage = "/unflip all good now",
-    ) {
+) {
     override fun execute(context: TacitSlashCommandContext, rawArguments: String) {
         val message = rawArguments.trim()
         context.send {

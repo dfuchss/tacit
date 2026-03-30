@@ -19,13 +19,7 @@ import de.connect2x.trixnity.messenger.viewmodel.roomlist.RoomListViewModel
 import de.connect2x.trixnity.messenger.viewmodel.roomlist.RoomListViewModel.UserSyncStates
 import de.connect2x.trixnity.messenger.viewmodel.util.ErrorType
 import kotlinx.coroutines.delay
-import org.fuchss.matrix.tacit.TacitRoomNavigationState
-import org.fuchss.matrix.tacit.tacitBorder
-import org.fuchss.matrix.tacit.tacitSurface
-import org.fuchss.matrix.tacit.tacitBackground
-import org.fuchss.matrix.tacit.tacitWarningBg
-import org.fuchss.matrix.tacit.tacitWarningBorder
-import org.fuchss.matrix.tacit.tacitWarningText
+import org.fuchss.matrix.tacit.*
 import org.fuchss.matrix.tacit.viewmodel.room.list.RoomListMode
 import org.fuchss.matrix.tacit.viewmodel.room.list.TacitRoomListElementViewModel
 import org.fuchss.matrix.tacit.viewmodel.room.list.TacitRoomListViewModel

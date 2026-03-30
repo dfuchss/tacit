@@ -109,7 +109,7 @@ internal fun ChannelRow(
                     .width(40.dp),
                 contentAlignment = Alignment.CenterStart,
             ) {
-                if (isDirectRoom && dmPresenceVisible(presence)) {
+                if (isDirectRoom && presence == Presence.ONLINE) {
                     Box(
                         modifier = Modifier
                             .size(36.dp)

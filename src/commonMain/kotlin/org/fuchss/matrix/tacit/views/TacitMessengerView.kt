@@ -28,7 +28,6 @@ private const val defaultRoomListRatio = 0.30f
 val LocalTacitRoomListHidden = compositionLocalOf { false }
 
 class TacitMessengerView : MessengerView {
-    @Suppress("UNUSED_PARAMETER")
     @Composable
     override fun create(mainViewModel: MainViewModel, isSinglePane: Boolean) {
         val isRoomShown = remember {

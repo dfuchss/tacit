@@ -16,8 +16,8 @@ import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.messag
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.message.NoticeRoomMessageTimelineElementView
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.message.TextRoomMessageTimelineElementView
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.message.bubble.MessageBubbleView
-import de.connect2x.trixnity.messenger.compose.view.roomlist.RoomListView
 import de.connect2x.trixnity.messenger.compose.view.roomlist.RoomListContainerView
+import de.connect2x.trixnity.messenger.compose.view.roomlist.RoomListView
 import de.connect2x.trixnity.messenger.compose.view.roomlist.header.AccountOptionsView
 import de.connect2x.trixnity.messenger.compose.view.roomlist.header.ShowSearchView
 import de.connect2x.trixnity.messenger.compose.view.root.MainView
@@ -33,8 +33,8 @@ import de.connect2x.trixnity.messenger.viewmodel.settings.AppearanceSettingsView
 import org.fuchss.matrix.tacit.viewmodel.room.list.TacitRoomListElementViewModelFactory
 import org.fuchss.matrix.tacit.viewmodel.room.list.TacitRoomListViewModelFactory
 import org.fuchss.matrix.tacit.viewmodel.room.settings.TacitChangeRoomAvatarViewModelFactory
-import org.fuchss.matrix.tacit.viewmodel.room.timeline.TacitInputAreaViewModelFactory
 import org.fuchss.matrix.tacit.viewmodel.room.settings.TacitRoomSettingsViewModelFactory
+import org.fuchss.matrix.tacit.viewmodel.room.timeline.TacitInputAreaViewModelFactory
 import org.fuchss.matrix.tacit.viewmodel.room.timeline.TacitTimelineViewModelFactory
 import org.fuchss.matrix.tacit.viewmodel.settings.TacitAppearanceSettingsViewModelFactory
 import org.fuchss.matrix.tacit.views.*
@@ -42,15 +42,10 @@ import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 import org.fuchss.matrix.tacit.views.room.TacitRoomHeaderView
 import org.fuchss.matrix.tacit.views.room.TacitRoomSettingsView
 import org.fuchss.matrix.tacit.views.room.TacitRoomView
-import org.fuchss.matrix.tacit.views.room.list.TacitRoomListView
 import org.fuchss.matrix.tacit.views.room.list.TacitRoomListContainerView
+import org.fuchss.matrix.tacit.views.room.list.TacitRoomListView
 import org.fuchss.matrix.tacit.views.room.settings.TacitChangeRoomAvatarView
-import org.fuchss.matrix.tacit.views.room.timeline.TacitInputAreaView
-import org.fuchss.matrix.tacit.views.room.timeline.TacitEmoteRoomMessageTimelineElementViewImpl
-import org.fuchss.matrix.tacit.views.room.timeline.TacitNoticeRoomMessageTimelineElementViewImpl
-import org.fuchss.matrix.tacit.views.room.timeline.TacitTextRoomMessageTimelineElementViewImpl
-import org.fuchss.matrix.tacit.views.room.timeline.TacitTimelineView
-import org.fuchss.matrix.tacit.views.room.timeline.TacitTypingIndicatorView
+import org.fuchss.matrix.tacit.views.room.timeline.*
 import org.fuchss.matrix.tacit.views.settings.*
 import org.koin.core.qualifier.named
 import org.koin.dsl.bind
