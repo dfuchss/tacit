@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.SharingStarted.Companion.WhileSubscribed
 import kotlinx.coroutines.launch
 import org.fuchss.matrix.tacit.viewmodel.room.list.entry.GuildEntry
 import org.fuchss.matrix.tacit.viewmodel.room.list.entry.SpaceChannelEntry
+import org.fuchss.matrix.tacit.viewmodel.room.list.entry.SpaceChannelStatus
 import org.fuchss.matrix.tacit.viewmodel.util.UserDirectoryEntry
 import org.fuchss.matrix.tacit.viewmodel.util.searchUserDirectory
 import org.koin.core.component.get
@@ -229,7 +230,7 @@ private class TacitRoomListViewModelImpl(
                                 .toSet()
                         }.map { childSpaceIds ->
                             spaces
-                                .filterNot { room -> childSpaceIds.contains(room.roomId) }
+                                .filterNot { room -> childSpaceIds.contains(room.roomId) && room.membership == Membership.JOIN }
                                 .map { room ->
                                     GuildEntry(
                                         roomId = room.roomId,
@@ -540,30 +541,88 @@ private class TacitRoomListViewModelImpl(
         }.stateIn(coroutineScope, WhileSubscribed(), emptyList())
 
     override val inviteRooms: StateFlow<List<TacitRoomListElementViewModel>> =
-        combine(roomDerived, mode, guildChildren, allSpaceChildRoomIds) { rooms, mode, children, allSpaceChildIds ->
+        combine(roomDerived, mode, guildChildren, guildCategoryChildren, allSpaceChildRoomIds) {
+                rooms,
+                mode,
+                children,
+                categoryChildren,
+                allSpaceChildIds,
+            ->
             when (mode) {
                 RoomListMode.DirectMessages -> rooms.filter { room ->
                     room.isInvite && (room.isDirect || isDmGroupRoom(room, allSpaceChildIds))
                 }
 
-                is RoomListMode.GuildChannels -> rooms.filter {
-                    it.isInvite && !it.isDirect && (it.roomId == mode.guild.roomId || children.containsKey(it.roomId))
+                is RoomListMode.GuildChannels -> {
+                    val nestedCategoryChildRoomIds = categoryChildren.values.flatten().toSet()
+                    rooms.filter {
+                        it.isInvite &&
+                                !it.isDirect &&
+                                (it.roomId == mode.guild.roomId ||
+                                        children.containsKey(it.roomId) ||
+                                        nestedCategoryChildRoomIds.contains(it.roomId))
+                    }
                 }
             }.map { it.room }
         }.stateIn(coroutineScope, WhileSubscribed(), emptyList())
 
-    override val browseChannels: StateFlow<List<SpaceChannelEntry>> =
-        combine(roomDerived, mode, guildChildren, unknownDisplayNames) {
-                rooms,
-                mode,
+    private val browseHierarchyNames: StateFlow<Map<RoomId, String>> =
+        combine(selectedGuild, selectedGuildClient) { guild, client -> guild to client }
+            .mapLatest { (guild, client) ->
+                if (guild == null || client == null) return@mapLatest emptyMap()
+                val hierarchy = client.api.room.getHierarchy(roomId = guild.roomId, limit = 100).getOrNull()
+                    ?: return@mapLatest emptyMap()
+                hierarchy.rooms.associate { roomInfo ->
+                    roomInfo.roomId to (roomInfo.name?.takeIf { it.isNotBlank() } ?: roomInfo.roomId.full)
+                }
+            }.stateIn(coroutineScope, WhileSubscribed(), emptyMap())
+
+    private val browseCandidateRoomIds: StateFlow<Set<RoomId>> =
+        combine(guildChildren, guildCategoryChildren, browseHierarchyNames) { children, categoryChildren, hierarchyNames ->
+            (children.keys + categoryChildren.values.flatten() + hierarchyNames.keys).toSet()
+        }.stateIn(coroutineScope, WhileSubscribed(), emptySet())
+
+    private val browseRoomMemberships: StateFlow<Map<RoomId, Membership?>> =
+        combine(selectedGuildClient, browseCandidateRoomIds) { client, candidateRoomIds ->
+            client to candidateRoomIds
+        }.flatMapLatest { (client, candidateRoomIds) ->
+            if (client == null || candidateRoomIds.isEmpty()) {
+                flowOf(emptyMap())
+            } else {
+                combine(candidateRoomIds.map { roomId ->
+                    client.room.getById(roomId).map { room -> roomId to room?.membership }
+                }) { memberships ->
+                    memberships.toMap()
+                }
+            }
+        }.stateIn(coroutineScope, WhileSubscribed(), emptyMap())
+
+    private val browseRoomsContext: StateFlow<BrowseRoomsContext> =
+        combine(guildChildren, browseHierarchyNames, browseRoomMemberships, browseCandidateRoomIds) {
                 children,
-                unknownNames,
+                hierarchyNames,
+                memberships,
+                candidateIds,
             ->
+            BrowseRoomsContext(
+                directChildren = children,
+                hierarchyNames = hierarchyNames,
+                memberships = memberships,
+                candidateIds = candidateIds,
+            )
+        }.stateIn(
+            coroutineScope,
+            WhileSubscribed(),
+            BrowseRoomsContext(emptyMap(), emptyMap(), emptyMap(), emptySet()),
+        )
+
+    override val browseChannels: StateFlow<List<SpaceChannelEntry>> =
+        combine(roomDerived, mode, browseRoomsContext) { rooms, mode, context ->
             when (mode) {
                 RoomListMode.DirectMessages -> emptyList()
                 is RoomListMode.GuildChannels -> {
                     val knownChannelsById = rooms
-                        .filter { !it.isDirect && children.containsKey(it.roomId) }
+                        .filter { !it.isDirect && context.candidateIds.contains(it.roomId) }
                         .associateBy { it.roomId }
 
                     val known = knownChannelsById.values.map { entry ->
@@ -572,35 +631,54 @@ private class TacitRoomListViewModelImpl(
                             roomId = entry.roomId,
                             displayName = entry.roomName ?: entry.roomId.full,
                             status = when {
-                                entry.isJoined -> "Joined"
-                                entry.isInvite -> "Invited"
-                                entry.isKnock -> "Knocking"
-                                entry.isLeave -> "Left"
-                                else -> "Not joined"
+                                entry.isJoined -> SpaceChannelStatus.JOINED
+                                entry.isInvite -> SpaceChannelStatus.INVITED
+                                entry.isKnock -> SpaceChannelStatus.KNOCKING
+                                entry.isLeave -> SpaceChannelStatus.LEFT
+                                else -> SpaceChannelStatus.NOT_JOINED
                             },
                             isJoined = entry.isJoined,
                             isJoinable = isJoinable,
-                            via = children[entry.roomId].orEmpty(),
+                            via = context.directChildren[entry.roomId].orEmpty(),
                         )
                     }
 
-                    val unknown = children.keys
+                    val unknown = context.candidateIds
                         .filterNot { knownChannelsById.containsKey(it) }
                         .map { roomId ->
-                            val resolvedName = unknownNames[roomId]
-                            val isJoinable = resolvedName != null
+                            val resolvedName = context.hierarchyNames[roomId]
+                            val membership = context.memberships[roomId]
+                            val isJoined = membership == Membership.JOIN
+                            val status = when (membership) {
+                                Membership.JOIN -> SpaceChannelStatus.JOINED
+                                Membership.INVITE -> SpaceChannelStatus.INVITED
+                                Membership.KNOCK -> SpaceChannelStatus.KNOCKING
+                                Membership.LEAVE -> SpaceChannelStatus.LEFT
+                                null -> if (resolvedName != null) SpaceChannelStatus.NOT_JOINED else SpaceChannelStatus.UNKNOWN
+                                else -> if (resolvedName != null) SpaceChannelStatus.NOT_JOINED else SpaceChannelStatus.UNKNOWN
+                            }
+                            val isJoinable = !isJoined &&
+                                    membership != Membership.INVITE &&
+                                    membership != Membership.KNOCK &&
+                                    membership != Membership.LEAVE &&
+                                    resolvedName != null
                             SpaceChannelEntry(
                                 roomId = roomId,
                                 displayName = resolvedName ?: roomId.full,
-                                status = if (isJoinable) "Not joined" else "Unknown",
-                                isJoined = false,
+                                status = status,
+                                isJoined = isJoined,
                                 isJoinable = isJoinable,
-                                via = children[roomId].orEmpty(),
+                                via = context.directChildren[roomId].orEmpty(),
                             )
                         }
 
                     (known + unknown)
-                        .filter { it.isJoined || it.isJoinable }
+                        .filter {
+                            it.isJoined ||
+                                    it.isJoinable ||
+                                    it.status == SpaceChannelStatus.INVITED ||
+                                    it.status == SpaceChannelStatus.KNOCKING
+                        }
                         .sortedBy { it.displayName.lowercase() }
                 }
             }
@@ -713,6 +791,13 @@ private data class RoomDerivedIdentityState(
     val roomName: String?,
     val isDirect: Boolean,
     val isSpace: Boolean,
+)
+
+private data class BrowseRoomsContext(
+    val directChildren: Map<RoomId, Set<String>>,
+    val hierarchyNames: Map<RoomId, String>,
+    val memberships: Map<RoomId, Membership?>,
+    val candidateIds: Set<RoomId>,
 )
 
 internal data class TacitGuildChannelGroup(

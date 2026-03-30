@@ -375,6 +375,31 @@ open class TacitI18nView(
         DE - "BEIGETRETEN"
     }
 
+    open fun tacitInvited() = translate {
+        EN - "Invited"
+        DE - "Eingeladen"
+    }
+
+    open fun tacitKnocking() = translate {
+        EN - "Knocking"
+        DE - "Anklopfend"
+    }
+
+    open fun tacitLeft() = translate {
+        EN - "Left"
+        DE - "Verlassen"
+    }
+
+    open fun tacitNotJoined() = translate {
+        EN - "Not joined"
+        DE - "Nicht beigetreten"
+    }
+
+    open fun tacitUnknown() = translate {
+        EN - "Unknown"
+        DE - "Unbekannt"
+    }
+
     open fun tacitJoiningInProgress() = translate {
         EN - "Joining..."
         DE - "Trete bei..."

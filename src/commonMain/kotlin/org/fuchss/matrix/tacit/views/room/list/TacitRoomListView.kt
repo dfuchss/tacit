@@ -98,11 +98,13 @@ class TacitRoomListView : RoomListView {
 
         LaunchedEffect(selectedGuild, guilds) {
             if (selectedGuild == null) return@LaunchedEffect
-            val selectedGuildStillVisible = guilds.any { guild ->
+            val refreshedSelectedGuild = guilds.firstOrNull { guild ->
                 guild.roomId == selectedGuild.roomId && guild.userId == selectedGuild.userId
             }
-            if (!selectedGuildStillVisible) {
+            if (refreshedSelectedGuild == null) {
                 tacitRoomListViewModel.selectGuild(null)
+            } else if (refreshedSelectedGuild != selectedGuild) {
+                tacitRoomListViewModel.selectGuild(refreshedSelectedGuild)
             }
         }
 

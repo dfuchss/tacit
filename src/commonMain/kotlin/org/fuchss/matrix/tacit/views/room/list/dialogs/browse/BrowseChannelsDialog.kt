@@ -23,6 +23,7 @@ import de.connect2x.trixnity.messenger.compose.view.theme.components
 import de.connect2x.trixnity.messenger.compose.view.theme.components.*
 import org.fuchss.matrix.tacit.*
 import org.fuchss.matrix.tacit.viewmodel.room.list.entry.SpaceChannelEntry
+import org.fuchss.matrix.tacit.viewmodel.room.list.entry.SpaceChannelStatus
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 
 @Composable
@@ -102,7 +103,7 @@ internal fun BrowseChannelsDialog(
                                         overflow = TextOverflow.Ellipsis,
                                     )
                                     Text(
-                                        text = channel.status,
+                                        text = channel.status.toDisplayText(i18n),
                                         color = tacitTextMuted,
                                         style = MaterialTheme.typography.bodySmall,
                                     )
@@ -110,7 +111,7 @@ internal fun BrowseChannelsDialog(
                                 if (channel.isJoined) {
                                     StatusChip(i18n.tacitJoined(), accentColor)
                                 } else if (!channel.isJoinable) {
-                                    StatusChip(channel.status.uppercase(), tacitTextMuted)
+                                    StatusChip(channel.status.toDisplayText(i18n).uppercase(), tacitTextMuted)
                                 } else {
                                     ThemedButton(
                                         style = MaterialTheme.components.primaryButton,
@@ -136,6 +137,15 @@ internal fun BrowseChannelsDialog(
             }
         }
     }
+}
+
+private fun SpaceChannelStatus.toDisplayText(i18n: TacitI18nView): String = when (this) {
+    SpaceChannelStatus.JOINED -> i18n.tacitJoined()
+    SpaceChannelStatus.INVITED -> i18n.tacitInvited()
+    SpaceChannelStatus.KNOCKING -> i18n.tacitKnocking()
+    SpaceChannelStatus.LEFT -> i18n.tacitLeft()
+    SpaceChannelStatus.NOT_JOINED -> i18n.tacitNotJoined()
+    SpaceChannelStatus.UNKNOWN -> i18n.tacitUnknown()
 }
 
 @Composable
