@@ -29,6 +29,7 @@ import org.fuchss.matrix.tacit.tacitSurface
 import org.fuchss.matrix.tacit.tacitText
 import org.fuchss.matrix.tacit.tacitTextMuted
 import org.fuchss.matrix.tacit.viewmodel.room.list.RoomListMode
+import org.fuchss.matrix.tacit.viewmodel.room.list.TacitGuildChannelGroup
 import org.fuchss.matrix.tacit.viewmodel.room.list.TacitRoomListElementViewModel
 import org.fuchss.matrix.tacit.viewmodel.room.list.isDirectMessages
 import org.fuchss.matrix.tacit.viewmodel.room.list.roomsSectionTitle
@@ -41,6 +42,7 @@ internal fun RoomListBody(
     mode: RoomListMode,
     selectedRoomId: RoomId?,
     visibleRooms: List<TacitRoomListElementViewModel>,
+    guildChannelGroups: List<TacitGuildChannelGroup>,
     inviteRooms: List<TacitRoomListElementViewModel>,
     allRoomsEmpty: Boolean,
     canCreateNewRoomWithAccount: Boolean,
@@ -164,17 +166,58 @@ internal fun RoomListBody(
                                 }
                             }
                         }
-                        itemsIndexed(
-                            items = filteredVisibleRooms,
-                            key = { _, element -> element.roomId.full },
-                        ) { _, room ->
-                            ChannelRow(
-                                roomListViewModel = roomListViewModel,
-                                room = room,
-                                selectedRoomId = selectedRoomId,
-                                mode = mode,
-                                i18n = i18n,
-                            )
+                        if (mode is RoomListMode.GuildChannels && guildChannelGroups.isNotEmpty()) {
+                            val groupedRoomIds = guildChannelGroups
+                                .flatMap { it.channels }
+                                .map { it.roomId }
+                                .toSet()
+                            val ungroupedRooms = filteredVisibleRooms.filter { room ->
+                                !groupedRoomIds.contains(room.roomId)
+                            }
+
+                            itemsIndexed(
+                                items = ungroupedRooms,
+                                key = { _, element -> element.roomId.full },
+                            ) { _, room ->
+                                ChannelRow(
+                                    roomListViewModel = roomListViewModel,
+                                    room = room,
+                                    selectedRoomId = selectedRoomId,
+                                    mode = mode,
+                                    i18n = i18n,
+                                )
+                            }
+
+                            guildChannelGroups.forEach { group ->
+                                item(key = "category:${group.categoryRoomId.full}") {
+                                    RoomListSectionLabel(group.categoryName)
+                                }
+                                itemsIndexed(
+                                    items = group.channels,
+                                    key = { _, element -> "category:${group.categoryRoomId.full}:${element.roomId.full}" },
+                                ) { _, room ->
+                                    ChannelRow(
+                                        roomListViewModel = roomListViewModel,
+                                        room = room,
+                                        selectedRoomId = selectedRoomId,
+                                        mode = mode,
+                                        i18n = i18n,
+                                    )
+                                }
+                            }
+                        } else {
+                            itemsIndexed(
+                                items = filteredVisibleRooms,
+                                key = { _, element -> element.roomId.full },
+                            ) { _, room ->
+                                ChannelRow(
+                                    roomListViewModel = roomListViewModel,
+                                    room = room,
+                                    selectedRoomId = selectedRoomId,
+                                    mode = mode,
+                                    i18n = i18n,
+                                )
+                            }
                         }
 
                         if (inviteRooms.isNotEmpty()) {

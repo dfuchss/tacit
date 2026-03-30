@@ -21,6 +21,7 @@ import de.connect2x.trixnity.messenger.viewmodel.util.ErrorType
 import kotlinx.coroutines.delay
 import org.fuchss.matrix.tacit.*
 import org.fuchss.matrix.tacit.viewmodel.room.list.RoomListMode
+import org.fuchss.matrix.tacit.viewmodel.room.list.TacitGuildChannelGroup
 import org.fuchss.matrix.tacit.viewmodel.room.list.TacitRoomListElementViewModel
 import org.fuchss.matrix.tacit.viewmodel.room.list.TacitRoomListViewModel
 import org.fuchss.matrix.tacit.viewmodel.room.list.entry.GuildEntry
@@ -50,6 +51,7 @@ class TacitRoomListView : RoomListView {
         val guildAvatars = tacitRoomListViewModel.guildAvatars.collectAsState().value
         val mode = tacitRoomListViewModel.mode.collectAsState().value
         val visibleRooms = tacitRoomListViewModel.visibleRooms.collectAsState().value
+        val guildChannelGroups = tacitRoomListViewModel.guildChannelGroups.collectAsState().value
         val inviteRooms = tacitRoomListViewModel.inviteRooms.collectAsState().value
         val dmUnreadCount = tacitRoomListViewModel.dmUnreadCount.collectAsState().value
         val guildUnreadCounts = tacitRoomListViewModel.guildUnreadCounts.collectAsState().value
@@ -112,6 +114,7 @@ class TacitRoomListView : RoomListView {
             mode = mode,
             selectedRoomId = selectedRoomId,
             visibleRooms = visibleRooms,
+            guildChannelGroups = guildChannelGroups,
             inviteRooms = inviteRooms,
             allRoomsEmpty = tacitRooms.isEmpty(),
             canCreateNewRoomWithAccount = canCreateNewRoomWithAccount,
@@ -259,6 +262,7 @@ private fun RoomListContent(
     mode: RoomListMode,
     selectedRoomId: RoomId?,
     visibleRooms: List<TacitRoomListElementViewModel>,
+    guildChannelGroups: List<TacitGuildChannelGroup>,
     inviteRooms: List<TacitRoomListElementViewModel>,
     allRoomsEmpty: Boolean,
     canCreateNewRoomWithAccount: Boolean,
@@ -353,6 +357,7 @@ private fun RoomListContent(
                 mode = mode,
                 selectedRoomId = selectedRoomId,
                 visibleRooms = visibleRooms,
+                guildChannelGroups = guildChannelGroups,
                 inviteRooms = inviteRooms,
                 allRoomsEmpty = allRoomsEmpty,
                 canCreateNewRoomWithAccount = canCreateNewRoomWithAccount,

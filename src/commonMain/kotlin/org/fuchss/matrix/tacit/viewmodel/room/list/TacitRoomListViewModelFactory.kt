@@ -31,6 +31,7 @@ internal interface TacitRoomListViewModel : RoomListViewModel {
     val guilds: StateFlow<List<GuildEntry>>
     val guildAvatars: StateFlow<Map<String, ByteArray?>>
     val visibleRooms: StateFlow<List<TacitRoomListElementViewModel>>
+    val guildChannelGroups: StateFlow<List<TacitGuildChannelGroup>>
     val inviteRooms: StateFlow<List<TacitRoomListElementViewModel>>
     val browseChannels: StateFlow<List<SpaceChannelEntry>>
     val dmUnreadCount: StateFlow<Int>
@@ -202,21 +203,44 @@ private class TacitRoomListViewModelImpl(
         else combine(clients.map { matrixClient ->
             matrixClient.room.getAll()
                 .flattenValues()
-                .map { rooms ->
-                    rooms
-                        .filter { room ->
-                            room.createEventContent?.type == RoomType.Space &&
-                                    (room.membership == Membership.JOIN || room.membership == Membership.INVITE)
+                .flatMapLatest { rooms ->
+                    val spaces = rooms.filter { room ->
+                        room.createEventContent?.type == RoomType.Space &&
+                                (room.membership == Membership.JOIN || room.membership == Membership.INVITE)
+                    }
+                    if (spaces.isEmpty()) {
+                        flowOf(emptyList())
+                    } else {
+                        val childSpaceFlows = spaces.map { space ->
+                            matrixClient.room.getAllState(space.roomId, ChildEventContent::class)
+                                .flattenValues()
+                                .map { childState ->
+                                    childState.mapNotNull { childEvent ->
+                                        val childRoomId = runCatching { RoomId(childEvent.stateKey) }.getOrNull()
+                                            ?: return@mapNotNull null
+                                        val childRoom = rooms.firstOrNull { it.roomId == childRoomId }
+                                        if (childRoom?.createEventContent?.type == RoomType.Space) childRoomId else null
+                                    }.toSet()
+                                }
                         }
-                        .map { room ->
-                            GuildEntry(
-                                roomId = room.roomId,
-                                userId = matrixClient.userId,
-                                displayName = room.name?.explicitName,
-                                avatarUri = room.avatarUrl?.ifBlank { null },
-                                membership = room.membership,
-                            )
+                        combine(childSpaceFlows) { childSets ->
+                            childSets
+                                .flatMap { it }
+                                .toSet()
+                        }.map { childSpaceIds ->
+                            spaces
+                                .filterNot { room -> childSpaceIds.contains(room.roomId) }
+                                .map { room ->
+                                    GuildEntry(
+                                        roomId = room.roomId,
+                                        userId = matrixClient.userId,
+                                        displayName = room.name?.explicitName,
+                                        avatarUri = room.avatarUrl?.ifBlank { null },
+                                        membership = room.membership,
+                                    )
+                                }
                         }
+                    }
                 }
         }) { guildsByClient ->
             guildsByClient.toList().flatten().sortedBy { it.displayName ?: it.roomId.full }
@@ -314,6 +338,39 @@ private class TacitRoomListViewModelImpl(
         }
         .stateIn(coroutineScope, WhileSubscribed(), emptySet())
 
+    private val allSpaceChildRoomIds: StateFlow<Set<RoomId>> = selectedMatrixClients.flatMapLatest { clients ->
+        if (clients.isEmpty()) flowOf(emptySet())
+        else combine(clients.map { matrixClient ->
+            matrixClient.room.getAll()
+                .flattenValues()
+                .flatMapLatest { rooms ->
+                    val spaceRoomIds = rooms
+                        .filter { room ->
+                            room.createEventContent?.type == RoomType.Space &&
+                                    (room.membership == Membership.JOIN || room.membership == Membership.INVITE)
+                        }
+                        .map { it.roomId }
+                    if (spaceRoomIds.isEmpty()) {
+                        flowOf(emptySet())
+                    } else {
+                        combine(spaceRoomIds.map { spaceRoomId ->
+                            matrixClient.room.getAllState(spaceRoomId, ChildEventContent::class)
+                                .flattenValues()
+                                .map { childState ->
+                                    childState.mapNotNull { childEvent ->
+                                        runCatching { RoomId(childEvent.stateKey) }.getOrNull()
+                                    }.toSet()
+                                }
+                        }) { childSets ->
+                            childSets.flatMap { it }.toSet()
+                        }
+                    }
+                }
+        }) { childIdsByClient ->
+            childIdsByClient.toList().flatten().toSet()
+        }
+    }.stateIn(coroutineScope, WhileSubscribed(), emptySet())
+
     private val roomDerived: StateFlow<List<TacitRoomDerived>> = typedElements.flatMapLatest { rooms ->
         if (rooms.isEmpty()) flowOf(emptyList())
         else combine(rooms.map { room ->
@@ -392,22 +449,101 @@ private class TacitRoomListViewModelImpl(
             resolvedNames
         }.stateIn(coroutineScope, WhileSubscribed(), emptyMap())
 
+    private val guildCategoryChildren: StateFlow<Map<RoomId, Set<RoomId>>> =
+        combine(selectedGuildClient, guildChildren) { client, children ->
+            client to children.keys.toList()
+        }.flatMapLatest { (client, categoryRoomIds) ->
+            if (client == null || categoryRoomIds.isEmpty()) flowOf(emptyMap())
+            else {
+                val categoryFlows = categoryRoomIds.map { categoryRoomId ->
+                    client.room.getAllState(categoryRoomId, ChildEventContent::class)
+                        .flattenValues()
+                        .map { childState ->
+                            val children = childState
+                                .mapNotNull { childEvent -> runCatching { RoomId(childEvent.stateKey) }.getOrNull() }
+                                .toSet()
+                            categoryRoomId to children
+                        }
+                }
+                combine(categoryFlows) { categories -> categories.toMap() }
+            }
+        }.stateIn(coroutineScope, WhileSubscribed(), emptyMap())
+
     override val visibleRooms: StateFlow<List<TacitRoomListElementViewModel>> =
-        combine(roomDerived, mode, guildChildren, allGuildChildRoomIds) { rooms, mode, children, allGuildChildIds ->
+        combine(roomDerived, mode, guildChildren, guildCategoryChildren, allSpaceChildRoomIds) {
+                rooms,
+                mode,
+                children,
+                categoryChildren,
+                allSpaceChildIds,
+            ->
             when (mode) {
                 RoomListMode.DirectMessages -> rooms.filter { room ->
-                    room.isJoined && (room.isDirect || isDmGroupRoom(room, allGuildChildIds))
+                    room.isJoined && (room.isDirect || isDmGroupRoom(room, allSpaceChildIds))
                 }
 
-                is RoomListMode.GuildChannels -> rooms.filter { it.isJoined && !it.isDirect && children.containsKey(it.roomId) }
+                is RoomListMode.GuildChannels -> {
+                    val nestedCategoryChildRoomIds = categoryChildren.values.flatten().toSet()
+                    rooms.filter {
+                        it.isJoined &&
+                                !it.isDirect &&
+                                !it.isSpace &&
+                                (children.containsKey(it.roomId) || nestedCategoryChildRoomIds.contains(it.roomId))
+                    }
+                }
             }.map { it.room }
         }.stateIn(coroutineScope, WhileSubscribed(), emptyList())
 
+    override val guildChannelGroups: StateFlow<List<TacitGuildChannelGroup>> =
+        combine(
+            mode,
+            roomDerived,
+            visibleRooms,
+            combine(guildChildren, guildCategoryChildren, unknownDisplayNames) { children, categoryChildren, unknownNames ->
+                Triple(children, categoryChildren, unknownNames)
+            },
+        ) {
+                mode,
+                rooms,
+                visibleRooms,
+                hierarchy,
+            ->
+            val (children, categoryChildren, unknownNames) = hierarchy
+            if (mode !is RoomListMode.GuildChannels) {
+                emptyList()
+            } else {
+                val roomById = rooms.associateBy { it.roomId }
+                val visibleById = visibleRooms.associateBy { it.roomId }
+                val visibleOrder = visibleRooms.mapIndexed { index, room -> room.roomId to index }.toMap()
+
+                val categories = children.keys
+                    .filter { categoryChildren.containsKey(it) && roomById[it]?.isSpace != false }
+                    .sortedBy { roomById[it]?.roomName?.lowercase() ?: unknownNames[it]?.lowercase() ?: it.full }
+
+                categories.mapNotNull { categoryRoomId ->
+                    val channels = categoryChildren[categoryRoomId]
+                        .orEmpty()
+                        .mapNotNull { roomId ->
+                            val derived = roomById[roomId] ?: return@mapNotNull null
+                            if (!derived.isJoined || derived.isDirect || derived.isSpace) return@mapNotNull null
+                            visibleById[roomId]
+                        }
+                        .sortedBy { visibleOrder[it.roomId] ?: Int.MAX_VALUE }
+                    if (channels.isEmpty()) null
+                    else TacitGuildChannelGroup(
+                        categoryRoomId = categoryRoomId,
+                        categoryName = roomById[categoryRoomId]?.roomName ?: unknownNames[categoryRoomId] ?: categoryRoomId.full,
+                        channels = channels,
+                    )
+                }
+            }
+        }.stateIn(coroutineScope, WhileSubscribed(), emptyList())
+
     override val inviteRooms: StateFlow<List<TacitRoomListElementViewModel>> =
-        combine(roomDerived, mode, guildChildren, allGuildChildRoomIds) { rooms, mode, children, allGuildChildIds ->
+        combine(roomDerived, mode, guildChildren, allSpaceChildRoomIds) { rooms, mode, children, allSpaceChildIds ->
             when (mode) {
                 RoomListMode.DirectMessages -> rooms.filter { room ->
-                    room.isInvite && (room.isDirect || isDmGroupRoom(room, allGuildChildIds))
+                    room.isInvite && (room.isDirect || isDmGroupRoom(room, allSpaceChildIds))
                 }
 
                 is RoomListMode.GuildChannels -> rooms.filter {
@@ -470,9 +606,9 @@ private class TacitRoomListViewModelImpl(
             }
         }.stateIn(coroutineScope, WhileSubscribed(), emptyList())
 
-    override val dmUnreadCount: StateFlow<Int> = combine(roomDerived, allGuildChildRoomIds) { rooms, allGuildChildIds ->
+    override val dmUnreadCount: StateFlow<Int> = combine(roomDerived, allSpaceChildRoomIds) { rooms, allSpaceChildIds ->
         rooms.count { room ->
-            room.isUnread && room.isJoined && (room.isDirect || isDmGroupRoom(room, allGuildChildIds))
+            room.isUnread && room.isJoined && (room.isDirect || isDmGroupRoom(room, allSpaceChildIds))
         }
     }
         .stateIn(coroutineScope, WhileSubscribed(), 0)
@@ -568,8 +704,8 @@ private class TacitRoomListViewModelImpl(
 
     private fun isDmGroupRoom(
         room: TacitRoomDerived,
-        allGuildChildRoomIds: Set<RoomId>,
-    ): Boolean = !room.isDirect && !room.isSpace && !allGuildChildRoomIds.contains(room.roomId)
+        allSpaceChildRoomIds: Set<RoomId>,
+    ): Boolean = !room.isDirect && !room.isSpace && !allSpaceChildRoomIds.contains(room.roomId)
 }
 
 private data class RoomDerivedIdentityState(
@@ -577,4 +713,10 @@ private data class RoomDerivedIdentityState(
     val roomName: String?,
     val isDirect: Boolean,
     val isSpace: Boolean,
+)
+
+internal data class TacitGuildChannelGroup(
+    val categoryRoomId: RoomId,
+    val categoryName: String,
+    val channels: List<TacitRoomListElementViewModel>,
 )
