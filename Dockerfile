@@ -18,6 +18,18 @@ server {
     root /usr/share/nginx/html;
     index index.html;
 
+    # Ensure SPA shell is always refreshed after deployments.
+    location = /index.html {
+        add_header Cache-Control "no-cache, no-store, must-revalidate" always;
+        add_header Pragma "no-cache" always;
+        add_header Expires "0" always;
+    }
+
+    # The generated JS file name is stable, so force revalidation to pick up updates.
+    location ~* \.(js|css|wasm)$ {
+        add_header Cache-Control "no-cache, must-revalidate" always;
+    }
+
     location / {
         try_files $uri /index.html;
     }
