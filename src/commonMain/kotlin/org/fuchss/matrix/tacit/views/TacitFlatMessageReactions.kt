@@ -26,14 +26,8 @@ internal fun TacitMessageReactions(
     onToggleReaction: (reaction: String, reactedByMe: Boolean) -> Unit,
 ) {
     Row(
-        modifier = modifier
-            .background(
-                if (isOwnMessage) tacitAccent(0.14f) else tacitSurface,
-                RoundedCornerShape(14.dp),
-            )
-            .border(1.dp, tacitBorder, RoundedCornerShape(14.dp))
-            .padding(horizontal = 6.dp, vertical = 3.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         reactionEntries.forEach { (reaction, infos) ->
@@ -61,43 +55,32 @@ private fun TacitReactionChip(
     Tooltip(tooltip = { Text(reactedByNames) }) {
         Box(
             modifier = Modifier
-                .clip(RoundedCornerShape(11.dp))
+                .clip(RoundedCornerShape(10.dp))
                 .background(
-                    if (selected) tacitAccent(0.22f) else tacitSurface,
-                    RoundedCornerShape(11.dp),
+                    if (selected) tacitAccent(0.14f) else tacitSurfaceAlt,
+                    RoundedCornerShape(10.dp),
                 )
                 .border(
-                    1.dp,
-                    if (selected) accentColor else tacitBorder,
-                    RoundedCornerShape(11.dp),
+                    0.8.dp,
+                    if (selected) accentColor else tacitBorder.copy(alpha = 0.65f),
+                    RoundedCornerShape(10.dp),
                 )
                 .clickable(onClick = onClick)
-                .padding(horizontal = 7.dp, vertical = 2.dp),
+                .padding(horizontal = 6.dp, vertical = 2.dp),
             contentAlignment = Alignment.Center,
         ) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
                     text = reaction,
                     color = if (selected) accentColor else tacitText,
                 )
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(
-                            if (selected) tacitAccent(0.22f) else tacitSurfaceAlt,
-                            RoundedCornerShape(8.dp),
-                        )
-                        .padding(horizontal = 5.dp, vertical = 0.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = count.toString(),
-                        color = if (selected) accentColor else tacitText,
-                    )
-                }
+                Text(
+                    text = count.toString(),
+                    color = if (selected) accentColor else tacitTextMuted,
+                )
             }
         }
     }
