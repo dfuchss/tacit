@@ -25,13 +25,15 @@ server {
         add_header Expires "0" always;
     }
 
-    # The generated JS file name is stable, so force revalidation to pick up updates.
-    location ~* \.(js|css|wasm)$ {
+    # Never rewrite missing static files to index.html.
+    # This avoids white pages when stale cached bundles request removed chunks.
+    location ~* \.(js|css|wasm|map|json|ico|png|jpg|jpeg|gif|svg|webp|woff2?)$ {
+        try_files $uri =404;
         add_header Cache-Control "no-cache, must-revalidate" always;
     }
 
     location / {
-        try_files $uri /index.html;
+        try_files $uri $uri/ /index.html;
     }
 }
 EOF
