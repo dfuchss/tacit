@@ -108,21 +108,19 @@ internal fun RoomListBody(
                         .fillMaxSize()
                         .padding(horizontal = 8.dp, vertical = 8.dp),
                 ) {
-                    if (visibleRooms.isNotEmpty()) {
-                        if (mode.isDirectMessages()) {
-                            DmOverview(
-                                rooms = visibleRooms,
-                                selectedFilter = dmFilter,
-                                onFilterChange = { requested ->
-                                    dmFilter = if (requested == dmFilter && requested != DmFilter.ALL) {
-                                        DmFilter.ALL
-                                    } else {
-                                        requested
-                                    }
-                                },
-                            )
-                            Spacer(Modifier.height(8.dp))
-                        }
+                    if (visibleRooms.isNotEmpty() && mode.isDirectMessages()) {
+                        DmOverview(
+                            rooms = visibleRooms,
+                            selectedFilter = dmFilter,
+                            onFilterChange = { requested ->
+                                dmFilter = if (requested == dmFilter && requested != DmFilter.ALL) {
+                                    DmFilter.ALL
+                                } else {
+                                    requested
+                                }
+                            },
+                        )
+                        Spacer(Modifier.height(8.dp))
                         RoomListSectionLabel(mode.roomsSectionTitle())
                     }
 
@@ -134,38 +132,56 @@ internal fun RoomListBody(
                     ) {
                         if (filteredVisibleRooms.isEmpty() && inviteRooms.isEmpty() && !selectedGuildInviteVisible) {
                             item {
-                                val emptyStateIcon = when {
-                                    mode.isDirectMessages() && dmFilter == DmFilter.ONLINE -> Icons.Default.Person
-                                    mode.isDirectMessages() && dmFilter == DmFilter.UNREAD -> Icons.Default.MarkChatRead
-                                    else -> Icons.AutoMirrored.Filled.Chat
-                                }
-                                val emptyStateText = when {
-                                    mode.isDirectMessages() && dmFilter == DmFilter.ONLINE -> i18n.tacitNoOnlineDirectMessages()
-                                    mode.isDirectMessages() && dmFilter == DmFilter.UNREAD -> i18n.tacitNoUnreadDirectMessages()
-                                    else -> i18n.tacitNoDirectMessagesDescription()
-                                }
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 24.dp),
-                                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                ) {
-                                    Icon(
-                                        imageVector = emptyStateIcon,
-                                        contentDescription = null,
-                                        tint = tacitTextMuted,
-                                        modifier = Modifier.size(28.dp),
-                                    )
-                                    Text(
-                                        text = emptyStateText,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = tacitTextMuted,
-                                        textAlign = TextAlign.Center,
-                                    )
-                                }
+                                EmptyFilteredState(mode = mode, dmFilter = dmFilter, i18n = i18n)
                             }
                         }
+
+                        if (inviteRooms.isNotEmpty() || selectedGuildInviteVisible) {
+                            item {
+                                RoomListSectionLabel(i18n.tacitInvitesSection())
+                            }
+                        }
+
+                        if (inviteRooms.isNotEmpty()) {
+                            itemsIndexed(
+                                items = inviteRooms,
+                                key = { _, element -> "invite:${element.roomId.full}" },
+                            ) { _, room ->
+                                ChannelRow(
+                                    roomListViewModel = roomListViewModel,
+                                    room = room,
+                                    selectedRoomId = selectedRoomId,
+                                    mode = mode,
+                                    i18n = i18n,
+                                    showInviteActions = true,
+                                    onAcceptInvite = {
+                                        room.acceptInvitation()
+                                        roomListViewModel.selectRoom(room.roomId)
+                                    },
+                                    onDeclineInvite = {
+                                        room.rejectInvitation()
+                                    },
+                                )
+                            }
+                        }
+
+                        if (selectedGuildInviteVisible) {
+                            item {
+                                SelectedGuildInviteRow(
+                                    i18n = i18n,
+                                    roomName = selectedGuildInviteName ?: selectedGuildInviteRoomId.full,
+                                    onAccept = onAcceptSelectedGuildInvite,
+                                    onDecline = onDeclineSelectedGuildInvite,
+                                )
+                            }
+                        }
+
+                        if (mode is RoomListMode.GuildChannels && filteredVisibleRooms.isNotEmpty()) {
+                            item {
+                                RoomListSectionLabel(mode.roomsSectionTitle())
+                            }
+                        }
+
                         if (mode is RoomListMode.GuildChannels && guildChannelGroups.isNotEmpty()) {
                             val groupedRoomIds = guildChannelGroups
                                 .flatMap { it.channels }
@@ -220,62 +236,79 @@ internal fun RoomListBody(
                             }
                         }
 
-                        if (inviteRooms.isNotEmpty()) {
-                            item {
-                                RoomListSectionLabel(i18n.tacitInvitesSection())
-                            }
-                            itemsIndexed(
-                                items = inviteRooms,
-                                key = { _, element -> "invite:${element.roomId.full}" },
-                            ) { _, room ->
-                                ChannelRow(
-                                    roomListViewModel = roomListViewModel,
-                                    room = room,
-                                    selectedRoomId = selectedRoomId,
-                                    mode = mode,
-                                    i18n = i18n,
-                                    showInviteActions = true,
-                                    onAcceptInvite = {
-                                        room.acceptInvitation()
-                                        roomListViewModel.selectRoom(room.roomId)
-                                    },
-                                    onDeclineInvite = {
-                                        room.rejectInvitation()
-                                    },
-                                )
-                            }
-                        }
-
-                        if (selectedGuildInviteVisible) {
-                            item {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 14.dp, vertical = 8.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Text(
-                                        text = selectedGuildInviteName ?: selectedGuildInviteRoomId.full,
-                                        color = tacitText,
-                                        modifier = Modifier.weight(1f),
-                                        maxLines = 1,
-                                    )
-                                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                        androidx.compose.material3.TextButton(onClick = { onDeclineSelectedGuildInvite?.invoke() }) {
-                                            Text(i18n.tacitDecline())
-                                        }
-                                        androidx.compose.material3.TextButton(onClick = { onAcceptSelectedGuildInvite?.invoke() }) {
-                                            Text(i18n.tacitAccept())
-                                        }
-                                    }
-                                }
-                            }
-                        }
                         item {
                             Spacer(Modifier.height(14.dp))
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyFilteredState(
+    mode: RoomListMode,
+    dmFilter: DmFilter,
+    i18n: TacitI18nView,
+) {
+    val emptyStateIcon = when {
+        mode.isDirectMessages() && dmFilter == DmFilter.ONLINE -> Icons.Default.Person
+        mode.isDirectMessages() && dmFilter == DmFilter.UNREAD -> Icons.Default.MarkChatRead
+        else -> Icons.AutoMirrored.Filled.Chat
+    }
+    val emptyStateText = when {
+        mode.isDirectMessages() && dmFilter == DmFilter.ONLINE -> i18n.tacitNoOnlineDirectMessages()
+        mode.isDirectMessages() && dmFilter == DmFilter.UNREAD -> i18n.tacitNoUnreadDirectMessages()
+        else -> i18n.tacitNoDirectMessagesDescription()
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(
+            imageVector = emptyStateIcon,
+            contentDescription = null,
+            tint = tacitTextMuted,
+            modifier = Modifier.size(28.dp),
+        )
+        Text(
+            text = emptyStateText,
+            style = MaterialTheme.typography.bodySmall,
+            color = tacitTextMuted,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
+@Composable
+private fun SelectedGuildInviteRow(
+    i18n: TacitI18nView,
+    roomName: String,
+    onAccept: (() -> Unit)?,
+    onDecline: (() -> Unit)?,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = roomName,
+            color = tacitText,
+            modifier = Modifier.weight(1f),
+            maxLines = 1,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            androidx.compose.material3.TextButton(onClick = { onDecline?.invoke() }) {
+                Text(i18n.tacitDecline())
+            }
+            androidx.compose.material3.TextButton(onClick = { onAccept?.invoke() }) {
+                Text(i18n.tacitAccept())
             }
         }
     }
