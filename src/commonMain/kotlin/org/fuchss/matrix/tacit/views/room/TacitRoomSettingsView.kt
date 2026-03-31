@@ -6,9 +6,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -53,6 +51,8 @@ class TacitRoomSettingsView : RoomSettingsView {
         if (isSpaceSettingsOpen && !isDirect) {
             GuildSettings(
                 roomSettingsViewModel = roomSettingsViewModel,
+                isCategorySettings = (roomSettingsViewModel as? TacitRoomSettingsViewModel)
+                    ?.let { !it.isGuildSpace.collectAsState().value },
             )
             return
         }
@@ -192,6 +192,14 @@ private fun ColumnScope.CommonRoomSections(
         RoomSettingsHistoryVisibility(roomSettingsViewModel)
     }
 
+    if (roomSettingsViewModel is TacitRoomSettingsViewModel) {
+        val isSpaceRoom = roomSettingsViewModel.isSpaceRoom.collectAsState().value
+        if (!isSpaceRoom) {
+            HorizontalDivider(color = tacitBorder)
+            RoomCategoryAssignmentSection(roomSettingsViewModel)
+        }
+    }
+
     HorizontalDivider(color = tacitBorder)
     RoomSettingsJoinRules(roomSettingsViewModel)
     HorizontalDivider(color = tacitBorder)
@@ -203,6 +211,74 @@ private fun ColumnScope.CommonRoomSections(
         roomSettingsViewModel = roomSettingsViewModel,
         leaveWarningOpen = leaveWarningOpen,
     )
+}
+
+@Composable
+private fun RoomCategoryAssignmentSection(
+    roomSettingsViewModel: TacitRoomSettingsViewModel,
+) {
+    val i18n = DI.get<TacitI18nView>()
+    val categoryTargets = roomSettingsViewModel.categoryTargets.collectAsState().value
+    val currentCategoryRoomId = roomSettingsViewModel.currentCategoryRoomId.collectAsState().value
+    val moveInProgress = roomSettingsViewModel.moveToCategoryInProgress.collectAsState().value
+    if (categoryTargets.isEmpty()) return
+
+    var menuOpen by remember { mutableStateOf(false) }
+    val currentCategoryName = categoryTargets
+        .firstOrNull { it.roomId == currentCategoryRoomId }
+        ?.displayName
+        ?: i18n.tacitNoCategoryAssigned()
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = i18n.tacitMoveToCategoryLabel(),
+            style = MaterialTheme.typography.titleMedium,
+            color = tacitText,
+        )
+        Text(
+            text = i18n.tacitCurrentCategoryLabel(currentCategoryName),
+            style = MaterialTheme.typography.bodySmall,
+            color = tacitTextMuted,
+        )
+
+        Box {
+            OutlinedButton(
+                onClick = { menuOpen = true },
+                enabled = !moveInProgress,
+            ) {
+                Text(i18n.tacitMoveToCategoryLabel())
+            }
+
+            DropdownMenu(
+                expanded = menuOpen,
+                onDismissRequest = { menuOpen = false },
+            ) {
+                DropdownMenuItem(
+                    text = { Text(i18n.tacitNoCategoryAssigned()) },
+                    onClick = {
+                        menuOpen = false
+                        roomSettingsViewModel.moveRoomToCategory(null)
+                    },
+                    enabled = currentCategoryRoomId != null,
+                )
+                categoryTargets
+                    .sortedBy { it.displayName.lowercase() }
+                    .forEach { target ->
+                        if (target.roomId == currentCategoryRoomId) return@forEach
+                        DropdownMenuItem(
+                            text = { Text(target.displayName) },
+                            onClick = {
+                                menuOpen = false
+                                roomSettingsViewModel.moveRoomToCategory(target.roomId)
+                            },
+                        )
+                    }
+            }
+        }
+    }
 }
 
 @Composable
@@ -327,6 +403,7 @@ private fun GroupRoomSettings(
 @Composable
 private fun GuildSettings(
     roomSettingsViewModel: RoomSettingsViewModel,
+    isCategorySettings: Boolean?,
 ) {
     val i18n = DI.get<TacitI18nView>()
     val error = roomSettingsViewModel.error.collectAsState().value
@@ -359,7 +436,7 @@ private fun GuildSettings(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = i18n.tacitGuildSettingsTitle(),
+                    text = if (isCategorySettings == true) i18n.tacitCategorySettingsTitle() else i18n.tacitGuildSettingsTitle(),
                     style = MaterialTheme.typography.titleMedium,
                     color = tacitText,
                 )

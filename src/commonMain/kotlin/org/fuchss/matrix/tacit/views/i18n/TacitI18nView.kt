@@ -200,6 +200,41 @@ open class TacitI18nView(
         DE - "Gilden-Einstellungen"
     }
 
+    open fun tacitNewCategoryDescription() = translate {
+        EN - "New category"
+        DE - "Neue Kategorie"
+    }
+
+    open fun tacitMoveCategoryUpDescription() = translate {
+        EN - "Move category up"
+        DE - "Kategorie nach oben verschieben"
+    }
+
+    open fun tacitMoveCategoryDownDescription() = translate {
+        EN - "Move category down"
+        DE - "Kategorie nach unten verschieben"
+    }
+
+    open fun tacitOpenCategorySettingsDescription() = translate {
+        EN - "Open category settings"
+        DE - "Kategorie-Einstellungen öffnen"
+    }
+
+    open fun tacitMoveToCategoryLabel() = translate {
+        EN - "Move to category"
+        DE - "In Kategorie verschieben"
+    }
+
+    open fun tacitNoCategoryAssigned() = translate {
+        EN - "No category"
+        DE - "Keine Kategorie"
+    }
+
+    open fun tacitCurrentCategoryLabel(categoryName: String) = translate {
+        EN - "Current category: $categoryName"
+        DE - "Aktuelle Kategorie: $categoryName"
+    }
+
     open fun tacitClearSearchDescription() = translate {
         EN - "Clear search"
         DE - "Suche löschen"
@@ -218,6 +253,21 @@ open class TacitI18nView(
     open fun tacitCreateRoomInGuild(guildName: String) = translate {
         EN - "Create a new room in $guildName."
         DE - "Erstelle einen neuen Raum in $guildName."
+    }
+
+    open fun tacitCreateCategoryTitle() = translate {
+        EN - "Create Category"
+        DE - "Kategorie erstellen"
+    }
+
+    open fun tacitCreateCategoryInGuild(guildName: String) = translate {
+        EN - "Create a new category in $guildName."
+        DE - "Erstelle eine neue Kategorie in $guildName."
+    }
+
+    open fun tacitCategoryNameLabel() = translate {
+        EN - "Category name"
+        DE - "Kategoriename"
     }
 
     open fun tacitRoomNameLabel() = translate {
@@ -438,6 +488,11 @@ open class TacitI18nView(
     open fun tacitGuildSettingsTitle() = translate {
         EN - "Guild Settings"
         DE - "Gilden-Einstellungen"
+    }
+
+    open fun tacitCategorySettingsTitle() = translate {
+        EN - "Category Settings"
+        DE - "Kategorie-Einstellungen"
     }
 
     open fun tacitUserProfileTitle() = translate {

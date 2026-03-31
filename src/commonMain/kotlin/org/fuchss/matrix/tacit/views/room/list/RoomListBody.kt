@@ -1,20 +1,25 @@
 package org.fuchss.matrix.tacit.views.room.list
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
-import androidx.compose.material.icons.filled.MarkChatRead
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -22,17 +27,12 @@ import de.connect2x.trixnity.core.model.RoomId
 import de.connect2x.trixnity.core.model.events.m.Presence
 import de.connect2x.trixnity.messenger.compose.view.DI
 import de.connect2x.trixnity.messenger.compose.view.get
+import de.connect2x.trixnity.messenger.compose.view.pointerMoveFilter
 import de.connect2x.trixnity.messenger.compose.view.theme.components
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedButton
 import de.connect2x.trixnity.messenger.viewmodel.roomlist.RoomListViewModel
-import org.fuchss.matrix.tacit.tacitSurface
-import org.fuchss.matrix.tacit.tacitText
-import org.fuchss.matrix.tacit.tacitTextMuted
-import org.fuchss.matrix.tacit.viewmodel.room.list.RoomListMode
-import org.fuchss.matrix.tacit.viewmodel.room.list.TacitGuildChannelGroup
-import org.fuchss.matrix.tacit.viewmodel.room.list.TacitRoomListElementViewModel
-import org.fuchss.matrix.tacit.viewmodel.room.list.isDirectMessages
-import org.fuchss.matrix.tacit.viewmodel.room.list.roomsSectionTitle
+import org.fuchss.matrix.tacit.*
+import org.fuchss.matrix.tacit.viewmodel.room.list.*
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 
 @Composable
@@ -48,6 +48,8 @@ internal fun RoomListBody(
     canCreateNewRoomWithAccount: Boolean,
     searchResultsEmpty: Boolean,
     onBrowseRooms: () -> Unit,
+    onReorderCategory: (fromIndex: Int, toIndex: Int) -> Unit,
+    onOpenCategorySettings: (RoomId) -> Unit,
     selectedGuildInviteRoomId: RoomId? = null,
     selectedGuildInviteName: String? = null,
     onAcceptSelectedGuildInvite: (() -> Unit)? = null,
@@ -205,8 +207,19 @@ internal fun RoomListBody(
                             }
 
                             guildChannelGroups.forEach { group ->
+                                val groupIndex = guildChannelGroups.indexOf(group)
                                 item(key = "category:${group.categoryRoomId.full}") {
-                                    RoomListSectionLabel(group.categoryName)
+                                    CategorySectionHeader(
+                                        title = group.categoryName,
+                                        canMoveUp = groupIndex > 0,
+                                        canMoveDown = groupIndex < guildChannelGroups.lastIndex,
+                                        moveUpDescription = i18n.tacitMoveCategoryUpDescription(),
+                                        moveDownDescription = i18n.tacitMoveCategoryDownDescription(),
+                                        settingsDescription = i18n.tacitOpenCategorySettingsDescription(),
+                                        onMoveUp = { onReorderCategory(groupIndex, groupIndex - 1) },
+                                        onMoveDown = { onReorderCategory(groupIndex, groupIndex + 1) },
+                                        onOpenSettings = { onOpenCategorySettings(group.categoryRoomId) },
+                                    )
                                 }
                                 itemsIndexed(
                                     items = group.channels,
@@ -375,6 +388,101 @@ private fun RoomListSectionLabel(text: String) {
         fontWeight = FontWeight.Bold,
         modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
     )
+}
+
+@Composable
+private fun CategorySectionHeader(
+    title: String,
+    canMoveUp: Boolean,
+    canMoveDown: Boolean,
+    moveUpDescription: String,
+    moveDownDescription: String,
+    settingsDescription: String,
+    onMoveUp: () -> Unit,
+    onMoveDown: () -> Unit,
+    onOpenSettings: () -> Unit,
+) {
+    var hovered by remember { mutableStateOf(false) }
+    val actionsVisibleAlpha = if (hovered) 1f else 0f
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 10.dp, vertical = 8.dp)
+            .pointerMoveFilter(
+                onEnter = {
+                    hovered = true
+                    true
+                },
+                onExit = {
+                    hovered = false
+                    true
+                },
+            )
+            .heightIn(min = 22.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = title,
+            color = tacitTextMuted,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier
+                .weight(1f)
+                .padding(end = 8.dp),
+        )
+        Row(
+            modifier = Modifier.alpha(actionsVisibleAlpha),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            CategoryHeaderActionButton(
+                icon = Icons.Default.Settings,
+                contentDescription = settingsDescription,
+                onClick = onOpenSettings,
+                enabled = hovered,
+            )
+            Spacer(Modifier.width(4.dp))
+            CategoryHeaderActionButton(
+                icon = Icons.Default.KeyboardArrowUp,
+                contentDescription = moveUpDescription,
+                onClick = onMoveUp,
+                enabled = hovered && canMoveUp,
+            )
+            Spacer(Modifier.width(4.dp))
+            CategoryHeaderActionButton(
+                icon = Icons.Default.KeyboardArrowDown,
+                contentDescription = moveDownDescription,
+                onClick = onMoveDown,
+                enabled = hovered && canMoveDown,
+            )
+        }
+    }
+}
+
+@Composable
+private fun CategoryHeaderActionButton(
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+    enabled: Boolean,
+) {
+    Box(
+        modifier = Modifier
+            .size(22.dp)
+            .clip(RoundedCornerShape(6.dp))
+            .background(if (enabled) tacitSurfaceAlt else tacitSurface)
+            .border(1.dp, tacitBorder, RoundedCornerShape(6.dp))
+            .alpha(if (enabled) 1f else 0.45f)
+            .clickable(enabled = enabled, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = tacitTextMuted,
+            modifier = Modifier.size(14.dp),
+        )
+    }
 }
 
 @Composable

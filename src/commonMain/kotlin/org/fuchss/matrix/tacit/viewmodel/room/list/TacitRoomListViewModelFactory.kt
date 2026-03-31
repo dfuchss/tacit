@@ -45,6 +45,8 @@ internal interface TacitRoomListViewModel : RoomListViewModel {
     val inviteToGuildInProgress: StateFlow<Boolean>
     val createDirectMessageInProgress: StateFlow<Boolean>
     val createGroupChannelInProgress: StateFlow<Boolean>
+    val createCategoryInProgress: StateFlow<Boolean>
+    val reorderCategoriesInProgress: StateFlow<Boolean>
     val guildInviteActionInProgress: StateFlow<Boolean>
 
     fun selectGuild(guild: GuildEntry?)
@@ -57,6 +59,9 @@ internal interface TacitRoomListViewModel : RoomListViewModel {
     suspend fun searchUsersForDirectMessages(query: String): Result<List<UserDirectoryEntry>>
     fun startDirectMessage(userId: String)
     fun createGroupChannel(name: String, topic: String)
+    fun createCategory(guild: GuildEntry, name: String)
+    fun reorderCategories(guild: GuildEntry, orderedCategoryRoomIds: List<RoomId>)
+    fun moveRoomToCategory(guild: GuildEntry, roomId: RoomId, targetCategoryRoomId: RoomId)
     fun acceptGuildInvite(guild: GuildEntry)
     fun declineGuildInvite(guild: GuildEntry)
     fun reorderGuild(fromIndex: Int, toIndex: Int)
@@ -198,6 +203,29 @@ private class TacitRoomListViewModelImpl(
         combine(persistedGuildOrder, runtimeGuildOrderOverride) { persistedOrder, runtimeOrder ->
             runtimeOrder ?: persistedOrder
         }.stateIn(coroutineScope, WhileSubscribed(), persistedGuildOrder.value)
+
+    private val persistedCategoryOrderByGuild: StateFlow<Map<String, List<String>>> =
+        settings
+            .mapLatest { messengerSettings ->
+                readTacitCategoryOrderByGuild(messengerSettings)
+            }
+            .stateIn(
+                coroutineScope,
+                WhileSubscribed(),
+                readTacitCategoryOrderByGuild(settings.value)
+            )
+
+    private val runtimeCategoryOrderOverrideByGuild = MutableStateFlow<Map<String, List<String>>>(emptyMap())
+
+    private val categoryOrderByGuild: StateFlow<Map<String, List<String>>> =
+        combine(persistedCategoryOrderByGuild, runtimeCategoryOrderOverrideByGuild) { persisted, runtime ->
+            persisted + runtime
+        }.stateIn(coroutineScope, WhileSubscribed(), persistedCategoryOrderByGuild.value)
+
+    private val selectedGuildCategoryOrder: StateFlow<List<String>> =
+        combine(selectedGuild, categoryOrderByGuild) { guild, orderByGuild ->
+            guild?.key()?.let { orderByGuild[it] }.orEmpty()
+        }.stateIn(coroutineScope, WhileSubscribed(), emptyList())
 
     private val discoveredGuilds: StateFlow<List<GuildEntry>> = selectedMatrixClients.flatMapLatest { clients ->
         if (clients.isEmpty()) flowOf(emptyList())
@@ -356,14 +384,6 @@ private class TacitRoomListViewModelImpl(
             }
         }.stateIn(coroutineScope, WhileSubscribed(), emptyMap())
 
-    private val allGuildChildRoomIds: StateFlow<Set<RoomId>> = allGuildChildrenByGuild
-        .map { childrenByGuild ->
-            childrenByGuild.values
-                .flatten()
-                .toSet()
-        }
-        .stateIn(coroutineScope, WhileSubscribed(), emptySet())
-
     private val allSpaceChildRoomIds: StateFlow<Set<RoomId>> = selectedMatrixClients.flatMapLatest { clients ->
         if (clients.isEmpty()) flowOf(emptySet())
         else combine(clients.map { matrixClient ->
@@ -486,6 +506,7 @@ private class TacitRoomListViewModelImpl(
                         .flattenValues()
                         .map { childState ->
                             val children = childState
+                                .filter { childEvent -> childEvent.content.via.isNotEmpty() }
                                 .mapNotNull { childEvent -> runCatching { RoomId(childEvent.stateKey) }.getOrNull() }
                                 .toSet()
                             categoryRoomId to children
@@ -525,13 +546,19 @@ private class TacitRoomListViewModelImpl(
             mode,
             roomDerived,
             visibleRooms,
-            combine(guildChildren, guildCategoryChildren, unknownDisplayNames) { children, categoryChildren, unknownNames ->
+            selectedGuildCategoryOrder,
+            combine(
+                guildChildren,
+                guildCategoryChildren,
+                unknownDisplayNames
+            ) { children, categoryChildren, unknownNames ->
                 Triple(children, categoryChildren, unknownNames)
             },
         ) {
                 mode,
                 rooms,
                 visibleRooms,
+                categoryOrder,
                 hierarchy,
             ->
             val (children, categoryChildren, unknownNames) = hierarchy
@@ -550,7 +577,11 @@ private class TacitRoomListViewModelImpl(
 
                 val categories = children.keys
                     .filter { categoryChildren.containsKey(it) && roomById[it]?.isSpace != false }
-                    .sortedBy { categoryDisplayName(it).lowercase() }
+                    .sortedWith(
+                        compareBy<RoomId> {
+                            categoryOrder.indexOf(it.full).let { index -> if (index >= 0) index else Int.MAX_VALUE }
+                        }.thenBy { categoryDisplayName(it).lowercase() }
+                    )
 
                 categories.mapNotNull { categoryRoomId ->
                     val channels = categoryChildren[categoryRoomId]
@@ -609,7 +640,11 @@ private class TacitRoomListViewModelImpl(
             }.stateIn(coroutineScope, WhileSubscribed(), emptyMap())
 
     private val browseCandidateRoomIds: StateFlow<Set<RoomId>> =
-        combine(guildChildren, guildCategoryChildren, browseHierarchyNames) { children, categoryChildren, hierarchyNames ->
+        combine(
+            guildChildren,
+            guildCategoryChildren,
+            browseHierarchyNames
+        ) { children, categoryChildren, hierarchyNames ->
             (children.keys + categoryChildren.values.flatten() + hierarchyNames.keys).toSet()
         }.stateIn(coroutineScope, WhileSubscribed(), emptySet())
 
@@ -629,14 +664,22 @@ private class TacitRoomListViewModelImpl(
         }.stateIn(coroutineScope, WhileSubscribed(), emptyMap())
 
     private val browseRoomsContext: StateFlow<BrowseRoomsContext> =
-        combine(guildChildren, browseHierarchyNames, browseRoomMemberships, browseCandidateRoomIds) {
+        combine(
+            guildChildren,
+            guildCategoryChildren,
+            browseHierarchyNames,
+            browseRoomMemberships,
+            browseCandidateRoomIds
+        ) {
                 children,
+                categoryChildren,
                 hierarchyNames,
                 memberships,
                 candidateIds,
             ->
             BrowseRoomsContext(
                 directChildren = children,
+                categoryRoomIds = categoryChildren.keys,
                 hierarchyNames = hierarchyNames,
                 memberships = memberships,
                 candidateIds = candidateIds,
@@ -644,7 +687,7 @@ private class TacitRoomListViewModelImpl(
         }.stateIn(
             coroutineScope,
             WhileSubscribed(),
-            BrowseRoomsContext(emptyMap(), emptyMap(), emptyMap(), emptySet()),
+            BrowseRoomsContext(emptyMap(), emptySet(), emptyMap(), emptyMap(), emptySet()),
         )
 
     override val browseChannels: StateFlow<List<SpaceChannelEntry>> =
@@ -761,6 +804,8 @@ private class TacitRoomListViewModelImpl(
     override val inviteToGuildInProgress: StateFlow<Boolean> = actions.inviteToGuildInProgress
     override val createDirectMessageInProgress: StateFlow<Boolean> = actions.createDirectMessageInProgress
     override val createGroupChannelInProgress: StateFlow<Boolean> = actions.createGroupChannelInProgress
+    override val createCategoryInProgress: StateFlow<Boolean> = actions.createCategoryInProgress
+    override val reorderCategoriesInProgress: StateFlow<Boolean> = actions.reorderCategoriesInProgress
     override val guildInviteActionInProgress: StateFlow<Boolean> = actions.guildInviteActionInProgress
 
     override fun createGuild(name: String, topic: String, createDefaultChannel: Boolean) =
@@ -791,6 +836,25 @@ private class TacitRoomListViewModelImpl(
 
     override fun createGroupChannel(name: String, topic: String) =
         actions.createGroupChannel(name, topic)
+
+    override fun createCategory(guild: GuildEntry, name: String) =
+        actions.createCategory(guild, name)
+
+    override fun reorderCategories(guild: GuildEntry, orderedCategoryRoomIds: List<RoomId>) {
+        val guildKey = guild.key()
+        val orderedCategoryKeys = orderedCategoryRoomIds.map { it.full }
+        runtimeCategoryOrderOverrideByGuild.update { current ->
+            current + (guildKey to orderedCategoryKeys)
+        }
+        coroutineScope.launch {
+            settings.update {
+                writeTacitCategoryOrderForGuild(guildKey, orderedCategoryKeys)
+            }
+        }
+    }
+
+    override fun moveRoomToCategory(guild: GuildEntry, roomId: RoomId, targetCategoryRoomId: RoomId) =
+        actions.moveRoomToCategory(guild, roomId, targetCategoryRoomId)
 
     override fun acceptGuildInvite(guild: GuildEntry) = actions.acceptGuildInvite(guild)
 
@@ -826,6 +890,7 @@ private data class RoomDerivedIdentityState(
 
 private data class BrowseRoomsContext(
     val directChildren: Map<RoomId, Set<String>>,
+    val categoryRoomIds: Set<RoomId>,
     val hierarchyNames: Map<RoomId, String>,
     val memberships: Map<RoomId, Membership?>,
     val candidateIds: Set<RoomId>,

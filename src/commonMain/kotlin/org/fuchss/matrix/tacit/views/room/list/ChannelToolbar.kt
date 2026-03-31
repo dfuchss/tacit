@@ -81,6 +81,7 @@ internal fun GuildChannelToolbar(
     roomListViewModel: RoomListViewModel,
     canCreateRoom: Boolean,
     onCreateRoom: () -> Unit,
+    onCreateCategory: (() -> Unit)?,
     onBrowseChannels: (() -> Unit)?,
     onInviteToGuild: (() -> Unit)?,
     canInviteToGuild: Boolean,
@@ -119,6 +120,14 @@ internal fun GuildChannelToolbar(
                     enabled = canCreateRoom,
                     primary = true,
                 )
+                if (onCreateCategory != null) {
+                    ToolbarIconButton(
+                        icon = Icons.Default.CreateNewFolder,
+                        contentDescription = i18n.tacitNewCategoryDescription(),
+                        onClick = onCreateCategory,
+                        enabled = canCreateRoom,
+                    )
+                }
                 if (onBrowseChannels != null) {
                     ToolbarIconButton(
                         icon = Icons.Default.Search,

@@ -120,6 +120,106 @@ internal suspend fun GuildEntry.createChannel(
     return Result.success(roomId)
 }
 
+internal suspend fun GuildEntry.createCategory(
+    matrixClient: MatrixClient,
+    categoryName: String,
+): Result<RoomId> {
+    val trimmedName = categoryName.trim()
+    if (trimmedName.isBlank()) {
+        return Result.failure(IllegalArgumentException("Category name is required"))
+    }
+
+    val categoryRoomId = withOperationTimeout("Category creation") {
+        matrixClient.api.room.createRoom(
+            name = trimmedName,
+            isDirect = false,
+            preset = CreateRoom.Request.Preset.PRIVATE,
+            creationContent = CreateEventContent(type = RoomType.Space),
+            powerLevelContentOverride = PowerLevelsEventContent(
+                users = mapOf(matrixClient.userId to 100),
+                events = mapOf(
+                    EventType(ChildEventContent::class, "m.space.child") to 0L,
+                ),
+            ),
+        )
+    }.getOrElse { return Result.failure(it) }
+
+    val via = setOf(matrixClient.userId.domain)
+    withOperationTimeout("Link category to guild") {
+        matrixClient.api.room.sendStateEvent(
+            roomId = this.roomId,
+            eventContent = ChildEventContent(via = via, suggested = false),
+            stateKey = categoryRoomId.full,
+        )
+    }.getOrElse { return Result.failure(it) }
+
+    withOperationTimeout("Link guild to category") {
+        matrixClient.api.room.sendStateEvent(
+            roomId = categoryRoomId,
+            eventContent = ParentEventContent(canonical = false, via = via),
+            stateKey = this.roomId.full,
+        )
+    }.getOrElse { return Result.failure(it) }
+
+    withOperationTimeout("Configure category join rules") {
+        matrixClient.api.room.sendStateEvent(
+            roomId = categoryRoomId,
+            eventContent = JoinRulesEventContent(
+                joinRule = JoinRulesEventContent.JoinRule.Restricted,
+                allow = setOf(
+                    JoinRulesEventContent.AllowCondition(
+                        roomId = this.roomId,
+                        type = JoinRulesEventContent.AllowCondition.AllowConditionType.RoomMembership,
+                    )
+                ),
+            ),
+        )
+    }.getOrElse { return Result.failure(it) }
+
+    return Result.success(categoryRoomId)
+}
+
+internal suspend fun moveRoomToCategory(
+    matrixClient: MatrixClient,
+    roomId: RoomId,
+    targetCategoryRoomId: RoomId?,
+    currentCategoryRoomId: RoomId? = null,
+): Result<Unit> {
+    val guildVia = setOf(matrixClient.userId.domain)
+
+    if (currentCategoryRoomId != null && currentCategoryRoomId != targetCategoryRoomId) {
+        withOperationTimeout("Unlink room from previous category") {
+            matrixClient.api.room.sendStateEvent(
+                roomId = currentCategoryRoomId,
+                eventContent = ChildEventContent(via = emptySet(), suggested = false),
+                stateKey = roomId.full,
+            )
+        }.getOrElse { return Result.failure(it) }
+    }
+
+    if (targetCategoryRoomId == null) {
+        return Result.success(Unit)
+    }
+
+    withOperationTimeout("Link room to category") {
+        matrixClient.api.room.sendStateEvent(
+            roomId = targetCategoryRoomId,
+            eventContent = ChildEventContent(via = guildVia, suggested = false),
+            stateKey = roomId.full,
+        )
+    }.getOrElse { return Result.failure(it) }
+
+    withOperationTimeout("Link category to room") {
+        matrixClient.api.room.sendStateEvent(
+            roomId = roomId,
+            eventContent = ParentEventContent(canonical = false, via = guildVia),
+            stateKey = targetCategoryRoomId.full,
+        )
+    }.getOrElse { return Result.failure(it) }
+
+    return Result.success(Unit)
+}
+
 internal suspend fun MatrixClient.createGroupChannel(
     roomName: String,
     roomTopic: String,

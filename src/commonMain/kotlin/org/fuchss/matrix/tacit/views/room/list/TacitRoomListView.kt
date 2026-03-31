@@ -20,14 +20,11 @@ import de.connect2x.trixnity.messenger.viewmodel.roomlist.RoomListViewModel.User
 import de.connect2x.trixnity.messenger.viewmodel.util.ErrorType
 import kotlinx.coroutines.delay
 import org.fuchss.matrix.tacit.*
-import org.fuchss.matrix.tacit.viewmodel.room.list.RoomListMode
-import org.fuchss.matrix.tacit.viewmodel.room.list.TacitGuildChannelGroup
-import org.fuchss.matrix.tacit.viewmodel.room.list.TacitRoomListElementViewModel
-import org.fuchss.matrix.tacit.viewmodel.room.list.TacitRoomListViewModel
+import org.fuchss.matrix.tacit.viewmodel.room.list.*
 import org.fuchss.matrix.tacit.viewmodel.room.list.entry.GuildEntry
-import org.fuchss.matrix.tacit.viewmodel.room.list.selectedGuildOrNull
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 import org.fuchss.matrix.tacit.views.room.list.dialogs.browse.BrowseChannelsDialogContainer
+import org.fuchss.matrix.tacit.views.room.list.dialogs.create.CreateCategoryDialogContainer
 import org.fuchss.matrix.tacit.views.room.list.dialogs.create.CreateChannelDialogContainer
 import org.fuchss.matrix.tacit.views.room.list.dialogs.create.CreateGroupChannelDialogContainer
 import org.fuchss.matrix.tacit.views.room.list.dialogs.create.CreateGuildDialogContainer
@@ -74,6 +71,8 @@ class TacitRoomListView : RoomListView {
         val inviteToGuildInProgress = tacitRoomListViewModel.inviteToGuildInProgress.collectAsState().value
         val createDirectMessageInProgress = tacitRoomListViewModel.createDirectMessageInProgress.collectAsState().value
         val createGroupChannelInProgress = tacitRoomListViewModel.createGroupChannelInProgress.collectAsState().value
+        val createCategoryInProgress = tacitRoomListViewModel.createCategoryInProgress.collectAsState().value
+        val reorderCategoriesInProgress = tacitRoomListViewModel.reorderCategoriesInProgress.collectAsState().value
         val guildInviteActionInProgress = tacitRoomListViewModel.guildInviteActionInProgress.collectAsState().value
         val syncStates = roomListViewModel.syncStates.collectAsState().value
 
@@ -91,6 +90,7 @@ class TacitRoomListView : RoomListView {
         var inviteToGuildDialogOpen by remember { mutableStateOf(false) }
         var createDirectMessageDialogOpen by remember { mutableStateOf(false) }
         var createGroupChannelDialogOpen by remember { mutableStateOf(false) }
+        var createCategoryDialogOpen by remember { mutableStateOf(false) }
 
         AutoDismissError(error, errorType) {
             roomListViewModel.errorDismiss()
@@ -163,6 +163,10 @@ class TacitRoomListView : RoomListView {
                     is RoomListMode.GuildChannels -> createChannelDialogOpen = true
                 }
             },
+            onOpenCreateCategory = {
+                roomListViewModel.errorDismiss()
+                createCategoryDialogOpen = true
+            },
             onCreateGroupChannel = {
                 roomListViewModel.errorDismiss()
                 createGroupChannelDialogOpen = true
@@ -181,6 +185,22 @@ class TacitRoomListView : RoomListView {
                     TacitRoomNavigationState.suppressBackButtonForRoomId = guild.roomId.full
                     roomListViewModel.selectRoom(guild.roomId)
                 }
+            },
+            onReorderCategory = { fromIndex, toIndex ->
+                val guild = selectedGuild ?: return@RoomListContent
+                if (reorderCategoriesInProgress) return@RoomListContent
+                val ordered = guildChannelGroups.map { it.categoryRoomId }.toMutableList()
+                if (fromIndex !in ordered.indices || toIndex !in ordered.indices || fromIndex == toIndex) {
+                    return@RoomListContent
+                }
+                val moved = ordered.removeAt(fromIndex)
+                ordered.add(toIndex, moved)
+                tacitRoomListViewModel.reorderCategories(guild, ordered)
+            },
+            onOpenCategorySettings = { categoryRoomId ->
+                TacitRoomNavigationState.openSettingsForRoomId = categoryRoomId.full
+                TacitRoomNavigationState.suppressBackButtonForRoomId = categoryRoomId.full
+                roomListViewModel.selectRoom(categoryRoomId)
             },
         )
 
@@ -239,6 +259,15 @@ class TacitRoomListView : RoomListView {
             onCreateGroupChannel = tacitRoomListViewModel::createGroupChannel,
             onSetOpen = { createGroupChannelDialogOpen = it },
         )
+
+        CreateCategoryDialogContainer(
+            open = createCategoryDialogOpen,
+            inProgress = createCategoryInProgress,
+            selectedGuild = selectedGuild,
+            canCreateCategory = canUseSelectedGuildAccount,
+            onCreateCategory = tacitRoomListViewModel::createCategory,
+            onSetOpen = { createCategoryDialogOpen = it },
+        )
     }
 }
 
@@ -283,10 +312,13 @@ private fun RoomListContent(
     onReorderGuild: (fromIndex: Int, toIndex: Int) -> Unit,
     onOpenCreateGuild: () -> Unit,
     onCreateRoom: () -> Unit,
+    onOpenCreateCategory: () -> Unit,
     onCreateGroupChannel: () -> Unit,
     onOpenBrowseChannels: () -> Unit,
     onOpenInviteToGuild: () -> Unit,
     onOpenGuildSettings: (() -> Unit)?,
+    onReorderCategory: (fromIndex: Int, toIndex: Int) -> Unit,
+    onOpenCategorySettings: (RoomId) -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -336,6 +368,7 @@ private fun RoomListContent(
                         roomListViewModel,
                         canCreateNewRoomWithAccount,
                         onCreateRoom,
+                        onOpenCreateCategory,
                         onOpenBrowseChannels,
                         onOpenInviteToGuild,
                         selectedGuildAccountAvailable,
@@ -365,6 +398,8 @@ private fun RoomListContent(
                 canCreateNewRoomWithAccount = canCreateNewRoomWithAccount,
                 searchResultsEmpty = searchResultsEmpty,
                 onBrowseRooms = onOpenBrowseChannels,
+                onReorderCategory = onReorderCategory,
+                onOpenCategorySettings = onOpenCategorySettings,
                 selectedGuildInviteRoomId = selectedGuildInviteFallback?.roomId,
                 selectedGuildInviteName = selectedGuildInviteFallback?.displayName,
                 onAcceptSelectedGuildInvite = onAcceptSelectedGuildInvite,

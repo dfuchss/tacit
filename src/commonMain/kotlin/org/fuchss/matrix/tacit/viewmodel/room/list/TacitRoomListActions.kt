@@ -37,6 +37,12 @@ internal class TacitRoomListActions(
     private val _createGroupChannelInProgress = MutableStateFlow(false)
     val createGroupChannelInProgress: StateFlow<Boolean> = _createGroupChannelInProgress
 
+    private val _createCategoryInProgress = MutableStateFlow(false)
+    val createCategoryInProgress: StateFlow<Boolean> = _createCategoryInProgress
+
+    private val _reorderCategoriesInProgress = MutableStateFlow(false)
+    val reorderCategoriesInProgress: StateFlow<Boolean> = _reorderCategoriesInProgress
+
     private val _guildInviteActionInProgress = MutableStateFlow(false)
     val guildInviteActionInProgress: StateFlow<Boolean> = _guildInviteActionInProgress
 
@@ -176,6 +182,49 @@ internal class TacitRoomListActions(
                 )
             } finally {
                 _createGroupChannelInProgress.value = false
+            }
+        }
+    }
+
+    fun createCategory(guild: GuildEntry, name: String) {
+        if (_createCategoryInProgress.value) return
+        scope.launch {
+            _createCategoryInProgress.value = true
+            try {
+                reportError(null)
+                val result = resolveGuildClient(guild)?.let { client ->
+                    guild.createCategory(
+                        matrixClient = client,
+                        categoryName = name,
+                    )
+                } ?: Result.failure(IllegalStateException("Could not resolve active guild context."))
+                result.onFailure { throwable ->
+                    reportError("Could not create category: ${throwable.message ?: "Unknown error"}")
+                }
+            } finally {
+                _createCategoryInProgress.value = false
+            }
+        }
+    }
+
+    fun moveRoomToCategory(guild: GuildEntry, roomId: RoomId, targetCategoryRoomId: RoomId) {
+        if (_reorderCategoriesInProgress.value) return
+        scope.launch {
+            _reorderCategoriesInProgress.value = true
+            try {
+                reportError(null)
+                val result = resolveGuildClient(guild)?.let { client ->
+                    moveRoomToCategory(
+                        matrixClient = client,
+                        roomId = roomId,
+                        targetCategoryRoomId = targetCategoryRoomId,
+                    )
+                } ?: Result.failure(IllegalStateException("Could not resolve active guild context."))
+                result.onFailure { throwable ->
+                    reportError("Could not move room to category: ${throwable.message ?: "Unknown error"}")
+                }
+            } finally {
+                _reorderCategoriesInProgress.value = false
             }
         }
     }
