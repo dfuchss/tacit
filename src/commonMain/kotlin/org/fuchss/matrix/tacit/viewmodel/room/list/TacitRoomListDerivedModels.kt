@@ -1,8 +1,6 @@
 package org.fuchss.matrix.tacit.viewmodel.room.list
 
-import de.connect2x.trixnity.client.MatrixClient
 import de.connect2x.trixnity.core.model.RoomId
-import org.fuchss.matrix.tacit.viewmodel.room.list.entry.GuildEntry
 
 internal data class TacitRoomDerived(
     val room: TacitRoomListElementViewModel,
@@ -17,9 +15,9 @@ internal data class TacitRoomDerived(
     val isUnread: Boolean,
 )
 
-internal data class TacitUnknownDisplayNamesContext(
-    val guild: GuildEntry?,
-    val client: MatrixClient?,
+internal data class CategoryHierarchyNames(
     val children: Map<RoomId, Set<String>>,
-    val rooms: List<TacitRoomDerived>,
+    val categoryChildren: Map<RoomId, Set<RoomId>>,
+    val directSpaceNames: Map<RoomId, String>,
+    val hierarchyNames: Map<RoomId, String>,
 )

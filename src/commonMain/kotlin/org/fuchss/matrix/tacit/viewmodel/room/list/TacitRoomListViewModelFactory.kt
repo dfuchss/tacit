@@ -472,28 +472,35 @@ private class TacitRoomListViewModelImpl(
                 ?.let { clients[it] }
         }
 
-    private val unknownDisplayNames: StateFlow<Map<RoomId, String>> =
-        combine(selectedGuild, selectedGuildClient, guildChildren, roomDerived) { guild, client, children, rooms ->
-            TacitUnknownDisplayNamesContext(guild, client, children, rooms)
-        }.mapLatest { context ->
-            val guild = context.guild ?: return@mapLatest emptyMap()
-            val client = context.client ?: return@mapLatest emptyMap()
-            val children = context.children
-            val rooms = context.rooms
-            val knownRoomIds = rooms.map { it.roomId }.toSet()
-            val unknownRoomIds = children.keys.filterNot { knownRoomIds.contains(it) }.toSet()
-            if (unknownRoomIds.isEmpty()) return@mapLatest emptyMap()
-
-            val hierarchy = client.api.room.getHierarchy(roomId = guild.roomId, limit = 100).getOrNull()
-                ?: return@mapLatest emptyMap()
-            val resolvedNames = mutableMapOf<RoomId, String>()
-            unknownRoomIds.forEach { roomId ->
-                val childInfo = hierarchy.rooms.firstOrNull { roomInfo -> roomInfo.roomId == roomId }
-                val displayName = childInfo?.name?.takeIf { it.isNotBlank() }
-                if (displayName != null) resolvedNames[roomId] = displayName
+    private val directGuildSpaceNames: StateFlow<Map<RoomId, String>> =
+        combine(selectedGuildClient, guildChildren) { client, children ->
+            client to children.keys.toList()
+        }.flatMapLatest { (client, categoryRoomIds) ->
+            if (client == null || categoryRoomIds.isEmpty()) {
+                flowOf(emptyMap())
+            } else {
+                combine(categoryRoomIds.map { categoryRoomId ->
+                    client.room.getById(categoryRoomId).map { room ->
+                        categoryRoomId to room?.name?.explicitName?.takeIf { it.isNotBlank() }
+                    }
+                }) { entries ->
+                    entries
+                        .mapNotNull { (roomId, displayName) -> displayName?.let { roomId to it } }
+                        .toMap()
+                }
             }
-            resolvedNames
         }.stateIn(coroutineScope, WhileSubscribed(), emptyMap())
+
+    private val selectedGuildHierarchyNames: StateFlow<Map<RoomId, String>> =
+        combine(selectedGuild, selectedGuildClient) { guild, client -> guild to client }
+            .mapLatest { (guild, client) ->
+                if (guild == null || client == null) return@mapLatest emptyMap()
+                val hierarchy = client.api.room.getHierarchy(roomId = guild.roomId, limit = 200).getOrNull()
+                    ?: return@mapLatest emptyMap()
+                hierarchy.rooms.associate { roomInfo ->
+                    roomInfo.roomId to (roomInfo.name?.takeIf { it.isNotBlank() } ?: roomInfo.roomId.full)
+                }
+            }.stateIn(coroutineScope, WhileSubscribed(), emptyMap())
 
     private val guildCategoryChildren: StateFlow<Map<RoomId, Set<RoomId>>> =
         combine(selectedGuildClient, guildChildren) { client, children ->
@@ -550,9 +557,10 @@ private class TacitRoomListViewModelImpl(
             combine(
                 guildChildren,
                 guildCategoryChildren,
-                unknownDisplayNames
-            ) { children, categoryChildren, unknownNames ->
-                Triple(children, categoryChildren, unknownNames)
+                directGuildSpaceNames,
+                selectedGuildHierarchyNames
+            ) { children, categoryChildren, directSpaceNames, hierarchyNames ->
+                CategoryHierarchyNames(children, categoryChildren, directSpaceNames, hierarchyNames)
             },
         ) {
                 mode,
@@ -561,7 +569,10 @@ private class TacitRoomListViewModelImpl(
                 categoryOrder,
                 hierarchy,
             ->
-            val (children, categoryChildren, unknownNames) = hierarchy
+            val children = hierarchy.children
+            val categoryChildren = hierarchy.categoryChildren
+            val directSpaceNames = hierarchy.directSpaceNames
+            val hierarchyNames = hierarchy.hierarchyNames
             if (mode !is RoomListMode.GuildChannels) {
                 emptyList()
             } else {
@@ -571,8 +582,9 @@ private class TacitRoomListViewModelImpl(
                 val categoryDisplayName: (RoomId) -> String = { roomId ->
                     val derivedName = roomById[roomId]?.roomName
                     val usableDerivedName = derivedName?.takeIf { it.isNotBlank() && it != roomId.full }
-                    val resolvedName = unknownNames[roomId]?.takeIf { it.isNotBlank() }
-                    usableDerivedName ?: resolvedName ?: derivedName ?: roomId.full
+                    val directName = directSpaceNames[roomId]?.takeIf { it.isNotBlank() }
+                    val hierarchyName = hierarchyNames[roomId]?.takeIf { it.isNotBlank() }
+                    directName ?: usableDerivedName ?: hierarchyName ?: derivedName ?: roomId.full
                 }
 
                 val categories = children.keys
@@ -628,22 +640,11 @@ private class TacitRoomListViewModelImpl(
             }.map { it.room }
         }.stateIn(coroutineScope, WhileSubscribed(), emptyList())
 
-    private val browseHierarchyNames: StateFlow<Map<RoomId, String>> =
-        combine(selectedGuild, selectedGuildClient) { guild, client -> guild to client }
-            .mapLatest { (guild, client) ->
-                if (guild == null || client == null) return@mapLatest emptyMap()
-                val hierarchy = client.api.room.getHierarchy(roomId = guild.roomId, limit = 100).getOrNull()
-                    ?: return@mapLatest emptyMap()
-                hierarchy.rooms.associate { roomInfo ->
-                    roomInfo.roomId to (roomInfo.name?.takeIf { it.isNotBlank() } ?: roomInfo.roomId.full)
-                }
-            }.stateIn(coroutineScope, WhileSubscribed(), emptyMap())
-
     private val browseCandidateRoomIds: StateFlow<Set<RoomId>> =
         combine(
             guildChildren,
             guildCategoryChildren,
-            browseHierarchyNames
+            selectedGuildHierarchyNames
         ) { children, categoryChildren, hierarchyNames ->
             (children.keys + categoryChildren.values.flatten() + hierarchyNames.keys).toSet()
         }.stateIn(coroutineScope, WhileSubscribed(), emptySet())
@@ -667,7 +668,7 @@ private class TacitRoomListViewModelImpl(
         combine(
             guildChildren,
             guildCategoryChildren,
-            browseHierarchyNames,
+            selectedGuildHierarchyNames,
             browseRoomMemberships,
             browseCandidateRoomIds
         ) {
