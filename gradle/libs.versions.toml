@@ -1,9 +1,9 @@
 [versions]
 
-appPublishedVersion = "2.2.0" # The current published version of this app
-appVersion = "2.2.0" # The next version of this app
+appPublishedVersion = "26.4.2" # The current published version of this app
+appVersion = "26.4.2" # The next version of this app
 
-trixnityMessenger = "4.4.0" # https://gitlab.com/connect2x/trixnity-messenger/trixnity-messenger/-/packages
+trixnityMessenger = "4.5.2" # https://gitlab.com/connect2x/trixnity-messenger/trixnity-messenger/-/packages
 
 downloadGradlePlugin = "5.7.0" # https://github.com/michel-kraemer/gradle-download-task/releases
 copyWebpackPlugin = "12.0.2" # https://github.com/webpack-contrib/copy-webpack-plugin/releases
@@ -16,6 +16,7 @@ androidMinSdk = "28"
 
 trixnity-messenger = { module = "de.connect2x.trixnity.messenger:trixnity-messenger", version.ref = "trixnityMessenger" }
 trixnity-messenger-compose-view = { module = "de.connect2x.trixnity.messenger:trixnity-messenger-compose-view", version.ref = "trixnityMessenger" }
+trixnity-messenger-compose-view-typography-nunito = { module = "de.connect2x.trixnity.messenger:trixnity-messenger-compose-view-typography-nunito", version.ref = "trixnityMessenger" }
 trixnity-messenger-notification-apns = { module = "de.connect2x.trixnity.messenger:trixnity-messenger-notification-apns", version.ref = "trixnityMessenger" }
 trixnity-messenger-notification-fcm = { module = "de.connect2x.trixnity.messenger:trixnity-messenger-notification-fcm", version.ref = "trixnityMessenger" }
 trixnity-messenger-notification-unifiedpush = { module = "de.connect2x.trixnity.messenger:trixnity-messenger-notification-unifiedpush", version.ref = "trixnityMessenger" }

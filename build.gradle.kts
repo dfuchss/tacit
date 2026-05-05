@@ -149,6 +149,7 @@ kotlin {
             dependencies {
                 api(libs.trixnity.messenger.compose.view)
                 implementation(libs.trixnity.messenger)
+                implementation(libs.trixnity.messenger.compose.view.typography.nunito)
                 implementation(compose.components.resources)
                 implementation(sharedLibs.lognity.core)
                 implementation(sharedLibs.lognity.config)

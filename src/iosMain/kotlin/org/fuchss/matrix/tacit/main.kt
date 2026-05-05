@@ -27,7 +27,7 @@ fun main(args: List<String>) {
         startMultiMessenger(args) {
             tammyConfiguration()
             addApnsPushNotificationProvider(
-                pushUrl = "https://sygnal.demo.timmy-messenger.de/_matrix/push/v1/notify",
+                pushUrl = "https://sygnal.matrix.dev.connect2x.de/_matrix/push/v1/notify",
                 pushAppId = "$appId.apns",
             )
         }

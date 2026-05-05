@@ -1,6 +1,7 @@
 package org.fuchss.matrix.tacit
 
 import de.connect2x.trixnity.messenger.compose.view.composeViewModule
+import de.connect2x.trixnity.messenger.compose.view.typography.nunito.addNunitoThemeTypography
 import de.connect2x.trixnity.messenger.i18n.DefaultLanguages
 import de.connect2x.trixnity.messenger.i18n.I18n
 import de.connect2x.trixnity.messenger.i18n.Languages
@@ -66,11 +67,12 @@ fun MatrixMultiMessengerConfiguration.tammyConfiguration(
             }
 
             Flavor.DEV -> {
-                defaultHomeServer = "demo.timmy-messenger.de"
+                defaultHomeServer = "matrix.dev.connect2x.de"
                 databaseEncryptionEnabled = false
             }
         }
     }
+    addNunitoThemeTypography()
     customConfig()
 }
 

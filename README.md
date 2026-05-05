@@ -86,25 +86,22 @@ In Android Studio or IntelliJ, choose the Android configuration and run on an em
 
 ### Web
 
-Please **note**: web is still experimental and is missing some features that are present in the other versions. We are
-working on it.
-
-`./gradlew webBrowserDevelopmentRun`
+`./gradlew wasmJsBrowserDevelopmentRun`
 
 ## Create release
 
 1. Create a git commit `bump version` with the following changes:
-    - `appPublishedVersion` (e. g. `1.2.3`) set to the version that is going to be published.
+    - `appPublishedVersion` (e. g. `26.4.0`) set to the version that is going to be published.
     - `appVersion` must be the same as `appPublishedVersion`.
     - Updated `CHANGELOG.md` containing a section about the new version.
     - Cancel triggered pipeline.
-2. Create a version-tag of the form `v1.2.3`.
+2. Create a version-tag of the form `v26.4.0`.
     - The version must be the same as `appPublishedVersion`.
     - This will trigger a pipeline creating all distributions, uploading them into package registry and linking them in
       a newly created GitLab release.
 3. Create a git commit with `[skip-ci]` in the commit message and the following changes:
-    - `appPublishedVersion` (e. g. `1.2.3`) stays at the version, that has been published.
-    - `appVersion` increased to the next version as this is used for `DEV` builds.
+    - `appPublishedVersion` stays at the version, that has been published (e. g. `26.4.0`).
+    - `appVersion` increased to the next version (e. g. `26.4.1`) as this is used for `DEV` builds.
 
 ## Fastlane
 

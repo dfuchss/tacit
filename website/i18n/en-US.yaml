@@ -39,7 +39,7 @@ download:
     aab: AAB
   ios:
     title: iOS
-    soon: Coming Soon!
+    store: App Store
   windows:
     title: Windows
     appinstaller: AppInstaller with auto-update

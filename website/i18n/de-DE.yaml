@@ -39,7 +39,7 @@ download:
     abb: ABB
   ios:
     title: iOS
-    soon: Bald verfügbar!
+    store: App Store
   windows:
     title: Windows
     appinstaller: AppInstaller mit automatischen Updates
