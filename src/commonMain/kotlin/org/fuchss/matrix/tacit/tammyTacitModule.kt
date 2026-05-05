@@ -16,6 +16,7 @@ import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.messag
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.message.bubble.MessageBubbleView
 import de.connect2x.trixnity.messenger.compose.view.roomlist.RoomListContainerView
 import de.connect2x.trixnity.messenger.compose.view.roomlist.RoomListView
+import de.connect2x.trixnity.messenger.compose.view.roomlist.header.AccountAvatarView
 import de.connect2x.trixnity.messenger.compose.view.roomlist.header.AccountOptionsView
 import de.connect2x.trixnity.messenger.compose.view.roomlist.header.ShowSearchView
 import de.connect2x.trixnity.messenger.compose.view.root.MainView
@@ -64,6 +65,7 @@ fun tammyTacitModule() = module {
     single<ChangeRoomAvatarViewModelFactory> { TacitChangeRoomAvatarViewModelFactory }
     single<MainView> { TacitMainView() }
     single<MessengerView> { TacitMessengerView() }
+    single<AccountAvatarView> { TacitAccountAvatarView() }
     single<ShowSearchView> { TacitShowSearchView() }
     single<AccountOptionsView> { TacitAccountOptionsView() }
     single<RoomView> { TacitRoomView() }
