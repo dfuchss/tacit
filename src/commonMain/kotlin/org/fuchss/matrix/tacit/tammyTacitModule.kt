@@ -1,7 +1,5 @@
 package org.fuchss.matrix.tacit
 
-import de.connect2x.trixnity.client.MatrixClientConfiguration
-import de.connect2x.trixnity.messenger.ConfigureMatrixClientConfiguration
 import de.connect2x.trixnity.messenger.compose.view.i18n.I18nView
 import de.connect2x.trixnity.messenger.compose.view.room.RoomView
 import de.connect2x.trixnity.messenger.compose.view.room.settings.ChangeRoomAvatarView
@@ -52,11 +50,6 @@ import org.koin.dsl.bind
 import org.koin.dsl.module
 
 fun tammyTacitModule() = module {
-    single<ConfigureMatrixClientConfiguration> {
-        ConfigureMatrixClientConfiguration {
-            deleteRooms = MatrixClientConfiguration.DeleteRooms.OnLeave
-        }
-    }
 
     single<RoomListView> { TacitRoomListView() }
     single<RoomListContainerView> { TacitRoomListContainerView() }

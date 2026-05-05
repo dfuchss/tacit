@@ -1,5 +1,6 @@
 package org.fuchss.matrix.tacit
 
+import de.connect2x.trixnity.client.MatrixClientConfiguration
 import de.connect2x.trixnity.messenger.compose.view.composeViewModule
 import de.connect2x.trixnity.messenger.compose.view.typography.nunito.addNunitoThemeTypography
 import de.connect2x.trixnity.messenger.i18n.DefaultLanguages
@@ -56,6 +57,9 @@ fun MatrixMultiMessengerConfiguration.tammyConfiguration(
     }
 
     messengerConfiguration {
+        clientConfiguration {
+            deleteRooms = MatrixClientConfiguration.DeleteRooms.OnLeave
+        }
         modulesFactories += listOf(
             { composeViewModule(this) },
             ::tammyTacitModule,

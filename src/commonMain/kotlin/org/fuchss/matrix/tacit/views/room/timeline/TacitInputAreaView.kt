@@ -198,13 +198,17 @@ class TacitInputAreaView : InputAreaView {
                             inputAreaViewModel = inputAreaViewModel,
                             textField = textField,
                             focusRequester = focusRequester,
+                            canRecordAudio = false,
                         )
 
                         if (isEdit) {
                             EditButton(inputAreaViewModel)
                         }
                         Box(Modifier.fillMaxHeight(), contentAlignment = Alignment.Center) {
-                            AttachmentButton(inputAreaViewModel)
+                            AttachmentButton(
+                                inputAreaViewModel = inputAreaViewModel,
+                                insideTextInputField = false,
+                            )
                             SendButton(inputAreaViewModel)
                         }
                     } else {
