@@ -25,6 +25,7 @@ import de.connect2x.trixnity.messenger.compose.view.room.timeline.*
 import de.connect2x.trixnity.messenger.compose.view.theme.components
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedSurface
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.InputAreaViewModel
+import org.fuchss.matrix.tacit.tacitAccent
 import org.fuchss.matrix.tacit.tacitBorder
 import org.fuchss.matrix.tacit.tacitSurface
 import org.fuchss.matrix.tacit.tacitText
@@ -251,7 +252,7 @@ private fun AutocompleteSuggestions(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(
-                        if (index == selectedIndex) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                        if (index == selectedIndex) tacitAccent(0.22f)
                         else Color.Transparent,
                         TacitShapes.compact,
                     )
