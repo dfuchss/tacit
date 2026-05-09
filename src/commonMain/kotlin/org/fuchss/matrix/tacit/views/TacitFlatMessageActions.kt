@@ -31,7 +31,7 @@ import org.fuchss.matrix.tacit.tacitSurface
 import org.fuchss.matrix.tacit.tacitText
 import org.fuchss.matrix.tacit.ui.TacitShapes
 
-internal val tacitQuickReactionShortcuts = listOf("👍", "❤️", "😂", "🎉", "🔥", "🚀", "👀", "✅", "🤔", "😮", "😢", "🙌")
+internal val tacitQuickReactionShortcuts = listOf("👍", "❤️", "😂", "🎉", "🔥", "🚀", "👀", "✅", "🤔", "😮", "😢", "\u2B55")
 
 internal class TacitMessageActionMenuEntry(
     val label: String,

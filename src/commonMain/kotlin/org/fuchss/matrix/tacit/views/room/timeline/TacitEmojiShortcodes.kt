@@ -76,6 +76,7 @@ private val customEmojis = listOf(
     TacitEmojiShortcode("zzz", "\uD83D\uDCA4"),
     TacitEmojiShortcode("pleading_face", "\uD83E\uDD7A"),
     TacitEmojiShortcode("face_holding_back_tears", "\uD83E\uDD79"),
+    TacitEmojiShortcode("o", "\u2B55"),
 )
 
 private val platformEmojis =
