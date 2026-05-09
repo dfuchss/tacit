@@ -2,13 +2,13 @@ package org.fuchss.matrix.tacit.views.room
 
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import de.connect2x.trixnity.core.model.events.m.room.JoinRulesEventContent
@@ -22,6 +22,8 @@ import de.connect2x.trixnity.messenger.compose.view.room.settings.*
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedUserAvatar
 import de.connect2x.trixnity.messenger.viewmodel.room.settings.RoomSettingsViewModel
 import org.fuchss.matrix.tacit.*
+import org.fuchss.matrix.tacit.ui.TacitCardSurface
+import org.fuchss.matrix.tacit.ui.TacitShapes
 import org.fuchss.matrix.tacit.viewmodel.room.settings.TacitDmVerificationEntry
 import org.fuchss.matrix.tacit.viewmodel.room.settings.TacitDmVerificationStatus
 import org.fuchss.matrix.tacit.viewmodel.room.settings.TacitRoomSettingsViewModel
@@ -356,7 +358,10 @@ private fun GuildSettingsContent(
         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 0.dp),
         verticalSpacing = 20.dp,
         showScrollbar = true,
-        columnModifier = Modifier.background(tacitSurfaceAlt.copy(alpha = 0.25f), RoundedCornerShape(12.dp)),
+        columnModifier = Modifier
+            .clip(TacitShapes.card)
+            .background(tacitSurfaceAlt.copy(alpha = 0.25f), TacitShapes.card)
+            .border(1.dp, tacitBorder.copy(alpha = 0.45f), TacitShapes.card),
     ) {
         CommonRoomSections(
             roomSettingsViewModel = roomSettingsViewModel,
@@ -413,39 +418,31 @@ private fun GuildSettings(
     val warningAccent = tacitWarningBorder
     val warningContainer = tacitWarningBg
 
-    Box(
-        Modifier
-            .fillMaxSize()
-            .background(tacitSurface)
-    ) {
+    Box(Modifier.fillMaxSize().background(tacitSurface)) {
         Column {
-            Row(
+            TacitCardSurface(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 14.dp, vertical = 10.dp)
-                    .background(
-                        color = warningContainer.copy(alpha = 0.35f),
-                        shape = RoundedCornerShape(14.dp),
-                    )
-                    .border(
-                        width = 1.dp,
-                        color = warningAccent.copy(alpha = 0.65f),
-                        shape = RoundedCornerShape(14.dp),
-                    )
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                    .padding(0.dp),
+                shape = TacitShapes.control,
+                backgroundColor = warningContainer.copy(alpha = 0.35f),
+                borderColor = warningAccent.copy(alpha = 0.65f),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 9.dp),
             ) {
-                Text(
-                    text = if (isCategorySettings == true) i18n.tacitCategorySettingsTitle() else i18n.tacitGuildSettingsTitle(),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = tacitText,
-                )
-                Spacer(Modifier.weight(1f))
-                WarningSettingsDevInfoAction(
-                    i18n = i18n,
-                    roomSettingsViewModel = roomSettingsViewModel,
-                    warningAccent = warningAccent,
-                )
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = if (isCategorySettings == true) i18n.tacitCategorySettingsTitle() else i18n.tacitGuildSettingsTitle(),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = tacitText,
+                    )
+                    Spacer(Modifier.weight(1f))
+                    WarningSettingsDevInfoAction(
+                        i18n = i18n,
+                        roomSettingsViewModel = roomSettingsViewModel,
+                        warningAccent = warningAccent,
+                    )
+                }
             }
             HorizontalDivider(color = warningAccent.copy(alpha = 0.45f))
             if (error != null) {
@@ -494,33 +491,36 @@ private fun DmUserVerificationSection(
         entries.forEach { entry ->
             val statusText = entry.status.toDmVerificationLabel(i18n)
 
-            Row(
+            TacitCardSurface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(tacitSurfaceAlt, RoundedCornerShape(12.dp))
-                    .border(1.dp, tacitBorder, RoundedCornerShape(12.dp))
                     .clickable { onOpenVerification(entry.userId) }
-                    .padding(horizontal = 10.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                    .padding(0.dp),
+                shape = TacitShapes.card,
+                backgroundColor = tacitSurfaceAlt,
+                borderColor = tacitBorder,
+                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 10.dp),
             ) {
-                ThemedUserAvatar(
-                    initials = entry.initials,
-                    image = entry.image,
-                    size = 30.dp,
-                )
-                Spacer(Modifier.width(10.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = entry.displayName,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = tacitText,
-                        fontWeight = FontWeight.SemiBold,
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    ThemedUserAvatar(
+                        initials = entry.initials,
+                        image = entry.image,
+                        size = 30.dp,
                     )
-                    Text(
-                        text = statusText,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = tacitTextMuted,
-                    )
+                    Spacer(Modifier.width(10.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = entry.displayName,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = tacitText,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Text(
+                            text = statusText,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = tacitTextMuted,
+                        )
+                    }
                 }
             }
         }

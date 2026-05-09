@@ -1,9 +1,7 @@
 package org.fuchss.matrix.tacit.views.room
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -29,6 +27,9 @@ import de.connect2x.trixnity.messenger.viewmodel.util.toFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import org.fuchss.matrix.tacit.*
+import org.fuchss.matrix.tacit.ui.TacitPaneSurface
+import org.fuchss.matrix.tacit.ui.TacitShapes
+import org.fuchss.matrix.tacit.ui.TacitSpacing
 import org.fuchss.matrix.tacit.viewmodel.room.timeline.TacitTimelineViewModel
 import org.fuchss.matrix.tacit.views.LocalTacitRoomListHidden
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
@@ -41,7 +42,7 @@ class TacitRoomView : RoomView {
             modifier = Modifier
                 .fillMaxSize()
                 .background(tacitBackground)
-                .padding(8.dp)
+                .padding(TacitSpacing.appPadding)
         ) {
             val isSinglePane = this@BoxWithConstraints.maxWidth < TWO_PANE_THRESHOLD.dp
 
@@ -100,7 +101,7 @@ class TacitRoomView : RoomView {
                 }
 
                 if (isExtrasShown && !isSinglePane) {
-                    Spacer(Modifier.width(8.dp))
+                    Spacer(Modifier.width(TacitSpacing.paneGap))
                 }
 
                 if (isExtrasShown) {
@@ -118,7 +119,7 @@ class TacitRoomView : RoomView {
                 }
 
                 if (showMembersPane) {
-                    Spacer(Modifier.width(8.dp))
+                    Spacer(Modifier.width(TacitSpacing.paneGap))
                     ModernPane(
                         modifier = Modifier.width(membersPaneWidth),
                         content = {
@@ -166,7 +167,7 @@ private fun TimelinePane(
             modifier = Modifier
                 .fillMaxSize()
                 .background(tacitSurface)
-                .padding(20.dp),
+                .padding(24.dp),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -189,21 +190,9 @@ private fun ModernPane(
     modifier: Modifier,
     content: @Composable () -> Unit,
 ) {
-    Box(
-        modifier = modifier
-            .fillMaxHeight()
-            .clip(RoundedCornerShape(16.dp))
-            .background(tacitSurface)
-            .border(1.dp, tacitBorder, RoundedCornerShape(16.dp))
-            .padding(6.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .clip(RoundedCornerShape(12.dp))
-                .background(tacitSurface)
-        ) {
-            content()
-        }
-    }
+    TacitPaneSurface(
+        modifier = modifier.fillMaxHeight(),
+        shape = TacitShapes.pane,
+        innerShape = TacitShapes.paneInner,
+    ) { content() }
 }

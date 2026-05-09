@@ -1,10 +1,10 @@
 package org.fuchss.matrix.tacit.views.room.list.dialogs.browse
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,9 +22,12 @@ import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.theme.components
 import de.connect2x.trixnity.messenger.compose.view.theme.components.*
 import org.fuchss.matrix.tacit.*
+import org.fuchss.matrix.tacit.ui.TacitCardSurface
+import org.fuchss.matrix.tacit.ui.TacitShapes
 import org.fuchss.matrix.tacit.viewmodel.room.list.entry.SpaceChannelEntry
 import org.fuchss.matrix.tacit.viewmodel.room.list.entry.SpaceChannelStatus
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
+import org.fuchss.matrix.tacit.views.room.list.dialogs.TacitDialogHeroCard
 
 @Composable
 internal fun BrowseChannelsDialog(
@@ -42,30 +45,10 @@ internal fun BrowseChannelsDialog(
         }
         ModalDialogContent {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(
-                            Brush.horizontalGradient(
-                                listOf(tacitSurface, tacitSurfaceAlt, tacitSurface)
-                            )
-                        )
-                        .padding(horizontal = 12.dp, vertical = 10.dp)
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                        Text(
-                            text = guildName,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = tacitTextMuted,
-                        )
-                        Text(
-                            text = i18n.tacitDiscoverAndJoinRooms(),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = tacitText,
-                        )
-                    }
-                }
+                TacitDialogHeroCard(
+                    eyebrow = guildName,
+                    title = i18n.tacitDiscoverAndJoinRooms(),
+                )
                 if (!canJoinChannels) {
                     Text(
                         i18n.tacitNoAccountForGuild(),
@@ -86,39 +69,45 @@ internal fun BrowseChannelsDialog(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         itemsIndexed(channels, key = { _, channel -> channel.roomId.full }) { _, channel ->
-                            Row(
+                            TacitCardSurface(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(tacitSurface)
-                                    .padding(horizontal = 10.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically,
+                                    .padding(0.dp),
+                                shape = TacitShapes.card,
+                                backgroundColor = tacitSurface,
+                                borderColor = tacitBorder.copy(alpha = 0.7f),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 9.dp),
                             ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = channel.displayName,
-                                        color = tacitText,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                    Text(
-                                        text = channel.status.toDisplayText(i18n),
-                                        color = tacitTextMuted,
-                                        style = MaterialTheme.typography.bodySmall,
-                                    )
-                                }
-                                if (channel.isJoined) {
-                                    StatusChip(i18n.tacitJoined(), accentColor)
-                                } else if (!channel.isJoinable) {
-                                    StatusChip(channel.status.toDisplayText(i18n).uppercase(), tacitTextMuted)
-                                } else {
-                                    ThemedButton(
-                                        style = MaterialTheme.components.primaryButton,
-                                        onClick = { onJoinChannel(channel) },
-                                        enabled = canJoinChannels && joiningRoomId == null,
-                                    ) {
-                                        Text(if (joiningRoomId == channel.roomId) i18n.tacitJoiningInProgress() else i18n.roomListJoin())
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = channel.displayName,
+                                            color = tacitText,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                        )
+                                        Text(
+                                            text = channel.status.toDisplayText(i18n),
+                                            color = tacitTextMuted,
+                                            style = MaterialTheme.typography.bodySmall,
+                                        )
+                                    }
+                                    if (channel.isJoined) {
+                                        StatusChip(i18n.tacitJoined(), accentColor)
+                                    } else if (!channel.isJoinable) {
+                                        StatusChip(channel.status.toDisplayText(i18n).uppercase(), tacitTextMuted)
+                                    } else {
+                                        ThemedButton(
+                                            style = MaterialTheme.components.primaryButton,
+                                            onClick = { onJoinChannel(channel) },
+                                            enabled = canJoinChannels && joiningRoomId == null,
+                                        ) {
+                                            Text(if (joiningRoomId == channel.roomId) i18n.tacitJoiningInProgress() else i18n.roomListJoin())
+                                        }
                                     }
                                 }
                             }
@@ -155,8 +144,9 @@ private fun StatusChip(
 ) {
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(999.dp))
-            .background(tacitSurface)
+            .clip(TacitShapes.pill)
+            .background(tacitSurfaceAlt)
+            .border(1.dp, tacitBorder.copy(alpha = 0.55f), TacitShapes.pill)
             .padding(horizontal = 8.dp, vertical = 3.dp),
         contentAlignment = Alignment.Center,
     ) {

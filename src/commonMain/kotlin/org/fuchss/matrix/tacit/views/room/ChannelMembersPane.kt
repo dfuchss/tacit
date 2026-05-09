@@ -6,7 +6,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -20,6 +19,9 @@ import de.connect2x.trixnity.messenger.compose.view.DI
 import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedUserAvatar
 import org.fuchss.matrix.tacit.*
+import org.fuchss.matrix.tacit.ui.TacitCardSurface
+import org.fuchss.matrix.tacit.ui.TacitShapes
+import org.fuchss.matrix.tacit.ui.TacitSpacing
 import org.fuchss.matrix.tacit.viewmodel.room.timeline.entry.ChannelMemberEntry
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 import org.fuchss.matrix.tacit.views.room.list.dialogs.direct.CreateDirectMessageDialog
@@ -37,7 +39,7 @@ internal fun ChannelMembersPane(
         modifier = Modifier
             .fillMaxSize()
             .background(tacitSurface)
-            .padding(horizontal = 10.dp, vertical = 12.dp),
+            .padding(horizontal = 12.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text(
@@ -61,7 +63,7 @@ internal fun ChannelMembersPane(
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(TacitSpacing.compactGap),
             ) {
                 items(roomMembers, key = { it.userId.full }) { member ->
                     MemberRow(
@@ -104,38 +106,43 @@ private fun MemberRow(
     clickable: Boolean,
     onClick: () -> Unit,
 ) {
-    Row(
+    TacitCardSurface(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .background(tacitSurfaceAlt)
-            .border(1.dp, tacitBorder, androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
             .clickable(enabled = clickable, onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 7.dp),
+            .padding(0.dp),
+        shape = TacitShapes.control,
+        backgroundColor = tacitSurfaceAlt,
+        borderColor = tacitBorder,
+        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 9.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        ThemedUserAvatar(
-            initials = member.displayName.memberInitials(),
-            image = member.avatarImage,
-            size = 28.dp,
-        )
+        ) {
+            ThemedUserAvatar(
+                initials = member.displayName.memberInitials(),
+                image = member.avatarImage,
+                size = 28.dp,
+            )
 
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = if (member.isSelf) i18n.tacitYouSuffix(member.displayName) else member.displayName,
-                color = tacitText,
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = member.userId.full,
-                color = tacitTextMuted,
-                style = MaterialTheme.typography.bodySmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = if (member.isSelf) i18n.tacitYouSuffix(member.displayName) else member.displayName,
+                    color = tacitText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = member.userId.full,
+                    color = tacitTextMuted,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }

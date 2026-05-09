@@ -14,6 +14,7 @@ import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.theme.components
 import de.connect2x.trixnity.messenger.compose.view.theme.components.*
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
+import org.fuchss.matrix.tacit.views.room.list.dialogs.TacitDialogHeroCard
 
 @Composable
 internal fun CreateChannelDialog(
@@ -33,10 +34,7 @@ internal fun CreateChannelDialog(
         }
         ModalDialogContent {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(
-                    i18n.tacitCreateRoomInGuild(guildName),
-                    style = MaterialTheme.typography.bodyMedium,
-                )
+                TacitDialogHeroCard(title = i18n.tacitCreateRoomInGuild(guildName))
                 OutlinedTextField(
                     value = channelName,
                     onValueChange = { channelName = it },

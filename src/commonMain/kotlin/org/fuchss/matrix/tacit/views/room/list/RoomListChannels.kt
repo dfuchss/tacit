@@ -5,7 +5,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MarkAsUnread
 import androidx.compose.material.icons.filled.MarkChatRead
@@ -31,6 +30,7 @@ import de.connect2x.trixnity.messenger.compose.view.pointerMoveFilter
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedUserAvatar
 import de.connect2x.trixnity.messenger.viewmodel.roomlist.RoomListViewModel
 import org.fuchss.matrix.tacit.*
+import org.fuchss.matrix.tacit.ui.TacitShapes
 import org.fuchss.matrix.tacit.viewmodel.room.list.RoomListMode
 import org.fuchss.matrix.tacit.viewmodel.room.list.TacitRoomListElementViewModel
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
@@ -73,7 +73,7 @@ internal fun ChannelRow(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 4.dp, vertical = 3.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(TacitShapes.card)
             .background(
                 when {
                     selected -> itemSelectedBackground
@@ -81,6 +81,15 @@ internal fun ChannelRow(
                     isUnread -> itemUnreadBackground
                     else -> Color.Transparent
                 }
+            )
+            .border(
+                1.dp,
+                when {
+                    selected -> accentColor.copy(alpha = 0.7f)
+                    hovered -> tacitBorder
+                    else -> Color.Transparent
+                },
+                TacitShapes.card,
             )
             .pointerMoveFilter(
                 onEnter = {
@@ -256,9 +265,9 @@ private fun ReadToggleButton(
     Box(
         modifier = Modifier
             .size(24.dp)
-            .clip(RoundedCornerShape(8.dp))
+            .clip(TacitShapes.compact)
             .background(background)
-            .border(1.dp, borderColor, RoundedCornerShape(8.dp))
+            .border(1.dp, borderColor, TacitShapes.compact)
             .pointerMoveFilter(
                 onEnter = {
                     hovered = true
@@ -293,7 +302,7 @@ internal fun DmOverview(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(TacitShapes.card)
             .background(tacitSurfaceAlt)
             .padding(10.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -344,12 +353,12 @@ private fun DmStatTile(
 ) {
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
+            .clip(TacitShapes.control)
             .background(if (selected) tacitAccent(0.25f) else tacitSurface)
             .border(
                 width = 1.dp,
                 color = if (selected) accentColor else tacitBorder,
-                shape = RoundedCornerShape(10.dp),
+                shape = TacitShapes.control,
             )
             .clickable(onClick = onClick)
             .padding(horizontal = 10.dp, vertical = 8.dp),

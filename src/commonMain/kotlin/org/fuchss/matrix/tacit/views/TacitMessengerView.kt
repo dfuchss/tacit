@@ -5,7 +5,6 @@ import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -19,6 +18,8 @@ import de.connect2x.trixnity.messenger.viewmodel.room.RoomRouter
 import de.connect2x.trixnity.messenger.viewmodel.util.toFlow
 import kotlinx.coroutines.flow.map
 import org.fuchss.matrix.tacit.tacitBorder
+import org.fuchss.matrix.tacit.ui.TacitShapes
+import org.fuchss.matrix.tacit.ui.TacitSpacing
 
 private val minRoomListWidth = 340.dp
 private val minRoomWidth = 420.dp
@@ -98,14 +99,14 @@ class TacitMessengerView : MessengerView {
                     Box(
                         modifier = Modifier
                             .fillMaxHeight()
-                            .padding(vertical = 14.dp)
+                            .padding(vertical = 18.dp)
                             .width(1.dp)
-                            .background(tacitBorder.copy(alpha = 0.30f), RoundedCornerShape(50))
+                            .background(tacitBorder.copy(alpha = 0.22f), TacitShapes.pill)
                     )
                     Box(
                         modifier = Modifier
-                            .size(width = 3.dp, height = 34.dp)
-                            .background(tacitBorder.copy(alpha = 0.62f), RoundedCornerShape(50))
+                            .size(width = 5.dp, height = 44.dp)
+                            .background(tacitBorder.copy(alpha = 0.68f), TacitShapes.pill)
                     )
                 }
 

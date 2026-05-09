@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -22,6 +21,8 @@ import de.connect2x.trixnity.messenger.compose.view.collectAsTextFieldValueState
 import de.connect2x.trixnity.messenger.compose.view.pointerMoveFilter
 import de.connect2x.trixnity.messenger.viewmodel.roomlist.RoomListViewModel
 import org.fuchss.matrix.tacit.*
+import org.fuchss.matrix.tacit.ui.TacitShapes
+import org.fuchss.matrix.tacit.ui.TacitSpacing
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 
 @Composable
@@ -40,8 +41,7 @@ internal fun DmChannelToolbar(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(tacitSurface)
-            .padding(horizontal = 8.dp, vertical = toolbarVerticalPadding),
+            .padding(horizontal = TacitSpacing.paneInsetPadding, vertical = toolbarVerticalPadding),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -96,8 +96,7 @@ internal fun GuildChannelToolbar(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(tacitSurface)
-            .padding(horizontal = 8.dp, vertical = toolbarVerticalPadding),
+            .padding(horizontal = TacitSpacing.paneInsetPadding, vertical = toolbarVerticalPadding),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -171,8 +170,9 @@ private fun RowScope.ToolbarSearchField(
         modifier = Modifier
             .weight(1f)
             .defaultMinSize(minWidth = 150.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(TacitShapes.control)
             .background(if (searchHovered) tacitSurfaceAlt else tacitSurface)
+            .border(1.dp, tacitBorder, TacitShapes.control)
             .pointerMoveFilter(
                 onEnter = {
                     searchHovered = true
@@ -229,7 +229,7 @@ private fun ToolbarActionsRow(
     actionSpacing: androidx.compose.ui.unit.Dp,
     content: @Composable RowScope.() -> Unit,
 ) {
-    Spacer(Modifier.width(8.dp))
+    Spacer(Modifier.width(TacitSpacing.paneInsetPadding))
     Row(
         horizontalArrangement = Arrangement.spacedBy(actionSpacing),
         verticalAlignment = Alignment.CenterVertically,
@@ -266,10 +266,10 @@ private fun ToolbarIconButton(
 
     Box(
         modifier = Modifier
-            .size(34.dp)
-            .clip(RoundedCornerShape(10.dp))
+            .size(36.dp)
+            .clip(TacitShapes.control)
             .background(background)
-            .border(1.dp, borderColor, RoundedCornerShape(10.dp))
+            .border(1.dp, borderColor, TacitShapes.control)
             .pointerMoveFilter(
                 onEnter = {
                     if (enabled) hovered = true
@@ -287,7 +287,7 @@ private fun ToolbarIconButton(
             imageVector = icon,
             contentDescription = contentDescription,
             tint = iconTint,
-            modifier = Modifier.size(17.dp),
+            modifier = Modifier.size(18.dp),
         )
     }
 }

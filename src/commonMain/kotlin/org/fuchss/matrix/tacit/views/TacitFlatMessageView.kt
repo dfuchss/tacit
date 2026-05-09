@@ -6,7 +6,6 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoDelete
 import androidx.compose.material.icons.filled.MoreVert
@@ -43,6 +42,7 @@ import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.messag
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedUserAvatar
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.BaseTimelineElementHolderViewModel
 import org.fuchss.matrix.tacit.*
+import org.fuchss.matrix.tacit.ui.TacitShapes
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 
 class TacitFlatMessageView : MessageBubbleView {
@@ -139,27 +139,33 @@ private fun TacitFlatMessageContainer(
         val rowSidePadding = if (maxWidth < 400.dp) 10.dp else 20.dp
         val incomingTextColumnOffset = 40.dp
         val density = LocalDensity.current
+        val rowHighlightColor = when {
+            hoverMessage.value -> tacitSurfaceAlt.copy(alpha = 0.74f)
+            isOwnMessage -> tacitAccent(0.14f)
+            else -> Color.Transparent
+        }
+        val rowBorderColor = when {
+            hoverMessage.value -> tacitBorder.copy(alpha = 0.9f)
+            isOwnMessage -> accentColor.copy(alpha = 0.28f)
+            else -> Color.Transparent
+        }
 
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = if (uiState.showBigGap) 12.dp else 5.dp)
+                .padding(top = if (uiState.showBigGap) 14.dp else 6.dp)
                 .zIndex(if (showInlineTime) 10f else 0f)
                 .graphicsLayer { clip = false },
-            verticalArrangement = Arrangement.spacedBy(2.dp),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
         ) {
             Box(
                 modifier = Modifier
                     .padding(horizontal = rowSidePadding)
                     .fillMaxWidth()
                     .graphicsLayer { clip = false }
-                    .background(
-                        when {
-                            hoverMessage.value -> tacitSurfaceAlt.copy(alpha = 0.45f)
-                            isOwnMessage -> tacitAccent(0.18f)
-                            else -> Color.Transparent
-                        }
-                    )
+                    .clip(TacitShapes.card)
+                    .background(rowHighlightColor, TacitShapes.card)
+                    .border(1.dp, rowBorderColor, TacitShapes.card)
                     .hoverable(hoverInteractionSource)
                     .pointerMoveFilter(
                         onEnter = {
@@ -181,14 +187,14 @@ private fun TacitFlatMessageContainer(
                                     (element?.let { timelineElementViewSelector.a11yLabel(it, i18n) } ?: "")
                         )
                     }
-                    .padding(horizontal = 4.dp, vertical = 2.dp)
+                    .padding(horizontal = 8.dp, vertical = 6.dp)
             ) {
                 if (!isPreview && showInlineTime) {
                     Popup(
                         alignment = Alignment.TopEnd,
                         offset = IntOffset(
-                            x = with(density) { -(rowSidePadding + 6.dp).roundToPx() },
-                            y = with(density) { (-16).dp.roundToPx() },
+                            x = with(density) { -(rowSidePadding + 2.dp).roundToPx() },
+                            y = with(density) { (-14).dp.roundToPx() },
                         ),
                     ) {
                         Box(
@@ -207,10 +213,10 @@ private fun TacitFlatMessageContainer(
                         ) {
                             Row(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .background(tacitSurface, RoundedCornerShape(14.dp))
-                                    .border(1.dp, tacitBorder, RoundedCornerShape(14.dp))
-                                    .padding(horizontal = 5.dp, vertical = 4.dp),
+                                    .clip(TacitShapes.control)
+                                    .background(tacitSurface, TacitShapes.control)
+                                    .border(1.dp, tacitBorder, TacitShapes.control)
+                                    .padding(horizontal = 6.dp, vertical = 5.dp),
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
@@ -272,10 +278,10 @@ private fun TacitFlatMessageContainer(
                     ThemedUserAvatar(
                         initials = uiState.senderInitials ?: "?",
                         image = uiState.senderAvatar,
-                        size = 28.dp,
+                        size = 30.dp,
                         modifier = Modifier.padding(top = 4.dp),
                     )
-                    Spacer(Modifier.width(8.dp))
+                    Spacer(Modifier.width(10.dp))
                     if (uiState.redactionInProgress) {
                         Icon(
                             imageVector = Icons.Default.AutoDelete,
@@ -312,7 +318,7 @@ private fun TacitFlatMessageContainer(
                         style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
-                            .padding(end = 8.dp, bottom = 2.dp),
+                            .padding(end = 10.dp, bottom = 3.dp),
                     )
                 }
             }
@@ -320,7 +326,7 @@ private fun TacitFlatMessageContainer(
             if (!isPreview) {
                 val reactionsSideModifier = Modifier
                     .padding(start = rowSidePadding + incomingTextColumnOffset)
-                    .offset(y = (-5).dp)
+                    .offset(y = (-2).dp)
                 if (uiState.hasReactions) {
                     TacitMessageReactions(
                         modifier = reactionsSideModifier,

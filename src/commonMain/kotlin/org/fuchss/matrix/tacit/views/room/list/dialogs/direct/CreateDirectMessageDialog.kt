@@ -1,17 +1,12 @@
 package org.fuchss.matrix.tacit.views.room.list.dialogs.direct
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import de.connect2x.trixnity.messenger.compose.view.DI
@@ -19,12 +14,12 @@ import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.theme.components
 import de.connect2x.trixnity.messenger.compose.view.theme.components.*
 import kotlinx.coroutines.delay
-import org.fuchss.matrix.tacit.tacitBorder
-import org.fuchss.matrix.tacit.tacitSurface
 import org.fuchss.matrix.tacit.tacitTextMuted
 import org.fuchss.matrix.tacit.viewmodel.util.UserDirectoryEntry
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
-import org.fuchss.matrix.tacit.views.room.list.dmInitials
+import org.fuchss.matrix.tacit.views.room.list.dialogs.TacitDialogHeroCard
+import org.fuchss.matrix.tacit.views.room.list.dialogs.TacitDialogSearchResultsContainer
+import org.fuchss.matrix.tacit.views.room.list.dialogs.TacitUserDirectoryRow
 
 @Composable
 internal fun CreateDirectMessageDialog(
@@ -75,15 +70,9 @@ internal fun CreateDirectMessageDialog(
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (hasPresetUser) {
                     val targetDisplayName = presetDisplayName?.ifBlank { null } ?: userId
-                    Text(
-                        i18n.tacitOpenDirectMessageWith(targetDisplayName),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
+                    TacitDialogHeroCard(title = i18n.tacitOpenDirectMessageWith(targetDisplayName))
                 } else {
-                    Text(
-                        i18n.tacitSearchUserOrEnterMatrixId(),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
+                    TacitDialogHeroCard(title = i18n.tacitSearchUserOrEnterMatrixId())
                 }
                 OutlinedTextField(
                     value = userId,
@@ -105,51 +94,14 @@ internal fun CreateDirectMessageDialog(
                         }
 
                         searchResults.isNotEmpty() -> {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(tacitSurface)
-                                    .border(1.dp, tacitBorder, RoundedCornerShape(10.dp))
-                                    .padding(vertical = 4.dp),
-                                verticalArrangement = Arrangement.spacedBy(2.dp),
-                            ) {
+                            TacitDialogSearchResultsContainer {
                                 searchResults.forEach { user ->
-                                    val resolvedUserId = user.userId
-                                    val resolvedDisplayName = user.displayName
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .clickable { userId = resolvedUserId }
-                                            .padding(horizontal = 8.dp, vertical = 6.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    ) {
-                                        ThemedUserAvatar(
-                                            initials = dmInitials(resolvedDisplayName),
-                                            image = null,
-                                            size = 24.dp,
-                                        )
-                                        Column(
-                                            modifier = Modifier.weight(1f),
-                                            verticalArrangement = Arrangement.spacedBy(1.dp),
-                                        ) {
-                                            Text(
-                                                text = resolvedDisplayName,
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis,
-                                            )
-                                            Text(
-                                                text = resolvedUserId,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = tacitTextMuted,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis,
-                                            )
-                                        }
-                                    }
+                                    TacitUserDirectoryRow(
+                                        user = user,
+                                        selected = userId == user.userId,
+                                        selectedLabel = i18n.actionOk(),
+                                        onClick = { userId = user.userId },
+                                    )
                                 }
                             }
                         }

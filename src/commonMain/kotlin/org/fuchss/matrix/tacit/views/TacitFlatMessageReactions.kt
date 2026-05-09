@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -17,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import de.connect2x.trixnity.messenger.compose.view.common.Tooltip
 import de.connect2x.trixnity.messenger.viewmodel.util.EventReactions
 import org.fuchss.matrix.tacit.*
+import org.fuchss.matrix.tacit.ui.TacitShapes
 
 @Composable
 internal fun TacitMessageReactions(
@@ -55,18 +55,18 @@ private fun TacitReactionChip(
     Tooltip(tooltip = { Text(reactedByNames) }) {
         Box(
             modifier = Modifier
-                .clip(RoundedCornerShape(10.dp))
+                .clip(TacitShapes.compact)
                 .background(
                     if (selected) tacitAccent(0.14f) else tacitSurfaceAlt,
-                    RoundedCornerShape(10.dp),
+                    TacitShapes.compact,
                 )
                 .border(
-                    0.8.dp,
+                    1.dp,
                     if (selected) accentColor else tacitBorder.copy(alpha = 0.65f),
-                    RoundedCornerShape(10.dp),
+                    TacitShapes.compact,
                 )
                 .clickable(onClick = onClick)
-                .padding(horizontal = 6.dp, vertical = 2.dp),
+                .padding(horizontal = 7.dp, vertical = 3.dp),
             contentAlignment = Alignment.Center,
         ) {
             Row(

@@ -2,12 +2,12 @@ package org.fuchss.matrix.tacit
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import de.connect2x.trixnity.messenger.compose.view.theme.ComponentStyles
+import org.fuchss.matrix.tacit.ui.TacitShapes
 
 internal object TacitThemeBundle {
     val defaultAccentColor: Color
@@ -33,7 +33,7 @@ internal object TacitThemeBundle {
             focusedBorder = BorderStroke(1.dp, tacitErrorBorder),
         )
         val dropdownMenu = base.dropdownMenu.copy(
-            shape = RoundedCornerShape(14.dp),
+            shape = TacitShapes.card,
             color = tacitSurfaceAlt,
             tonalElevation = 2.dp,
             shadowElevation = 8.dp,

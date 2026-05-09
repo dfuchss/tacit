@@ -6,7 +6,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,6 +22,7 @@ import org.fuchss.matrix.tacit.tacitBorder
 import org.fuchss.matrix.tacit.tacitSurface
 import org.fuchss.matrix.tacit.tacitText
 import org.fuchss.matrix.tacit.tacitTextMuted
+import org.fuchss.matrix.tacit.ui.TacitShapes
 import org.fuchss.matrix.tacit.viewmodel.room.timeline.TacitTimelineViewModel
 
 class TacitTypingIndicatorView : TypingIndicatorView {
@@ -43,10 +43,10 @@ class TacitTypingIndicatorView : TypingIndicatorView {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 10.dp, end = 18.dp, top = 2.dp, bottom = 6.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(TacitShapes.card)
                     .background(tacitSurface.copy(alpha = 0.72f))
-                    .border(1.dp, tacitBorder.copy(alpha = 0.45f), RoundedCornerShape(12.dp))
-                    .padding(horizontal = 10.dp, vertical = 7.dp),
+                    .border(1.dp, tacitBorder.copy(alpha = 0.45f), TacitShapes.card)
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {

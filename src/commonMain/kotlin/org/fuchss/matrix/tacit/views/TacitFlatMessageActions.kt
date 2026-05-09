@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Reply
 import androidx.compose.material.icons.outlined.Delete
@@ -30,6 +29,7 @@ import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedDropd
 import org.fuchss.matrix.tacit.tacitBorder
 import org.fuchss.matrix.tacit.tacitSurface
 import org.fuchss.matrix.tacit.tacitText
+import org.fuchss.matrix.tacit.ui.TacitShapes
 
 internal val tacitQuickReactionShortcuts = listOf("👍", "❤️", "😂", "🎉", "🔥", "🚀", "👀", "✅", "🤔", "😮", "😢", "🙌")
 
@@ -188,10 +188,10 @@ private fun TacitQuickReactionPickerButton(
 ) {
     Box(
         modifier = Modifier
-            .size(32.dp)
-            .clip(RoundedCornerShape(10.dp))
-            .background(tacitSurface, RoundedCornerShape(10.dp))
-            .border(1.dp, tacitBorder, RoundedCornerShape(10.dp))
+            .size(34.dp)
+            .clip(TacitShapes.compact)
+            .background(tacitSurface, TacitShapes.compact)
+            .border(1.dp, tacitBorder, TacitShapes.compact)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
@@ -207,11 +207,11 @@ internal fun TacitQuickActionButton(
 ) {
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(tacitSurface, RoundedCornerShape(10.dp))
-            .border(1.dp, tacitBorder, RoundedCornerShape(10.dp))
+            .clip(TacitShapes.compact)
+            .background(tacitSurface, TacitShapes.compact)
+            .border(1.dp, tacitBorder, TacitShapes.compact)
             .clickable(onClick = onClick)
-            .padding(horizontal = 6.dp, vertical = 2.dp),
+            .padding(horizontal = 7.dp, vertical = 3.dp),
         contentAlignment = Alignment.Center,
     ) {
         if (icon != null) {

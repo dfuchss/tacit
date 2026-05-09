@@ -1,7 +1,6 @@
 package org.fuchss.matrix.tacit.views
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
@@ -15,6 +14,8 @@ import de.connect2x.trixnity.messenger.compose.view.root.MainView
 import de.connect2x.trixnity.messenger.compose.view.root.MainViewImpl
 import de.connect2x.trixnity.messenger.viewmodel.MainViewModel
 import kotlinx.coroutines.flow.map
+import org.fuchss.matrix.tacit.ui.TacitShapes
+import org.fuchss.matrix.tacit.ui.TacitSpacing
 
 private val footerHeight = 56.dp
 
@@ -42,8 +43,11 @@ class TacitMainView(
                         .fillMaxWidth()
                         .align(Alignment.BottomCenter)
                         .height(footerHeight)
-                        .padding(horizontal = 8.dp, vertical = 6.dp),
-                    shape = RoundedCornerShape(10.dp),
+                        .padding(
+                            horizontal = TacitSpacing.appPadding,
+                            vertical = TacitSpacing.compactGap,
+                        ),
+                    shape = TacitShapes.card,
                     color = MaterialTheme.colorScheme.surfaceVariant,
                 ) {
                     TacitAttributionFooter(

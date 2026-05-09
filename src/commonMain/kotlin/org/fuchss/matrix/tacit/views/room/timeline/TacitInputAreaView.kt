@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -12,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.text.TextRange
@@ -28,8 +28,12 @@ import de.connect2x.trixnity.messenger.viewmodel.room.timeline.InputAreaViewMode
 import org.fuchss.matrix.tacit.tacitBorder
 import org.fuchss.matrix.tacit.tacitSurface
 import org.fuchss.matrix.tacit.tacitText
+import org.fuchss.matrix.tacit.tacitSurfaceAlt
 import org.fuchss.matrix.tacit.viewmodel.room.timeline.findSlashCommandMatch
 import org.fuchss.matrix.tacit.viewmodel.room.timeline.slashCommandSuggestions
+import org.fuchss.matrix.tacit.ui.TacitCardSurface
+import org.fuchss.matrix.tacit.ui.TacitShapes
+import org.fuchss.matrix.tacit.ui.TacitSpacing
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 
 private data class EmojiShortcodeMatch(
@@ -163,7 +167,7 @@ class TacitInputAreaView : InputAreaView {
                     Modifier
                         .fillMaxWidth()
                         .height(IntrinsicSize.Max)
-                        .padding(8.dp)
+                        .padding(horizontal = 10.dp, vertical = 10.dp)
                         .onPreviewKeyEvent { keyEvent ->
                             val autocompleteVisible = showSlashSuggestions || showEmojiSuggestions
                             if (keyEvent.type != KeyEventType.KeyDown || !autocompleteVisible) return@onPreviewKeyEvent false
@@ -235,10 +239,11 @@ private fun AutocompleteSuggestions(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 4.dp)
-            .background(tacitSurface, RoundedCornerShape(10.dp))
-            .border(1.dp, tacitBorder, RoundedCornerShape(10.dp))
-            .padding(vertical = 4.dp),
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .clip(TacitShapes.card)
+            .background(tacitSurfaceAlt)
+            .border(1.dp, tacitBorder, TacitShapes.card)
+            .padding(horizontal = 6.dp, vertical = 6.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         suggestions.forEachIndexed { index, suggestion ->
@@ -248,10 +253,10 @@ private fun AutocompleteSuggestions(
                     .background(
                         if (index == selectedIndex) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
                         else Color.Transparent,
-                        RoundedCornerShape(8.dp),
+                        TacitShapes.compact,
                     )
                     .clickable { onSelect(index) }
-                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                    .padding(horizontal = 10.dp, vertical = 7.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {

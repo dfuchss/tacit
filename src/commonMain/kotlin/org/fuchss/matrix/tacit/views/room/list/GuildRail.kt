@@ -8,10 +8,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Add
@@ -40,6 +39,8 @@ import de.connect2x.trixnity.messenger.compose.view.pointerMoveFilter
 import org.fuchss.matrix.tacit.*
 import org.fuchss.matrix.tacit.generated.resources.Res
 import org.fuchss.matrix.tacit.generated.resources.tacit
+import org.fuchss.matrix.tacit.ui.TacitShapes
+import org.fuchss.matrix.tacit.ui.TacitSpacing
 import org.fuchss.matrix.tacit.viewmodel.room.list.entry.GuildEntry
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 import org.jetbrains.compose.resources.painterResource
@@ -85,13 +86,14 @@ internal fun GuildRail(
         modifier = Modifier
             .fillMaxHeight()
             .width(84.dp)
-            .clip(RoundedCornerShape(18.dp))
+            .clip(TacitShapes.rail)
             .background(
                 Brush.verticalGradient(
                     listOf(tacitBackground, tacitSurface, tacitBackground)
                 )
             )
-            .padding(vertical = 10.dp),
+            .border(1.dp, tacitBorder, TacitShapes.rail)
+            .padding(vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         GuildPill(
@@ -103,7 +105,7 @@ internal fun GuildRail(
             unreadCount = dmUnreadCount,
         )
 
-        Spacer(Modifier.height(guildPillSpacing))
+        Spacer(Modifier.height(TacitSpacing.paneGap))
 
         LazyColumn(
             modifier = Modifier.weight(1f),
@@ -220,10 +222,11 @@ private fun GuildCreateButton(onClick: () -> Unit) {
 
     Box(
         modifier = Modifier
-            .padding(top = 8.dp)
+            .padding(top = TacitSpacing.compactGap)
             .size(guildPillSize)
             .clip(CircleShape)
             .background(if (hovered) tacitSurfaceAlt else tacitSurface)
+            .border(1.dp, tacitBorder, CircleShape)
             .pointerMoveFilter(
                 onEnter = {
                     hovered = true
@@ -258,22 +261,23 @@ private fun GuildPill(
 ) {
     val i18n = DI.get<TacitI18nView>()
     var hovered by remember { mutableStateOf(false) }
-    val pillShape = if (selected) RoundedCornerShape(15.dp) else CircleShape
+    val pillShape = if (selected) TacitShapes.selectedPill else TacitShapes.circle
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically,
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(guildPillSize),
+        contentAlignment = Alignment.Center,
     ) {
         Box(
             modifier = Modifier
+                .align(Alignment.CenterStart)
+                .padding(start = 2.dp)
                 .width(4.dp)
                 .height(if (selected) 34.dp else 10.dp)
-                .clip(RoundedCornerShape(4.dp))
+                .clip(TacitShapes.pill)
                 .background(if (selected) Color.White else Color.Transparent)
         )
-
-        Spacer(Modifier.width(6.dp))
 
         Box(
             modifier = Modifier
@@ -290,6 +294,11 @@ private fun GuildPill(
                             hovered -> tacitSurfaceAlt
                             else -> tacitSurface
                         }
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = if (selected) accentColor.copy(alpha = 0.65f) else tacitBorder.copy(alpha = 0.75f),
+                        shape = pillShape,
                     )
                     .pointerMoveFilter(
                         onEnter = {
@@ -315,7 +324,7 @@ private fun GuildPill(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(2.dp)
-                            .clip(if (selected) RoundedCornerShape(13.dp) else CircleShape),
+                            .clip(if (selected) TacitShapes.control else TacitShapes.circle),
                     )
                 } else if (avatarImage != null && avatarImage.toImageBitmap() != null) {
 
@@ -326,7 +335,7 @@ private fun GuildPill(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(2.dp)
-                            .clip(if (selected) RoundedCornerShape(13.dp) else CircleShape),
+                            .clip(if (selected) TacitShapes.control else TacitShapes.circle),
                     )
                 } else {
                     Text(

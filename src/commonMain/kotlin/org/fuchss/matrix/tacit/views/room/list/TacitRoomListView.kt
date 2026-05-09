@@ -3,7 +3,6 @@ package org.fuchss.matrix.tacit.views.room.list
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -20,6 +19,10 @@ import de.connect2x.trixnity.messenger.viewmodel.roomlist.RoomListViewModel.User
 import de.connect2x.trixnity.messenger.viewmodel.util.ErrorType
 import kotlinx.coroutines.delay
 import org.fuchss.matrix.tacit.*
+import org.fuchss.matrix.tacit.ui.TacitCardSurface
+import org.fuchss.matrix.tacit.ui.TacitPaneSurface
+import org.fuchss.matrix.tacit.ui.TacitShapes
+import org.fuchss.matrix.tacit.ui.TacitSpacing
 import org.fuchss.matrix.tacit.viewmodel.room.list.*
 import org.fuchss.matrix.tacit.viewmodel.room.list.entry.GuildEntry
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
@@ -324,7 +327,7 @@ private fun RoomListContent(
         modifier = Modifier
             .fillMaxSize()
             .background(tacitBackground)
-            .padding(8.dp)
+            .padding(TacitSpacing.appPadding)
     ) {
         GuildRail(
             guilds = guilds,
@@ -337,74 +340,75 @@ private fun RoomListContent(
             onCreateGuild = onOpenCreateGuild,
         )
 
-        Spacer(Modifier.width(8.dp))
+        Spacer(Modifier.width(TacitSpacing.paneGap))
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .clip(RoundedCornerShape(18.dp))
-                .background(tacitSurface)
+        TacitPaneSurface(
+            modifier = Modifier.fillMaxSize(),
+            shape = TacitShapes.pane,
+            innerShape = TacitShapes.paneInner,
         ) {
-            GuildHero(
-                i18n = i18n,
-                selectedGuild = mode.selectedGuildOrNull,
-                visibleRoomsCount = visibleRooms.size,
-            )
+            Column(modifier = Modifier.fillMaxSize()) {
+                GuildHero(
+                    i18n = i18n,
+                    selectedGuild = mode.selectedGuildOrNull,
+                    visibleRoomsCount = visibleRooms.size,
+                )
 
-            when (mode) {
-                is RoomListMode.DirectMessages -> {
-                    DmChannelToolbar(
-                        i18n = i18n,
-                        roomListViewModel = roomListViewModel,
-                        canCreateRoom = canCreateNewRoomWithAccount,
-                        onCreateRoom = onCreateRoom,
-                        onCreateGroupChannel = onCreateGroupChannel,
-                    )
+                when (mode) {
+                    is RoomListMode.DirectMessages -> {
+                        DmChannelToolbar(
+                            i18n = i18n,
+                            roomListViewModel = roomListViewModel,
+                            canCreateRoom = canCreateNewRoomWithAccount,
+                            onCreateRoom = onCreateRoom,
+                            onCreateGroupChannel = onCreateGroupChannel,
+                        )
+                    }
+
+                    is RoomListMode.GuildChannels -> {
+                        GuildChannelToolbar(
+                            i18n = i18n,
+                            roomListViewModel,
+                            canCreateNewRoomWithAccount,
+                            onCreateRoom,
+                            onOpenCreateCategory,
+                            onOpenBrowseChannels,
+                            onOpenInviteToGuild,
+                            selectedGuildAccountAvailable,
+                            onOpenGuildSettings,
+                            true
+                        )
+                    }
                 }
 
-                is RoomListMode.GuildChannels -> {
-                    GuildChannelToolbar(
-                        i18n = i18n,
-                        roomListViewModel,
-                        canCreateNewRoomWithAccount,
-                        onCreateRoom,
-                        onOpenCreateCategory,
-                        onOpenBrowseChannels,
-                        onOpenInviteToGuild,
-                        selectedGuildAccountAvailable,
-                        onOpenGuildSettings,
-                        true
-                    )
-                }
+                OfflineWarningBanner(i18n, syncStates)
+                RoomListErrors(
+                    error = error,
+                    errorType = errorType,
+                    onDismissError = onDismissError,
+                )
+                HorizontalDivider(color = tacitBorder)
+
+                RoomListBody(
+                    roomListViewModel = roomListViewModel,
+                    i18n = i18n,
+                    mode = mode,
+                    selectedRoomId = selectedRoomId,
+                    visibleRooms = visibleRooms,
+                    guildChannelGroups = guildChannelGroups,
+                    inviteRooms = inviteRooms,
+                    allRoomsEmpty = allRoomsEmpty,
+                    canCreateNewRoomWithAccount = canCreateNewRoomWithAccount,
+                    searchResultsEmpty = searchResultsEmpty,
+                    onBrowseRooms = onOpenBrowseChannels,
+                    onReorderCategory = onReorderCategory,
+                    onOpenCategorySettings = onOpenCategorySettings,
+                    selectedGuildInviteRoomId = selectedGuildInviteFallback?.roomId,
+                    selectedGuildInviteName = selectedGuildInviteFallback?.displayName,
+                    onAcceptSelectedGuildInvite = onAcceptSelectedGuildInvite,
+                    onDeclineSelectedGuildInvite = onDeclineSelectedGuildInvite,
+                )
             }
-
-            OfflineWarningBanner(i18n, syncStates)
-            RoomListErrors(
-                error = error,
-                errorType = errorType,
-                onDismissError = onDismissError,
-            )
-            HorizontalDivider(color = tacitBorder)
-
-            RoomListBody(
-                roomListViewModel = roomListViewModel,
-                i18n = i18n,
-                mode = mode,
-                selectedRoomId = selectedRoomId,
-                visibleRooms = visibleRooms,
-                guildChannelGroups = guildChannelGroups,
-                inviteRooms = inviteRooms,
-                allRoomsEmpty = allRoomsEmpty,
-                canCreateNewRoomWithAccount = canCreateNewRoomWithAccount,
-                searchResultsEmpty = searchResultsEmpty,
-                onBrowseRooms = onOpenBrowseChannels,
-                onReorderCategory = onReorderCategory,
-                onOpenCategorySettings = onOpenCategorySettings,
-                selectedGuildInviteRoomId = selectedGuildInviteFallback?.roomId,
-                selectedGuildInviteName = selectedGuildInviteFallback?.displayName,
-                onAcceptSelectedGuildInvite = onAcceptSelectedGuildInvite,
-                onDeclineSelectedGuildInvite = onDeclineSelectedGuildInvite,
-            )
         }
     }
 }
@@ -425,9 +429,9 @@ private fun OfflineWarningBanner(
         modifier = Modifier
             .padding(horizontal = 12.dp, vertical = 8.dp)
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(TacitShapes.compact)
             .background(tacitWarningBg)
-            .border(1.dp, tacitWarningBorder, RoundedCornerShape(12.dp))
+            .border(1.dp, tacitWarningBorder, TacitShapes.compact)
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
@@ -452,13 +456,21 @@ private fun RoomListErrors(
 ) {
     AutoDismissError(error, errorType, onDismissError)
     if (error != null) {
-        Text(
-            text = error,
-            color = MaterialTheme.colorScheme.error,
-            style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.padding(horizontal = 14.dp),
-            maxLines = 3
-        )
-        Spacer(Modifier.height(6.dp))
+        TacitCardSurface(
+            modifier = Modifier
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .fillMaxWidth(),
+            shape = TacitShapes.compact,
+            backgroundColor = tacitErrorBg,
+            borderColor = tacitErrorBorder,
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
+        ) {
+            Text(
+                text = error,
+                color = tacitErrorText,
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 3,
+            )
+        }
     }
 }
