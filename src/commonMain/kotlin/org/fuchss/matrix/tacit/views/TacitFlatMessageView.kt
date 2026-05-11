@@ -313,8 +313,9 @@ private fun TacitFlatMessageContainer(
 
             if (!isPreview) {
                 val reactionsSideModifier = Modifier
+                    .zIndex(2f)
                     .padding(start = rowSidePadding + incomingTextColumnOffset)
-                    .offset(y = (-2).dp)
+                    .offset(y = (-20).dp)
                 if (uiState.hasReactions) {
                     TacitMessageReactions(
                         modifier = reactionsSideModifier,

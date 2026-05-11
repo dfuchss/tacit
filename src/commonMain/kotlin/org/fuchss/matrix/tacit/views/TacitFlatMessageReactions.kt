@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.unit.dp
 import de.connect2x.trixnity.messenger.compose.view.common.Tooltip
 import de.connect2x.trixnity.messenger.viewmodel.util.EventReactions
@@ -57,12 +58,13 @@ private fun TacitReactionChip(
             modifier = Modifier
                 .clip(TacitShapes.compact)
                 .background(
-                    if (selected) tacitAccent(0.14f) else tacitSurfaceAlt,
+                    if (selected) accentColor.copy(alpha = 0.35f).compositeOver(tacitSurfaceAlt)
+                    else tacitSurfaceAlt,
                     TacitShapes.compact,
                 )
                 .border(
                     1.dp,
-                    if (selected) accentColor else tacitBorder.copy(alpha = 0.65f),
+                    if (selected) accentColor else tacitBorder.copy(alpha = 0.65f).compositeOver(tacitSurfaceAlt),
                     TacitShapes.compact,
                 )
                 .clickable(onClick = onClick)
