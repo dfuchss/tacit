@@ -191,7 +191,7 @@ private fun TacitFlatMessageContainer(
                         alignment = Alignment.TopEnd,
                         offset = IntOffset(
                             x = with(density) { -(rowSidePadding + 2.dp).roundToPx() },
-                            y = with(density) { (-14).dp.roundToPx() },
+                            y = with(density) { (-26).dp.roundToPx() },
                         ),
                     ) {
                         Box(
