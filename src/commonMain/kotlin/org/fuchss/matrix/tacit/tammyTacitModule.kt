@@ -8,7 +8,6 @@ import de.connect2x.trixnity.messenger.compose.view.room.timeline.InputAreaView
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.RoomHeaderView
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.TimelineView
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.TypingIndicatorView
-import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.ReadMarkerView
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.TimelineElementView
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.message.EmoteRoomMessageTimelineElementView
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.message.NoticeRoomMessageTimelineElementView
@@ -74,7 +73,6 @@ fun tammyTacitModule() = module {
     single<ChangeRoomAvatarView> { TacitChangeRoomAvatarView() }
     single<TypingIndicatorView> { TacitTypingIndicatorView() }
     single<InputAreaView> { TacitInputAreaView() }
-    single<ReadMarkerView> { TacitReadMarkerView() }
     single<TextRoomMessageTimelineElementView>(named<TextRoomMessageTimelineElementView>()) {
         TacitTextRoomMessageTimelineElementViewImpl()
     }.bind<TimelineElementView<*>>()

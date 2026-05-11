@@ -11,7 +11,6 @@ import androidx.compose.material.icons.filled.AutoDelete
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
@@ -27,11 +26,11 @@ import androidx.compose.ui.semantics.CollectionItemInfo
 import androidx.compose.ui.semantics.collectionItemInfo
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.text
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.zIndex
+import androidx.compose.ui.text.AnnotatedString
 import de.connect2x.trixnity.messenger.compose.view.DI
 import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.pointerMoveFilter
@@ -59,7 +58,6 @@ class TacitFlatMessageView : MessageBubbleView {
         TacitFlatMessageContainer(
             holder = holder,
             uiState = uiState,
-            needsMaxWidth = needsMaxWidth,
             additionalContextActions = additionalContextActions,
             isPreview = isPreview,
             index = index,
@@ -72,7 +70,6 @@ class TacitFlatMessageView : MessageBubbleView {
 private fun TacitFlatMessageContainer(
     holder: BaseTimelineElementHolderViewModel,
     uiState: TacitFlatMessageUiState,
-    needsMaxWidth: Boolean,
     additionalContextActions: @Composable ColumnScope.(onClose: () -> Unit) -> Unit,
     isPreview: Boolean,
     index: Int,
@@ -294,7 +291,7 @@ private fun TacitFlatMessageContainer(
                     Box(Modifier.fillMaxWidth()) {
                         val baseTypography = MaterialTheme.typography
                         val timelineTypography = baseTypography.copy(
-                            labelSmall = baseTypography.labelSmall.copy(color = Color.Transparent),
+                            labelSmall = baseTypography.labelSmall.copy(color = tacitTextMuted),
                         )
                         MaterialTheme(
                             colorScheme = MaterialTheme.colorScheme,
@@ -303,24 +300,15 @@ private fun TacitFlatMessageContainer(
                         ) {
                             MessageBubbleContent(
                                 holder = holder,
-                                needsMaxWidth = needsMaxWidth,
+                                needsMaxWidth = true,
                                 showActionMenu = { showActionMenu.value = true },
-                                content = content,
+                                content = { showMenu ->
+                                    Box(Modifier.fillMaxWidth()) { content(showMenu) }
+                                },
                             )
                         }
                     }
-                }
-
-                if (!isPreview && showInlineTime) {
-                    Text(
-                        text = holder.formattedTime,
-                        color = tacitTextMuted,
-                        style = MaterialTheme.typography.labelSmall,
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .padding(end = 10.dp, bottom = 3.dp),
-                    )
-                }
+            }
             }
 
             if (!isPreview) {
