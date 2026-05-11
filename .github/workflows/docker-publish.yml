@@ -3,9 +3,9 @@ name: Docker Push
 on:
   workflow_dispatch:
   push:
-    # Publish `main` as Docker `latest` image.
+    # Publish `dev` as Docker `latest` image.
     branches:
-      - main
+      - dev
     paths-ignore:
       - '**.md'
       - '.github/**'
