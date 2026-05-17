@@ -13,6 +13,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import org.fuchss.matrix.tacit.settings.TacitWindowCloseBehavior
+import org.fuchss.matrix.tacit.settings.readTacitWindowCloseBehavior
+import org.fuchss.matrix.tacit.settings.writeTacitWindowCloseBehavior
 import org.koin.core.component.get
 
 internal enum class TacitLanguageSelection {
@@ -23,7 +26,9 @@ internal enum class TacitLanguageSelection {
 
 internal interface TacitAppearanceSettingsViewModel : AppearanceSettingsViewModel {
     val languageSelection: StateFlow<TacitLanguageSelection>
+    val windowCloseBehavior: StateFlow<TacitWindowCloseBehavior>
     fun setLanguageSelection(selection: TacitLanguageSelection)
+    fun setWindowCloseBehavior(behavior: TacitWindowCloseBehavior)
 }
 
 internal object TacitAppearanceSettingsViewModelFactory : AppearanceSettingsViewModelFactory {
@@ -57,10 +62,26 @@ private class TacitAppearanceSettingsViewModelImpl(
                 settings.value.base.preferredLang.toTacitLanguageSelection(),
             )
 
+    override val windowCloseBehavior: StateFlow<TacitWindowCloseBehavior> =
+        settings.mapLatest { readTacitWindowCloseBehavior(it) }
+            .stateIn(
+                coroutineScope,
+                SharingStarted.WhileSubscribed(),
+                readTacitWindowCloseBehavior(settings.value),
+            )
+
     override fun setLanguageSelection(selection: TacitLanguageSelection) {
         coroutineScope.launch {
             settings.update<MatrixMessengerSettingsBase> {
                 it.copy(preferredLang = selection.toPreferredLangCode())
+            }
+        }
+    }
+
+    override fun setWindowCloseBehavior(behavior: TacitWindowCloseBehavior) {
+        coroutineScope.launch {
+            settings.update {
+                writeTacitWindowCloseBehavior(behavior)
             }
         }
     }
@@ -77,4 +98,3 @@ private fun TacitLanguageSelection.toPreferredLangCode(): String? = when (this) 
     TacitLanguageSelection.ENGLISH -> DefaultLanguages.EN.code
     TacitLanguageSelection.GERMAN -> DefaultLanguages.DE.code
 }
-

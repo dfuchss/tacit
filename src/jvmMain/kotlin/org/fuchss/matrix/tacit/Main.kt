@@ -6,7 +6,6 @@ import de.connect2x.lognity.config.CoreConfigExtension
 import de.connect2x.lognity.config.SerializableConfig
 import de.connect2x.lognity.config.extension.ConfigExtension
 import de.connect2x.lognity.config.setDefaultConfig
-import de.connect2x.trixnity.messenger.compose.view.startMultiMessenger
 import de.connect2x.trixnity.messenger.util.getAppPath
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.io.asSource
@@ -32,7 +31,7 @@ object Main {
     @JvmStatic
     fun main(args: Array<String>) {
         configureLogging()
-        startMultiMessenger(args) {
+        startTacitMultiMessenger(args) {
             tammyConfiguration()
             appIcon = "status_icon.png"
         }

@@ -6,6 +6,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Colorize
 import androidx.compose.material.icons.filled.FormatSize
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -16,10 +17,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import de.connect2x.trixnity.messenger.compose.view.DI
-import de.connect2x.trixnity.messenger.compose.view.VerticalScrollbar
+import de.connect2x.trixnity.messenger.compose.view.*
 import de.connect2x.trixnity.messenger.compose.view.common.Header
-import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.settings.AppearanceSettingsSize
 import de.connect2x.trixnity.messenger.compose.view.settings.AppearanceSettingsView
 import de.connect2x.trixnity.messenger.compose.view.settings.SettingsCard
@@ -28,6 +27,7 @@ import de.connect2x.trixnity.messenger.compose.view.theme.components
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedListItemRadioButton
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedListItemSwitch
 import de.connect2x.trixnity.messenger.viewmodel.settings.AppearanceSettingsViewModel
+import org.fuchss.matrix.tacit.settings.TacitWindowCloseBehavior
 import org.fuchss.matrix.tacit.viewmodel.settings.TacitAppearanceSettingsViewModel
 import org.fuchss.matrix.tacit.viewmodel.settings.TacitLanguageSelection
 import org.fuchss.matrix.tacit.views.common.TacitColorPicker
@@ -46,6 +46,10 @@ class TacitAppearanceSettingsView : AppearanceSettingsView {
         val tacitAppearanceSettingsViewModel = appearanceSettingsViewModel as? TacitAppearanceSettingsViewModel
         val languageSelection by (tacitAppearanceSettingsViewModel?.languageSelection?.collectAsState()
             ?: androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(TacitLanguageSelection.SYSTEM) })
+        val windowCloseBehavior by (tacitAppearanceSettingsViewModel?.windowCloseBehavior?.collectAsState()
+            ?: androidx.compose.runtime.remember {
+                androidx.compose.runtime.mutableStateOf(TacitWindowCloseBehavior.BACKGROUND)
+            })
 
         Box(Modifier.fillMaxSize()) {
             Column {
@@ -105,6 +109,32 @@ class TacitAppearanceSettingsView : AppearanceSettingsView {
                                 selected = isFocusHighlighting,
                                 onChange = { appearanceSettingsViewModel.toggleFocusHighlighting() },
                             )
+                        }
+                        if (tacitAppearanceSettingsViewModel != null && Platform.current.isDesktop) {
+                            SettingsCard(title = i18n.tacitDesktopBehaviorTitle(), icon = Icons.Filled.Info) {
+                                ThemedListItemRadioButton(
+                                    style = MaterialTheme.components.settingsItem,
+                                    headlineContent = { Text(i18n.tacitDesktopBehaviorBackgroundTitle()) },
+                                    supportingContent = { Text(i18n.tacitDesktopBehaviorBackgroundDescription()) },
+                                    selected = windowCloseBehavior == TacitWindowCloseBehavior.BACKGROUND,
+                                    onChange = {
+                                        if (it) tacitAppearanceSettingsViewModel.setWindowCloseBehavior(
+                                            TacitWindowCloseBehavior.BACKGROUND
+                                        )
+                                    },
+                                )
+                                ThemedListItemRadioButton(
+                                    style = MaterialTheme.components.settingsItem,
+                                    headlineContent = { Text(i18n.tacitDesktopBehaviorExitTitle()) },
+                                    supportingContent = { Text(i18n.tacitDesktopBehaviorExitDescription()) },
+                                    selected = windowCloseBehavior == TacitWindowCloseBehavior.EXIT,
+                                    onChange = {
+                                        if (it) tacitAppearanceSettingsViewModel.setWindowCloseBehavior(
+                                            TacitWindowCloseBehavior.EXIT
+                                        )
+                                    },
+                                )
+                            }
                         }
                     }
                     VerticalScrollbar(

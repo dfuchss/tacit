@@ -585,4 +585,39 @@ open class TacitI18nView(
         EN - "German"
         DE - "Deutsch"
     }
+
+    open fun tacitDesktopBehaviorTitle() = translate {
+        EN - "Desktop"
+        DE - "Desktop"
+    }
+
+    open fun tacitDesktopBehaviorBackgroundTitle() = translate {
+        EN - "Keep running in background"
+        DE - "Im Hintergrund weiterlaufen"
+    }
+
+    open fun tacitDesktopBehaviorBackgroundDescription() = translate {
+        EN - "Closing the window hides Tacit to the tray instead of exiting."
+        DE - "Beim Schließen des Fensters wird Tacit in den Tray verschoben, statt beendet zu werden."
+    }
+
+    open fun tacitDesktopBehaviorExitTitle() = translate {
+        EN - "Exit on window close"
+        DE - "Beim Schließen beenden"
+    }
+
+    open fun tacitDesktopBehaviorExitDescription() = translate {
+        EN - "Closing the window exits Tacit completely."
+        DE - "Beim Schließen des Fensters wird Tacit vollständig beendet."
+    }
+
+    open fun tacitTrayOpen() = translate {
+        EN - "Open Tacit"
+        DE - "Tacit öffnen"
+    }
+
+    open fun tacitTrayExit() = translate {
+        EN - "Exit Tacit"
+        DE - "Tacit beenden"
+    }
 }
