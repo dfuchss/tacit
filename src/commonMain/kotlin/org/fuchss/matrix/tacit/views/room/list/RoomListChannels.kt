@@ -182,28 +182,18 @@ internal fun ChannelRow(
                 )
             }
 
-            if (!notificationCount.isNullOrBlank()) {
-                Box(
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .background(badgeBackground)
-                        .padding(horizontal = 8.dp, vertical = 3.dp)
-                        .alpha(if (showReadToggle) 0f else 1f),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = notificationCount,
-                        color = badgeContent,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
-            } else if (isUnread) {
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .clip(CircleShape)
-                        .background(if (selected) tacitText else Color.White)
+            if (!showInviteActions) {
+                TrailingRoomIndicator(
+                    showReadToggle = showReadToggle,
+                    isUnread = isUnread,
+                    notificationCount = notificationCount,
+                    badgeBackground = badgeBackground,
+                    badgeContent = badgeContent,
+                    selected = selected,
+                    onToggle = {
+                        if (isUnread) room.markRead() else room.markUnread()
+                    },
+                    contentDescription = if (isUnread) i18n.markRoomAsRead() else i18n.markRoomAsUnread(),
                 )
             }
 
@@ -230,22 +220,56 @@ internal fun ChannelRow(
             }
         }
 
+    }
+}
+
+@Composable
+private fun TrailingRoomIndicator(
+    showReadToggle: Boolean,
+    isUnread: Boolean,
+    notificationCount: String?,
+    badgeBackground: Color,
+    badgeContent: Color,
+    selected: Boolean,
+    onToggle: () -> Unit,
+    contentDescription: String,
+) {
+    Box(
+        modifier = Modifier
+            .widthIn(min = 24.dp)
+            .padding(start = 4.dp),
+        contentAlignment = Alignment.CenterEnd,
+    ) {
         if (showReadToggle) {
+            ReadToggleButton(
+                isUnread = isUnread,
+                onToggle = onToggle,
+                contentDescription = contentDescription,
+            )
+        } else if (!notificationCount.isNullOrBlank()) {
             Box(
                 modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .padding(end = 4.dp)
-                    .zIndex(1f),
+                    .clip(CircleShape)
+                    .background(badgeBackground)
+                    .padding(horizontal = 8.dp, vertical = 3.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                ReadToggleButton(
-                    isUnread = isUnread,
-                    onToggle = {
-                        if (isUnread) room.markRead() else room.markUnread()
-                    },
-                    contentDescription = if (isUnread) i18n.markRoomAsRead() else i18n.markRoomAsUnread(),
+                Text(
+                    text = notificationCount,
+                    color = badgeContent,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
                 )
             }
+        } else if (isUnread) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(if (selected) tacitText else Color.White)
+            )
+        } else {
+            Spacer(Modifier.width(1.dp))
         }
     }
 }
