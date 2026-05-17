@@ -26,11 +26,11 @@ import androidx.compose.ui.semantics.CollectionItemInfo
 import androidx.compose.ui.semantics.collectionItemInfo
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.text
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.zIndex
-import androidx.compose.ui.text.AnnotatedString
 import de.connect2x.trixnity.messenger.compose.view.DI
 import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.pointerMoveFilter
@@ -308,7 +308,7 @@ private fun TacitFlatMessageContainer(
                             )
                         }
                     }
-            }
+                }
             }
 
             if (!isPreview) {

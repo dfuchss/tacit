@@ -1,13 +1,7 @@
 package org.fuchss.matrix.tacit.views
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,12 +21,7 @@ import de.connect2x.trixnity.messenger.compose.view.common.Tooltip
 import de.connect2x.trixnity.messenger.compose.view.common.modifier.expandable
 import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.i18n.I18nView
-import de.connect2x.trixnity.messenger.compose.view.roomlist.header.AccountAvatarView
-import de.connect2x.trixnity.messenger.compose.view.roomlist.header.AccountMenuItem
-import de.connect2x.trixnity.messenger.compose.view.roomlist.header.AccountNotificationCount
-import de.connect2x.trixnity.messenger.compose.view.roomlist.header.AllAccountsMenuItem
-import de.connect2x.trixnity.messenger.compose.view.roomlist.header.NoAccountActiveAccountData
-import de.connect2x.trixnity.messenger.compose.view.roomlist.header.SelectAccountHeader
+import de.connect2x.trixnity.messenger.compose.view.roomlist.header.*
 import de.connect2x.trixnity.messenger.compose.view.theme.components
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedButton
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedDropdownMenu
@@ -128,7 +117,8 @@ private fun AvatarAreaWithoutBadge(accountInfo: AccountInfo) {
         Modifier
             .fillMaxWidth()
             .clearAndSetSemantics {
-                text = AnnotatedString("${i18n.commonAccount()}: ${accountInfo.displayName}, ${accountInfo.userId.full}")
+                text =
+                    AnnotatedString("${i18n.commonAccount()}: ${accountInfo.displayName}, ${accountInfo.userId.full}")
             },
         verticalAlignment = Alignment.CenterVertically
     ) {

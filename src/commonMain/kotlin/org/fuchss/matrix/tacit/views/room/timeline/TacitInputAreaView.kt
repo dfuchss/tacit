@@ -10,8 +10,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.text.TextRange
@@ -27,14 +27,11 @@ import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedSurfa
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.InputAreaViewModel
 import org.fuchss.matrix.tacit.tacitAccent
 import org.fuchss.matrix.tacit.tacitBorder
-import org.fuchss.matrix.tacit.tacitSurface
-import org.fuchss.matrix.tacit.tacitText
 import org.fuchss.matrix.tacit.tacitSurfaceAlt
+import org.fuchss.matrix.tacit.tacitText
+import org.fuchss.matrix.tacit.ui.TacitShapes
 import org.fuchss.matrix.tacit.viewmodel.room.timeline.findSlashCommandMatch
 import org.fuchss.matrix.tacit.viewmodel.room.timeline.slashCommandSuggestions
-import org.fuchss.matrix.tacit.ui.TacitCardSurface
-import org.fuchss.matrix.tacit.ui.TacitShapes
-import org.fuchss.matrix.tacit.ui.TacitSpacing
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 
 private data class EmojiShortcodeMatch(

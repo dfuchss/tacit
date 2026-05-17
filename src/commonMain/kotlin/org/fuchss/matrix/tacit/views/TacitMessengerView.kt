@@ -19,7 +19,6 @@ import de.connect2x.trixnity.messenger.viewmodel.util.toFlow
 import kotlinx.coroutines.flow.map
 import org.fuchss.matrix.tacit.tacitBorder
 import org.fuchss.matrix.tacit.ui.TacitShapes
-import org.fuchss.matrix.tacit.ui.TacitSpacing
 
 private val minRoomListWidth = 340.dp
 private val minRoomWidth = 420.dp

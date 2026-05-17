@@ -7,7 +7,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import de.connect2x.trixnity.messenger.compose.view.DI
@@ -26,7 +25,10 @@ import de.connect2x.trixnity.messenger.viewmodel.room.timeline.TimelineRouter
 import de.connect2x.trixnity.messenger.viewmodel.util.toFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import org.fuchss.matrix.tacit.*
+import org.fuchss.matrix.tacit.TacitRoomNavigationState
+import org.fuchss.matrix.tacit.tacitBackground
+import org.fuchss.matrix.tacit.tacitSurface
+import org.fuchss.matrix.tacit.tacitTextMuted
 import org.fuchss.matrix.tacit.ui.TacitPaneSurface
 import org.fuchss.matrix.tacit.ui.TacitShapes
 import org.fuchss.matrix.tacit.ui.TacitSpacing
