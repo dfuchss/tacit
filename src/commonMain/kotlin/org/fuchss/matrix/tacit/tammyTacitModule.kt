@@ -8,6 +8,7 @@ import de.connect2x.trixnity.messenger.compose.view.room.timeline.InputAreaView
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.RoomHeaderView
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.TimelineView
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.TypingIndicatorView
+import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.RedactedTimelineElementView
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.TimelineElementView
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.message.EmoteRoomMessageTimelineElementView
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.message.NoticeRoomMessageTimelineElementView
@@ -81,6 +82,9 @@ fun tammyTacitModule() = module {
     }.bind<TimelineElementView<*>>()
     single<EmoteRoomMessageTimelineElementView>(named<EmoteRoomMessageTimelineElementView>()) {
         TacitEmoteRoomMessageTimelineElementViewImpl()
+    }.bind<TimelineElementView<*>>()
+    single<RedactedTimelineElementView>(named<RedactedTimelineElementView>()) {
+        TacitHiddenRedactedTimelineElementView
     }.bind<TimelineElementView<*>>()
     single<MessageBubbleView> { TacitFlatMessageView() }
     single<TimelineView> { TacitTimelineView() }
