@@ -137,14 +137,16 @@ private fun TacitFlatMessageContainer(
         val incomingTextColumnOffset = 40.dp
         val density = LocalDensity.current
         val rowHighlightColor = when {
-            hoverMessage.value -> tacitSurfaceAlt.copy(alpha = 0.74f)
-            isOwnMessage -> tacitAccent(0.14f)
-            else -> Color.Transparent
+            hoverMessage.value && isOwnMessage -> tacitSurfaceAlt.copy(alpha = 0.88f)
+            hoverMessage.value -> tacitSurfaceAlt.copy(alpha = 0.78f)
+            isOwnMessage -> tacitSurfaceAlt.copy(alpha = 0.56f)
+            else -> tacitSurface.copy(alpha = 0.42f)
         }
         val rowBorderColor = when {
+            hoverMessage.value && isOwnMessage -> accentColor.copy(alpha = 0.56f)
             hoverMessage.value -> tacitBorder.copy(alpha = 0.9f)
-            isOwnMessage -> accentColor.copy(alpha = 0.28f)
-            else -> Color.Transparent
+            isOwnMessage -> accentColor.copy(alpha = 0.38f)
+            else -> tacitBorder.copy(alpha = 0.44f)
         }
 
         Column(
