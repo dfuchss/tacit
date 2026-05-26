@@ -30,9 +30,11 @@ import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.Timeli
 import de.connect2x.trixnity.messenger.compose.view.theme.components
 import de.connect2x.trixnity.messenger.compose.view.theme.components.*
 import de.connect2x.trixnity.messenger.compose.view.theme.messengerIcons
+import de.connect2x.trixnity.messenger.compose.view.util.scrollIntoView
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.TimelineViewModel
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.TimelineElementViewModel
 import de.connect2x.trixnity.messenger.viewmodel.util.throttleFirst
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.withTimeoutOrNull
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
@@ -46,195 +48,236 @@ private val timelineEndPadding = (10 + additionalEndPadding).dp
 class TacitTimelineView : TimelineView {
     @Composable
     override fun ColumnScope.create(timelineViewModel: TimelineViewModel) {
-        val i18n = DI.get<TacitI18nView>()
-        var scrollTo by remember { mutableStateOf<String?>(null) }
-        LaunchedEffect(Unit) {
-            timelineViewModel.scrollTo.drop(1).collect { scrollTo = it }
-        }
+        key(timelineViewModel) {
+            val i18n = DI.get<TacitI18nView>()
+            var scrollTo by remember { mutableStateOf<String?>(null) }
+            LaunchedEffect(timelineViewModel) {
+                timelineViewModel.scrollTo.drop(1).collect { scrollTo = it }
+            }
 
-        val timelineViewElements = rememberTimelineViewElements(timelineViewModel)
-        val isTimelineLoading = timelineViewElements.value.isEmpty()
-        val error = timelineViewModel.error.collectAsState()
-        val draggedFile = timelineViewModel.draggedFile.collectAsState()
+            val timelineViewElements = rememberTimelineViewElements(timelineViewModel)
+            val isTimelineLoading = timelineViewElements.value.isEmpty()
+            val error = timelineViewModel.error.collectAsState()
+            val draggedFile = timelineViewModel.draggedFile.collectAsState()
 
-        val focusManager = LocalFocusManager.current
+            val focusManager = LocalFocusManager.current
 
-        val showTypingIndicator =
-            remember { timelineViewModel.canLoadAfter.throttleFirst(300.milliseconds) }
-                .collectAsState(false).value == false
+            val showTypingIndicator =
+                remember { timelineViewModel.canLoadAfter.throttleFirst(300.milliseconds) }
+                    .collectAsState(false).value == false
 
-        val initialFirstVisibleItemIndex =
-            getInitialFirstVisibleItemIndex(timelineViewModel, timelineViewElements.value, showTypingIndicator)
-        Box(modifier = Modifier.weight(1.0f, fill = true)) {
-            if (isTimelineLoading || initialFirstVisibleItemIndex == null) {
-                Box(Modifier.fillMaxSize()) {
-                    LoadingSpinner(Modifier.align(Alignment.Center))
-                }
-            } else {
-                val listState =
-                    rememberLazyListState(initialFirstVisibleItemIndex = initialFirstVisibleItemIndex)
+            val initialFirstVisibleItemIndex =
+                getInitialFirstVisibleItemIndex(timelineViewModel, timelineViewElements.value, showTypingIndicator)
+            Box(modifier = Modifier.weight(1.0f, fill = true)) {
+                if (isTimelineLoading || initialFirstVisibleItemIndex == null) {
+                    Box(Modifier.fillMaxSize()) {
+                        LoadingSpinner(Modifier.align(Alignment.Center))
+                    }
+                } else {
+                    val listState =
+                        rememberLazyListState(initialFirstVisibleItemIndex = initialFirstVisibleItemIndex)
+                    var initialAnchorApplied by remember { mutableStateOf(false) }
 
-                LaunchedEffect(scrollTo, timelineViewElements.value, showTypingIndicator) {
-                    if (scrollTo != null) {
-                        val index = withTimeoutOrNull(5.seconds) {
-                            timelineViewElements.value.indexOfFirst { it.key == scrollTo }
-                        } ?: -1
-                        if (index >= 0) {
-                            listState.animateScrollToItem(
-                                when {
-                                    index == 0 && showTypingIndicator -> 0
-                                    showTypingIndicator -> index + 1
-                                    else -> index
-                                }
-                            )
-                            scrollTo = null
+                    LaunchedEffect(initialFirstVisibleItemIndex, showTypingIndicator) {
+                        if (!initialAnchorApplied) {
+                            if (initialFirstVisibleItemIndex == 0) {
+                                listState.scrollToItem(0)
+                            } else {
+                                listState.scrollIntoView(initialFirstVisibleItemIndex)
+                            }
+                            initialAnchorApplied = true
                         }
                     }
-                }
 
-                val visibleItems = rememberVisibleItems(listState)
-                updateVisibleItems(timelineViewModel, visibleItems, timelineViewElements)
-
-                BoxWithConstraints(
-                    modifier = Modifier
-                        .pointerInput(Unit) {
-                            detectTapGestures(onTap = { focusManager.clearFocus(true) })
-                        }
-                ) {
-                    error.value?.let { errorMessage ->
-                        ThemedModalDialog({ timelineViewModel.errorDismiss() }) {
-                            ModalDialogHeader {
-                                Text(i18n.anErrorHasOccurred())
-                            }
-                            ModalDialogContent {
-                                Text(errorMessage)
-                            }
-                            ModalDialogFooter {
-                                ThemedButton(
-                                    style = MaterialTheme.components.primaryButton,
-                                    onClick = { timelineViewModel.errorDismiss() },
-                                ) {
-                                    Text(i18n.actionOk())
-                                }
+                    LaunchedEffect(scrollTo, timelineViewElements.value, showTypingIndicator) {
+                        if (scrollTo != null) {
+                            val index = withTimeoutOrNull(5.seconds) {
+                                timelineViewElements.value.indexOfFirst { it.key == scrollTo }
+                            } ?: -1
+                            if (index >= 0) {
+                                listState.scrollIntoView(
+                                    when {
+                                        index == 0 && showTypingIndicator -> 0
+                                        showTypingIndicator -> index + 1
+                                        else -> index
+                                    }
+                                )
+                                scrollTo = null
                             }
                         }
                     }
-                    Box(Modifier.padding(vertical = 2.dp)) {
-                        val canScrollToEnd = remember {
-                            derivedStateOf {
-                                val lastVisibleItem = listState.layoutInfo.visibleItemsInfo.firstOrNull()
-                                lastVisibleItem != null && !(lastVisibleItem.index == 0 && lastVisibleItem.offset == 0)
-                            }
+
+                    val visibleItems = rememberVisibleItems(listState)
+                    updateVisibleItems(timelineViewModel, visibleItems, timelineViewElements)
+
+                    val isPinnedToEnd = remember {
+                        derivedStateOf {
+                            val lastVisibleItem = listState.layoutInfo.visibleItemsInfo.firstOrNull()
+                            lastVisibleItem != null && lastVisibleItem.index == 0 && lastVisibleItem.offset == 0
                         }
-                        Box {
-                            var focusedElement by remember(
-                                showTypingIndicator,
-                                timelineViewElements.value,
-                            ) { mutableStateOf(0) }
-                            LazyColumn(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .rovingFocusContainer()
-                                    .semantics {
-                                        collectionInfo = CollectionInfo(1, timelineViewElements.value.size)
-                                        liveRegion = LiveRegionMode.Polite
-                                    },
-                                contentPadding = PaddingValues(
-                                    top = 10.dp,
-                                    bottom = 10.dp,
-                                    start = timelineStartPadding,
-                                    end = timelineEndPadding,
-                                ),
-                                state = listState,
-                                reverseLayout = true,
-                                verticalArrangement = Arrangement.Bottom,
-                            ) {
-                                if (showTypingIndicator) {
-                                    item(key = "typing", contentType = "typing") {
-                                        TypingIndicator(timelineViewModel)
-                                        if (focusedElement == 0) focusedElement++
+                    }
+                    val newestTimelineKey = remember(timelineViewElements.value) {
+                        timelineViewElements.value
+                            .firstOrNull { it is TimelineViewElement.Element }
+                            ?.key
+                    }
+                    var previousNewestTimelineKey by remember { mutableStateOf<String?>(null) }
+                    var wasPinnedToEnd by remember { mutableStateOf(false) }
+
+                    LaunchedEffect(listState) {
+                        snapshotFlow { isPinnedToEnd.value }
+                            .distinctUntilChanged()
+                            .collect { pinnedToEnd ->
+                                wasPinnedToEnd = pinnedToEnd
+                            }
+                    }
+
+                    LaunchedEffect(newestTimelineKey, showTypingIndicator) {
+                        val previousKey = previousNewestTimelineKey
+                        previousNewestTimelineKey = newestTimelineKey
+                        if (previousKey != null && newestTimelineKey != previousKey && wasPinnedToEnd) {
+                            listState.animateScrollToItem(0)
+                        }
+                    }
+
+                    BoxWithConstraints(
+                        modifier = Modifier
+                            .pointerInput(Unit) {
+                                detectTapGestures(onTap = { focusManager.clearFocus(true) })
+                            }
+                    ) {
+                        error.value?.let { errorMessage ->
+                            ThemedModalDialog({ timelineViewModel.errorDismiss() }) {
+                                ModalDialogHeader {
+                                    Text(i18n.anErrorHasOccurred())
+                                }
+                                ModalDialogContent {
+                                    Text(errorMessage)
+                                }
+                                ModalDialogFooter {
+                                    ThemedButton(
+                                        style = MaterialTheme.components.primaryButton,
+                                        onClick = { timelineViewModel.errorDismiss() },
+                                    ) {
+                                        Text(i18n.actionOk())
                                     }
                                 }
-                                itemsIndexed(
-                                    items = timelineViewElements.value,
-                                    key = { _, timelineViewElement -> timelineViewElement.key },
-                                    contentType = { _, timelineViewElement ->
-                                        when (timelineViewElement) {
-                                            is TimelineViewElement.Date -> "date"
-                                            is TimelineViewElement.Element -> "element"
+                            }
+                        }
+                        Box(Modifier.padding(vertical = 2.dp)) {
+                            val canScrollToEnd = remember {
+                                derivedStateOf { !isPinnedToEnd.value }
+                            }
+                            Box {
+                                var focusedElement by remember(
+                                    showTypingIndicator,
+                                    timelineViewElements.value,
+                                ) { mutableStateOf(0) }
+                                LazyColumn(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .rovingFocusContainer()
+                                        .semantics {
+                                            collectionInfo = CollectionInfo(1, timelineViewElements.value.size)
+                                            liveRegion = LiveRegionMode.Polite
+                                        },
+                                    contentPadding = PaddingValues(
+                                        top = 10.dp,
+                                        bottom = 10.dp,
+                                        start = timelineStartPadding,
+                                        end = timelineEndPadding,
+                                    ),
+                                    state = listState,
+                                    reverseLayout = true,
+                                    verticalArrangement = Arrangement.Bottom,
+                                ) {
+                                    if (showTypingIndicator) {
+                                        item(key = "typing", contentType = "typing") {
+                                            TypingIndicator(timelineViewModel)
+                                            if (focusedElement == 0) focusedElement++
                                         }
-                                    },
-                                ) { index, timelineViewElement ->
-                                    Box(
-                                        Modifier
-                                            .rovingFocusItem(
-                                                isFocused = focusedElement == index,
-                                                onFocus = { focusedElement = index },
-                                            )
-                                            .animateItem()
-                                            .animateContentSize()
-                                    ) {
-                                        when (timelineViewElement) {
-                                            is TimelineViewElement.Date -> {
-                                                DateStickyHeader(
-                                                    date = timelineViewElement.formattedDate,
-                                                    focusable = true,
-                                                )
+                                    }
+                                    itemsIndexed(
+                                        items = timelineViewElements.value,
+                                        key = { _, timelineViewElement -> timelineViewElement.key },
+                                        contentType = { _, timelineViewElement ->
+                                            when (timelineViewElement) {
+                                                is TimelineViewElement.Date -> "date"
+                                                is TimelineViewElement.Element -> "element"
                                             }
-
-                                            is TimelineViewElement.Element -> {
-                                                val viewModel = timelineViewElement.viewModel
-                                                if (viewModel.element.value is TimelineElementViewModel.Empty && index == focusedElement) {
-                                                    focusedElement++
+                                        },
+                                    ) { index, timelineViewElement ->
+                                        Box(
+                                            Modifier
+                                                .rovingFocusItem(
+                                                    isFocused = focusedElement == index,
+                                                    onFocus = { focusedElement = index },
+                                                )
+                                                .animateItem()
+                                                .animateContentSize()
+                                        ) {
+                                            when (timelineViewElement) {
+                                                is TimelineViewElement.Date -> {
+                                                    DateStickyHeader(
+                                                        date = timelineViewElement.formattedDate,
+                                                        focusable = true,
+                                                    )
                                                 }
 
-                                                TimelineElementHolder(viewModel, index)
+                                                is TimelineViewElement.Element -> {
+                                                    val viewModel = timelineViewElement.viewModel
+                                                    if (viewModel.element.value is TimelineElementViewModel.Empty && index == focusedElement) {
+                                                        focusedElement++
+                                                    }
+
+                                                    TimelineElementHolder(viewModel, index)
+                                                }
                                             }
                                         }
                                     }
                                 }
-                            }
-                            ListDateHeader(
-                                visible = visibleItems,
-                                timelineViewElements = timelineViewElements,
-                                show = listState.canScrollForward,
-                            )
-                            ScrollToEndButton(timelineViewModel, canScrollToEnd)
-                            draggedFile.value?.let { draggedFileValue ->
-                                Box(
-                                    Modifier.fillMaxSize(),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Icon(
-                                                Icons.Filled.Circle,
-                                                contentDescription = "",
-                                                modifier = Modifier.size(100.dp),
-                                                tint = Color.Gray,
-                                            )
-                                            Icon(
-                                                imageVector = MaterialTheme.messengerIcons.attachFile,
-                                                contentDescription = i18n.timelineSendFile(),
-                                                modifier = Modifier.size(60.dp),
+                                ListDateHeader(
+                                    visible = visibleItems,
+                                    timelineViewElements = timelineViewElements,
+                                    show = listState.canScrollForward,
+                                )
+                                ScrollToEndButton(timelineViewModel, canScrollToEnd)
+                                draggedFile.value?.let { draggedFileValue ->
+                                    Box(
+                                        Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Icon(
+                                                    Icons.Filled.Circle,
+                                                    contentDescription = "",
+                                                    modifier = Modifier.size(100.dp),
+                                                    tint = Color.Gray,
+                                                )
+                                                Icon(
+                                                    imageVector = MaterialTheme.messengerIcons.attachFile,
+                                                    contentDescription = i18n.timelineSendFile(),
+                                                    modifier = Modifier.size(60.dp),
+                                                )
+                                            }
+                                            Text(
+                                                text = draggedFileValue.toString(),
+                                                style = MaterialTheme.typography.titleSmall,
                                             )
                                         }
-                                        Text(
-                                            text = draggedFileValue.toString(),
-                                            style = MaterialTheme.typography.titleSmall,
-                                        )
                                     }
                                 }
+
+                                ReportMessageSwitch(timelineViewModel)
                             }
 
-                            ReportMessageSwitch(timelineViewModel)
+                            VerticalScrollbar(
+                                modifier = Modifier.align(Alignment.CenterEnd),
+                                lazyListState = listState,
+                                reverseLayout = true,
+                            )
                         }
-
-                        VerticalScrollbar(
-                            modifier = Modifier.align(Alignment.CenterEnd),
-                            lazyListState = listState,
-                            reverseLayout = true,
-                        )
                     }
                 }
             }
