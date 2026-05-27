@@ -32,6 +32,7 @@ import de.connect2x.trixnity.messenger.compose.view.theme.components.*
 import de.connect2x.trixnity.messenger.compose.view.theme.messengerIcons
 import de.connect2x.trixnity.messenger.compose.view.util.scrollIntoView
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.TimelineViewModel
+import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.RedactedTimelineElementViewModel
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.TimelineElementViewModel
 import de.connect2x.trixnity.messenger.viewmodel.util.throttleFirst
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -45,6 +46,31 @@ private const val additionalEndPadding = 8
 private val timelineStartPadding = 10.dp
 private val timelineEndPadding = (10 + additionalEndPadding).dp
 
+private fun buildRenderableTimelineElements(
+    timelineViewElements: List<TimelineViewElement>,
+): List<TimelineViewElement> {
+    val visibleViewModels = timelineViewElements
+        .filterIsInstance<TimelineViewElement.Element>()
+        .map { it.viewModel }
+        .filterNot { it.element.value is RedactedTimelineElementViewModel }
+        .asReversed()
+
+    return buildList(visibleViewModels.size * 2) {
+        var lastDate: String? = null
+        for (viewModel in visibleViewModels) {
+            when {
+                lastDate == viewModel.formattedDate -> add(TimelineViewElement.Element(viewModel))
+                viewModel.element.value is TimelineElementViewModel.Empty -> add(TimelineViewElement.Element(viewModel))
+                else -> {
+                    add(TimelineViewElement.Date(viewModel))
+                    add(TimelineViewElement.Element(viewModel))
+                    lastDate = viewModel.formattedDate
+                }
+            }
+        }
+    }.asReversed()
+}
+
 class TacitTimelineView : TimelineView {
     @Composable
     override fun ColumnScope.create(timelineViewModel: TimelineViewModel) {
@@ -56,6 +82,11 @@ class TacitTimelineView : TimelineView {
             }
 
             val timelineViewElements = rememberTimelineViewElements(timelineViewModel)
+            val renderedTimelineViewElements = remember(timelineViewElements.value) {
+                derivedStateOf {
+                    buildRenderableTimelineElements(timelineViewElements.value)
+                }
+            }
             val isTimelineLoading = timelineViewElements.value.isEmpty()
             val error = timelineViewModel.error.collectAsState()
             val draggedFile = timelineViewModel.draggedFile.collectAsState()
@@ -67,32 +98,37 @@ class TacitTimelineView : TimelineView {
                     .collectAsState(false).value == false
 
             val initialFirstVisibleItemIndex =
-                getInitialFirstVisibleItemIndex(timelineViewModel, timelineViewElements.value, showTypingIndicator)
+                getInitialFirstVisibleItemIndex(
+                    timelineViewModel,
+                    renderedTimelineViewElements.value,
+                    showTypingIndicator,
+                )
             Box(modifier = Modifier.weight(1.0f, fill = true)) {
-                if (isTimelineLoading || initialFirstVisibleItemIndex == null) {
+                if (isTimelineLoading || (renderedTimelineViewElements.value.isNotEmpty() && initialFirstVisibleItemIndex == null)) {
                     Box(Modifier.fillMaxSize()) {
                         LoadingSpinner(Modifier.align(Alignment.Center))
                     }
                 } else {
                     val listState =
-                        rememberLazyListState(initialFirstVisibleItemIndex = initialFirstVisibleItemIndex)
+                        rememberLazyListState(initialFirstVisibleItemIndex = initialFirstVisibleItemIndex ?: 0)
                     var initialAnchorApplied by remember { mutableStateOf(false) }
 
                     LaunchedEffect(initialFirstVisibleItemIndex, showTypingIndicator) {
                         if (!initialAnchorApplied) {
-                            if (initialFirstVisibleItemIndex == 0) {
+                            val targetIndex = initialFirstVisibleItemIndex ?: 0
+                            if (targetIndex == 0) {
                                 listState.scrollToItem(0)
                             } else {
-                                listState.scrollIntoView(initialFirstVisibleItemIndex)
+                                listState.scrollIntoView(targetIndex)
                             }
                             initialAnchorApplied = true
                         }
                     }
 
-                    LaunchedEffect(scrollTo, timelineViewElements.value, showTypingIndicator) {
+                    LaunchedEffect(scrollTo, renderedTimelineViewElements.value, showTypingIndicator) {
                         if (scrollTo != null) {
                             val index = withTimeoutOrNull(5.seconds) {
-                                timelineViewElements.value.indexOfFirst { it.key == scrollTo }
+                                renderedTimelineViewElements.value.indexOfFirst { it.key == scrollTo }
                             } ?: -1
                             if (index >= 0) {
                                 listState.scrollIntoView(
@@ -108,7 +144,7 @@ class TacitTimelineView : TimelineView {
                     }
 
                     val visibleItems = rememberVisibleItems(listState)
-                    updateVisibleItems(timelineViewModel, visibleItems, timelineViewElements)
+                    updateVisibleItems(timelineViewModel, visibleItems, renderedTimelineViewElements)
 
                     val isPinnedToEnd = remember {
                         derivedStateOf {
@@ -116,8 +152,8 @@ class TacitTimelineView : TimelineView {
                             lastVisibleItem != null && lastVisibleItem.index == 0 && lastVisibleItem.offset == 0
                         }
                     }
-                    val newestTimelineKey = remember(timelineViewElements.value) {
-                        timelineViewElements.value
+                    val newestTimelineKey = remember(renderedTimelineViewElements.value) {
+                        renderedTimelineViewElements.value
                             .firstOrNull { it is TimelineViewElement.Element }
                             ?.key
                     }
@@ -171,14 +207,14 @@ class TacitTimelineView : TimelineView {
                             Box {
                                 var focusedElement by remember(
                                     showTypingIndicator,
-                                    timelineViewElements.value,
+                                    renderedTimelineViewElements.value,
                                 ) { mutableStateOf(0) }
                                 LazyColumn(
                                     modifier = Modifier
                                         .fillMaxSize()
                                         .rovingFocusContainer()
                                         .semantics {
-                                            collectionInfo = CollectionInfo(1, timelineViewElements.value.size)
+                                            collectionInfo = CollectionInfo(1, renderedTimelineViewElements.value.size)
                                             liveRegion = LiveRegionMode.Polite
                                         },
                                     contentPadding = PaddingValues(
@@ -198,7 +234,7 @@ class TacitTimelineView : TimelineView {
                                         }
                                     }
                                     itemsIndexed(
-                                        items = timelineViewElements.value,
+                                        items = renderedTimelineViewElements.value,
                                         key = { _, timelineViewElement -> timelineViewElement.key },
                                         contentType = { _, timelineViewElement ->
                                             when (timelineViewElement) {
@@ -238,7 +274,7 @@ class TacitTimelineView : TimelineView {
                                 }
                                 ListDateHeader(
                                     visible = visibleItems,
-                                    timelineViewElements = timelineViewElements,
+                                    timelineViewElements = renderedTimelineViewElements,
                                     show = listState.canScrollForward,
                                 )
                                 ScrollToEndButton(timelineViewModel, canScrollToEnd)
