@@ -38,6 +38,7 @@ import de.connect2x.trixnity.messenger.viewmodel.util.throttleFirst
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.withTimeoutOrNull
+import org.fuchss.matrix.tacit.viewmodel.room.timeline.TacitTimelineViewModel
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -112,6 +113,7 @@ class TacitTimelineView : TimelineView {
                     val listState =
                         rememberLazyListState(initialFirstVisibleItemIndex = initialFirstVisibleItemIndex ?: 0)
                     var initialAnchorApplied by remember { mutableStateOf(false) }
+                    val tacitTimelineViewModel = timelineViewModel as? TacitTimelineViewModel
 
                     LaunchedEffect(initialFirstVisibleItemIndex, showTypingIndicator) {
                         if (!initialAnchorApplied) {
@@ -122,6 +124,12 @@ class TacitTimelineView : TimelineView {
                                 listState.scrollIntoView(targetIndex)
                             }
                             initialAnchorApplied = true
+                        }
+                    }
+
+                    LaunchedEffect(tacitTimelineViewModel, listState) {
+                        tacitTimelineViewModel?.scrollToEndRequests?.collect {
+                            listState.animateScrollToItem(0)
                         }
                     }
 

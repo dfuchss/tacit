@@ -10,6 +10,7 @@ import de.connect2x.trixnity.core.model.RoomId
 import de.connect2x.trixnity.core.model.UserId
 import de.connect2x.trixnity.core.model.events.m.room.Membership
 import de.connect2x.trixnity.messenger.viewmodel.MatrixClientViewModelContext
+import de.connect2x.trixnity.messenger.viewmodel.room.timeline.InputAreaViewModel
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.TimelineViewModel
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.TimelineViewModelFactory
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.OpenMentionCallback
@@ -52,6 +53,13 @@ private class TacitTimelineViewModelImpl(
 ) : TacitTimelineViewModel, TimelineViewModel by delegate, MatrixClientViewModelContext by viewModelContext {
 
     private val avatarCache = mutableMapOf<String, ByteArray?>()
+    private val _scrollToEndRequests = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+
+    override val scrollToEndRequests: Flow<Unit> = _scrollToEndRequests
+    override val inputAreaViewModel: InputAreaViewModel =
+        ScrollAwareInputAreaViewModel(delegate.inputAreaViewModel) {
+            _scrollToEndRequests.tryEmit(Unit)
+        }
 
     override val roomMembers: StateFlow<List<ChannelMemberEntry>> = matrixClient.user.getAll(roomId)
         .flattenValues()
@@ -155,4 +163,17 @@ private class TacitTimelineViewModelImpl(
 
     override suspend fun findOrCreateDirectMessageRoom(userId: UserId): RoomId? =
         userId.findOrCreateDM(matrixClient).getOrNull()
+}
+
+private class ScrollAwareInputAreaViewModel(
+    private val delegate: InputAreaViewModel,
+    private val onMessageSubmitted: () -> Unit,
+) : InputAreaViewModel by delegate {
+    override fun sendMessage() {
+        val wasReadyToSend = delegate.isSendEnabled.value && !delegate.isReplace.value
+        delegate.sendMessage()
+        if (wasReadyToSend && delegate.textField.value.text.isEmpty()) {
+            onMessageSubmitted()
+        }
+    }
 }
