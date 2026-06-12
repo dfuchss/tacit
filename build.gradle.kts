@@ -608,13 +608,13 @@ flatpak {
 
     flatpakDependencies.set(
         mapOf(
-            "runtime/org.freedesktop.Sdk/x86_64/25.08" to "4d24423cfeeb1845d96fb4536a3404666ed3473e267e4c56dbb7190b627290b0",
-            "runtime/org.freedesktop.Platform.GL.default/x86_64/25.08" to "0bf902ca42bdd0454bd610cbec2ba8843b585f299362c17fa584382e84acdbd2",
-            "runtime/org.freedesktop.Sdk.Locale/x86_64/25.08" to "4b67ec3e6049c1f912e16eeabc2674e0f3ecd62829ecd1598203726337bad792",
-            "runtime/org.freedesktop.Platform.codecs-extra/x86_64/25.08-extra" to "e4aa1279dc8b5878f71441b205ada5580842170c9a9f9c54f631874357bda86b",
-            "runtime/org.freedesktop.Platform.GL.default/x86_64/25.08-extra" to "925c7341364da37df070a86d35ccffd8e8b361dec0cb3e76a60bdaef848f4eda",
-            "runtime/org.freedesktop.Platform/x86_64/25.08" to "6482ce412b0584ab2e2191db1c1de27b7072b8945c20e83a661d284b9c10e6d4",
-            "runtime/org.freedesktop.Platform.Locale/x86_64/25.08" to "0ce6bee05b9517d87f905686beefcf1c96e112f407bb2be48623683687af4cfd",
+            "runtime/org.freedesktop.Sdk/x86_64/25.08" to "d1eb1c10d166e7a611e0f26d2332aa9265ce2d048b054dca07f7919258ee1a0b",
+            "runtime/org.freedesktop.Platform.GL.default/x86_64/25.08" to "68b343b37bb6ddfa82518be6c32e28428f36179f1c8536d33d6fff6bc5fc79f1",
+            "runtime/org.freedesktop.Sdk.Locale/x86_64/25.08" to "65e3c95b6a2bd2e81271c76822eb0e16e2573b05b253c9a222da36674f387d43",
+            "runtime/org.freedesktop.Platform.codecs-extra/x86_64/25.08-extra" to "7116be6864f5bfe54ccf6311a20d43616f910a3fb05c2f578a1b3dc4dc09dc0f",
+            "runtime/org.freedesktop.Platform.GL.default/x86_64/25.08-extra" to "c3bb4d072d8f2a5b6cee1566fd3becf5b817e6358cefda5aabbfc86d7608ff32",
+            "runtime/org.freedesktop.Platform/x86_64/25.08" to "a0b687431459280667d830df5c9d0f25e47b9b7d78f212a858eefac086ed2909",
+            "runtime/org.freedesktop.Platform.Locale/x86_64/25.08" to "40d64910991e3e290580e161c3719128cfe8227fbcd8a260e540c5239517c942",
         )
     )
 

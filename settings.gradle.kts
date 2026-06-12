@@ -15,6 +15,7 @@ pluginManagement {
 dependencyResolutionManagement {
     repositories {
         mavenLocal()
+        maven("https://gitlab.com/api/v4/projects/72301746/packages/maven") // Lognity
         maven("https://gitlab.com/api/v4/projects/68438621/packages/maven") // c2x Conventions
         maven("https://gitlab.com/api/v4/projects/26519650/packages/maven") // trixnity
         maven("https://gitlab.com/api/v4/projects/47538655/packages/maven") // trixnity-messenger
@@ -26,5 +27,5 @@ dependencyResolutionManagement {
 }
 
 plugins {
-    id("de.connect2x.conventions.c2x-settings-plugin") version "20260325.112432"
+    id("de.connect2x.conventions.c2x-settings-plugin") version "20260606.144834"
 }

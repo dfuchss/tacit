@@ -1,9 +1,9 @@
 [versions]
 
-appPublishedVersion = "26.4.2" # The current published version of this app
-appVersion = "26.4.2" # The next version of this app
+appPublishedVersion = "26.6.1" # The current published version of this app
+appVersion = "26.6.1" # The next version of this app
 
-trixnityMessenger = "4.5.2" # https://gitlab.com/connect2x/trixnity-messenger/trixnity-messenger/-/packages
+trixnityMessenger = "4.6.1" # https://gitlab.com/connect2x/trixnity-messenger/trixnity-messenger/-/packages
 
 downloadGradlePlugin = "5.7.0" # https://github.com/michel-kraemer/gradle-download-task/releases
 copyWebpackPlugin = "12.0.2" # https://github.com/webpack-contrib/copy-webpack-plugin/releases
