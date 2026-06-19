@@ -20,6 +20,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## 26.6.2
+
+### Changed
+
+- Updated Trixnity Messenger to 4.7.0
+
+### Fixed
+
+- Fixed wrongly logging DEBUG
+
 ## 26.6.1
 
 ### Changed
