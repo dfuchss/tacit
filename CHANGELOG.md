@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Use gitlab shell runners
+
 ### Deprecated
 
 ### Removed
@@ -19,6 +21,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Security
+
+## 26.6.3
+
+### Changed
+
+- Updated Trixnity Messenger to 4.8.0
 
 ## 26.6.2
 
