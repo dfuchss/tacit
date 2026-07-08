@@ -107,6 +107,7 @@ private fun TacitTextBasedRoomMessageTimelineElementView(
         holder = holder,
         needsMaxWidth = false,
         isPreview = isPreview,
+        isMentioned = element.isMentioned,
         index = index,
     ) { showActionMenu ->
         when (Platform.current) {

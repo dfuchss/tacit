@@ -53,7 +53,7 @@ class TacitInputAreaView : InputAreaView {
         val isReplyTo = inputAreaViewModel.isReply.collectAsState().value
         val canSendMessages = inputAreaViewModel.isAllowedToSendMessages.collectAsState().value
         val isEdit = inputAreaViewModel.isReplace.collectAsState().value
-        val mentionSuggestions = inputAreaViewModel.listOfMentions.collectAsState().value
+        val mentionSuggestions = inputAreaViewModel.suggestedMentions.collectAsState().value
         val focusRequester = remember { FocusRequester() }
         val textField = inputAreaViewModel.textField.collectAsTextFieldValueState()
 
@@ -149,7 +149,7 @@ class TacitInputAreaView : InputAreaView {
                     ReplyToArea(inputAreaViewModel)
                 }
 
-                UserSelector(inputAreaViewModel, focusRequester)
+                MentionSelector(inputAreaViewModel, focusRequester)
                 if (suggestionItems.isNotEmpty()) {
                     AutocompleteSuggestions(
                         suggestions = suggestionItems,

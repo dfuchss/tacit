@@ -37,6 +37,7 @@ import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.Timeline
 import de.connect2x.trixnity.messenger.viewmodel.util.throttleFirst
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withTimeoutOrNull
 import org.fuchss.matrix.tacit.viewmodel.room.timeline.TacitTimelineViewModel
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
@@ -95,15 +96,17 @@ class TacitTimelineView : TimelineView {
             val focusManager = LocalFocusManager.current
 
             val showTypingIndicator =
-                remember { timelineViewModel.canLoadAfter.throttleFirst(300.milliseconds) }
-                    .collectAsState(false).value == false
+                remember { timelineViewModel.canLoadAfter.throttleFirst(300.milliseconds).map { it == false } }
+                    .collectAsState(false)
 
+            val finishedScrollTo = remember { mutableStateOf<String?>(null) }
             val initialFirstVisibleItemIndex =
                 getInitialFirstVisibleItemIndex(
                     timelineViewModel,
-                    renderedTimelineViewElements.value,
+                    renderedTimelineViewElements,
                     showTypingIndicator,
-                )
+                    finishedScrollTo,
+                ).value
             Box(modifier = Modifier.weight(1.0f, fill = true)) {
                 if (isTimelineLoading || (renderedTimelineViewElements.value.isNotEmpty() && initialFirstVisibleItemIndex == null)) {
                     Box(Modifier.fillMaxSize()) {
@@ -115,7 +118,7 @@ class TacitTimelineView : TimelineView {
                     var initialAnchorApplied by remember { mutableStateOf(false) }
                     val tacitTimelineViewModel = timelineViewModel as? TacitTimelineViewModel
 
-                    LaunchedEffect(initialFirstVisibleItemIndex, showTypingIndicator) {
+                    LaunchedEffect(initialFirstVisibleItemIndex, showTypingIndicator.value) {
                         if (!initialAnchorApplied) {
                             val targetIndex = initialFirstVisibleItemIndex ?: 0
                             if (targetIndex == 0) {
@@ -133,7 +136,7 @@ class TacitTimelineView : TimelineView {
                         }
                     }
 
-                    LaunchedEffect(scrollTo, renderedTimelineViewElements.value, showTypingIndicator) {
+                    LaunchedEffect(scrollTo, renderedTimelineViewElements.value, showTypingIndicator.value) {
                         if (scrollTo != null) {
                             val index = withTimeoutOrNull(5.seconds) {
                                 renderedTimelineViewElements.value.indexOfFirst { it.key == scrollTo }
@@ -141,8 +144,8 @@ class TacitTimelineView : TimelineView {
                             if (index >= 0) {
                                 listState.scrollIntoView(
                                     when {
-                                        index == 0 && showTypingIndicator -> 0
-                                        showTypingIndicator -> index + 1
+                                        index == 0 && showTypingIndicator.value -> 0
+                                        showTypingIndicator.value -> index + 1
                                         else -> index
                                     }
                                 )
@@ -152,7 +155,7 @@ class TacitTimelineView : TimelineView {
                     }
 
                     val visibleItems = rememberVisibleItems(listState)
-                    updateVisibleItems(timelineViewModel, visibleItems, renderedTimelineViewElements)
+                    updateVisibleItems(timelineViewModel, visibleItems, renderedTimelineViewElements, finishedScrollTo)
 
                     val isPinnedToEnd = remember {
                         derivedStateOf {
@@ -176,7 +179,7 @@ class TacitTimelineView : TimelineView {
                             }
                     }
 
-                    LaunchedEffect(newestTimelineKey, showTypingIndicator) {
+                    LaunchedEffect(newestTimelineKey, showTypingIndicator.value) {
                         val previousKey = previousNewestTimelineKey
                         previousNewestTimelineKey = newestTimelineKey
                         if (previousKey != null && newestTimelineKey != previousKey && wasPinnedToEnd) {
@@ -214,7 +217,7 @@ class TacitTimelineView : TimelineView {
                             }
                             Box {
                                 var focusedElement by remember(
-                                    showTypingIndicator,
+                                    showTypingIndicator.value,
                                     renderedTimelineViewElements.value,
                                 ) { mutableStateOf(0) }
                                 LazyColumn(
@@ -235,7 +238,7 @@ class TacitTimelineView : TimelineView {
                                     reverseLayout = true,
                                     verticalArrangement = Arrangement.Bottom,
                                 ) {
-                                    if (showTypingIndicator) {
+                                    if (showTypingIndicator.value) {
                                         item(key = "typing", contentType = "typing") {
                                             TypingIndicator(timelineViewModel)
                                             if (focusedElement == 0) focusedElement++

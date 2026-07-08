@@ -49,6 +49,7 @@ private class TacitThemeLightMessengerColors(
         return base.copy(
             link = readableLink,
             linkByMe = readableLink,
+            mentionBorder = accentColor,
         )
     }
 }
@@ -63,6 +64,7 @@ private class TacitThemeDarkMessengerColors(
         return base.copy(
             link = readableLink,
             linkByMe = readableLink,
+            mentionBorder = accentColor,
         )
     }
 }

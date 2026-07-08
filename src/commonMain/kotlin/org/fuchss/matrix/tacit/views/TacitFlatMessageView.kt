@@ -51,6 +51,7 @@ class TacitFlatMessageView : MessageBubbleView {
         needsMaxWidth: Boolean,
         additionalContextActions: @Composable ColumnScope.(onClose: () -> Unit) -> Unit,
         isPreview: Boolean,
+        isMentioned: Boolean,
         index: Int,
         content: @Composable (showActionMenu: () -> Unit) -> Unit,
     ) {
@@ -60,6 +61,7 @@ class TacitFlatMessageView : MessageBubbleView {
             uiState = uiState,
             additionalContextActions = additionalContextActions,
             isPreview = isPreview,
+            isMentioned = isMentioned,
             index = index,
             content = content,
         )
@@ -72,6 +74,7 @@ private fun TacitFlatMessageContainer(
     uiState: TacitFlatMessageUiState,
     additionalContextActions: @Composable ColumnScope.(onClose: () -> Unit) -> Unit,
     isPreview: Boolean,
+    isMentioned: Boolean,
     index: Int,
     content: @Composable (showActionMenu: () -> Unit) -> Unit,
 ) {
@@ -303,6 +306,7 @@ private fun TacitFlatMessageContainer(
                             MessageBubbleContent(
                                 holder = holder,
                                 needsMaxWidth = true,
+                                isMentioned = isMentioned,
                                 showActionMenu = { showActionMenu.value = true },
                                 content = { showMenu ->
                                     Box(Modifier.fillMaxWidth()) { content(showMenu) }
