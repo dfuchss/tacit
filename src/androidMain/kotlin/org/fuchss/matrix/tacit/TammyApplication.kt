@@ -21,7 +21,6 @@ class TammyApplication : Application() {
         }
         MatrixMultiMessengerService.configuration = {
             tammyConfiguration()
-            appIcon = "status_icon.png"
             addNotificationProviders()
         }
     }

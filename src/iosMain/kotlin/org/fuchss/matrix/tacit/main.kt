@@ -18,6 +18,7 @@ fun main(args: List<String>) {
     val bundle = NSBundle.mainBundle
     val path = bundle.pathForResource("lognity", "json") ?: error("Unable to locate logger config")
     val data = NSData.dataWithContentsOfFile(path)?.toByteArray() ?: error("Unable to read logger config")
+    val isDevMode = BuildConfig.flavor == Flavor.DEV
 
     Backend.set(DefaultBackend)
     SerializableConfig uses CoreConfigExtension
@@ -28,7 +29,8 @@ fun main(args: List<String>) {
             tammyConfiguration()
             addApnsPushNotificationProvider(
                 pushUrl = "https://sygnal.matrix.dev.connect2x.de/_matrix/push/v1/notify",
-                pushAppId = "$appId.apns",
+                // Apple and therefore Sygnal does distinguish between sandbox (dev) and production mode
+                pushAppId = if (isDevMode) "$appId.dev.apns" else "$appId.apns",
             )
         }
     } catch (t: Throwable) {

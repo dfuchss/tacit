@@ -1,6 +1,8 @@
 package org.fuchss.matrix.tacit
 
-import de.connect2x.trixnity.client.MatrixClientConfiguration
+import de.connect2x.tammy.generated.resources.Res
+import de.connect2x.tammy.generated.resources.status_icon
+import de.connect2x.trixnity.messenger.compose.view.DrawableResourceAppIcon
 import de.connect2x.trixnity.messenger.compose.view.composeViewModule
 import de.connect2x.trixnity.messenger.compose.view.typography.nunito.addNunitoThemeTypography
 import de.connect2x.trixnity.messenger.i18n.DefaultLanguages
@@ -22,6 +24,7 @@ fun MatrixMultiMessengerConfiguration.tammyConfiguration(
     privacyInfo = null
     imprint = null
     licenses = BuildConfig.licenses
+    icon = DrawableResourceAppIcon(Res.drawable.status_icon)
     sendLogsEmailAddress = null
 
     appUri = "$appId:"

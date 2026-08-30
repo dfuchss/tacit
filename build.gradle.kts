@@ -1,24 +1,17 @@
 import de.connect2x.conventions.*
 import org.gradle.internal.extensions.stdlib.capitalized
-import org.gradle.kotlin.dsl.provideDelegate
 import org.gradle.nativeplatform.platform.internal.DefaultArchitecture
 import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
 import org.gradle.nativeplatform.platform.internal.DefaultOperatingSystem
-
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.compose.desktop.application.tasks.AbstractJPackageTask
 import org.jetbrains.kotlin.gradle.internal.ensureParentDirsCreated
-import java.io.BufferedReader
 import java.io.ByteArrayOutputStream
-import java.io.InputStreamReader
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
-import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.Paths
-
 
 plugins {
     alias(sharedLibs.plugins.kotlin.multiplatform)
@@ -36,14 +29,20 @@ configureJava(sharedLibs.versions.targetJvm)
 
 val appVersion = libs.versions.appVersion.get()
 val appPublishedVersion = libs.versions.appPublishedVersion.get()
-if (isRelease)
+if (CI.isRelease)
     require(appVersion == appPublishedVersion) {
         "when creating a release, the appVersion ($appVersion) must the same as the appPublishedVersion($appPublishedVersion)"
     }
-val appSuffixedVersion = withVersionSuffix(appVersion)
+
+val appSuffixedVersion = withVersionSuffix(libs.versions.appVersion)
 val appName = "Tacit"
 val appId = "org.fuchss.matrix.tacit"
 val appHomepage = "https://fuchss.org/projects/tacit"
+
+fun String.substringAfterMarkdownFrontMatter(): String {
+    return this.substringAfter("---").substringAfter("---")
+}
+
 val privacyInfo =
     File("website/content/privacy.de-DE.md").readText().substringAfterMarkdownFrontMatter()
 val imprint =
@@ -65,7 +64,7 @@ val arch: DefaultArchitecture =
 enum class BuildFlavor { PROD, DEV }
 
 val buildFlavor =
-    BuildFlavor.valueOf(System.getenv("TAMMY_BUILD_FLAVOR") ?: if (isCI) "PROD" else "DEV")
+    BuildFlavor.valueOf(System.getenv("TAMMY_BUILD_FLAVOR") ?: if (CI.isCI) "PROD" else "DEV")
 
 registerMultiplatformLicensesTasks { licenseTask, target, variant ->
     // TODO: move this into c2x-conventions eventually
@@ -150,7 +149,7 @@ kotlin {
                 api(libs.trixnity.messenger.compose.view)
                 implementation(libs.trixnity.messenger)
                 implementation(libs.trixnity.messenger.compose.view.typography.nunito)
-                implementation(compose.components.resources)
+                implementation(sharedLibs.compose.resources)
                 implementation(sharedLibs.lognity.core)
                 implementation(sharedLibs.lognity.config)
                 implementation(sharedLibs.lognity.core.config)
@@ -159,16 +158,7 @@ kotlin {
         }
         jvmMain {
             dependencies {
-                // this is needed to create lock files working on all machines
-                if (System.getProperty("bundleAll") == "true") {
-                    implementation(compose.desktop.linux_x64)
-                    implementation(compose.desktop.linux_arm64)
-                    implementation(compose.desktop.windows_x64)
-                    implementation(compose.desktop.macos_x64)
-                    implementation(compose.desktop.macos_arm64)
-                } else {
-                    implementation(compose.desktop.currentOs)
-                }
+                implementation(compose.desktop.currentOs)
                 implementation(sharedLibs.kotlinx.coroutines.swing)
                 implementation("com.vdurmont:emoji-java:5.1.1")
             }
@@ -181,11 +171,6 @@ kotlin {
         }
         androidMain {
             dependencies {
-                implementation(compose.uiTooling)
-                implementation(sharedLibs.androidx.appcompat)
-                implementation(sharedLibs.androidx.work.runtime.ktx)
-                implementation(sharedLibs.androidx.lifecycle.livedata.ktx)
-                implementation(sharedLibs.androidx.activity.compose)
                 implementation(libs.trixnity.messenger.notification.unifiedpush)
             }
         }
@@ -208,8 +193,8 @@ kotlin {
 
 dependencies {
     androidTestImplementation(libs.screengrab)
-    androidTestImplementation(sharedLibs.compose.ui.test.junit4.android)
-    debugImplementation(sharedLibs.compose.ui.test.android.manifest)
+    androidTestImplementation(sharedLibs.compose.uiTestJunit4)
+    debugImplementation(sharedLibs.compose.uiTestManifest)
 }
 
 compose {
@@ -608,13 +593,13 @@ flatpak {
 
     flatpakDependencies.set(
         mapOf(
-            "runtime/org.freedesktop.Sdk/x86_64/25.08" to "d1eb1c10d166e7a611e0f26d2332aa9265ce2d048b054dca07f7919258ee1a0b",
-            "runtime/org.freedesktop.Platform.GL.default/x86_64/25.08" to "68b343b37bb6ddfa82518be6c32e28428f36179f1c8536d33d6fff6bc5fc79f1",
-            "runtime/org.freedesktop.Sdk.Locale/x86_64/25.08" to "65e3c95b6a2bd2e81271c76822eb0e16e2573b05b253c9a222da36674f387d43",
-            "runtime/org.freedesktop.Platform.codecs-extra/x86_64/25.08-extra" to "7116be6864f5bfe54ccf6311a20d43616f910a3fb05c2f578a1b3dc4dc09dc0f",
-            "runtime/org.freedesktop.Platform.GL.default/x86_64/25.08-extra" to "c3bb4d072d8f2a5b6cee1566fd3becf5b817e6358cefda5aabbfc86d7608ff32",
-            "runtime/org.freedesktop.Platform/x86_64/25.08" to "a0b687431459280667d830df5c9d0f25e47b9b7d78f212a858eefac086ed2909",
-            "runtime/org.freedesktop.Platform.Locale/x86_64/25.08" to "40d64910991e3e290580e161c3719128cfe8227fbcd8a260e540c5239517c942",
+            "runtime/org.freedesktop.Sdk/x86_64/25.08" to "b90ed309cc1d505dea48b6a2121c5dcfac22868120eee643b0596d31f96b9bb8",
+            "runtime/org.freedesktop.Platform.GL.default/x86_64/25.08" to "bcfd828b0c4739753cadb31964f8c1b0f90c8d2bed79bda2c2760438eb48c4b3",
+            "runtime/org.freedesktop.Sdk.Locale/x86_64/25.08" to "f9c16fbfae8deef61444ffc222c3bf03309cef5a78041c3fcb81644edbe0b678",
+            "runtime/org.freedesktop.Platform.codecs-extra/x86_64/25.08-extra" to "3f422b5306e0c1a1c6855fb36eeff26237d9d9c9a0abcb6d35bd9555ea75efed",
+            "runtime/org.freedesktop.Platform.GL.default/x86_64/25.08-extra" to "37b03bfd88271f49ba6eaa00c07155716870497c66759972bc81d67153e35138",
+            "runtime/org.freedesktop.Platform/x86_64/25.08" to "bd44a6230581917d04f89812a4c21090c304d390edb73995af1c2f9fd8abf4e8",
+            "runtime/org.freedesktop.Platform.Locale/x86_64/25.08" to "084eff7344f995ade230f234d74e3ee0af227eacff65f2d72cec25078783b03f",
         )
     )
 

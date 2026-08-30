@@ -33,7 +33,6 @@ object Main {
         configureLogging()
         startTacitMultiMessenger(args) {
             tammyConfiguration()
-            appIcon = "status_icon.png"
         }
     }
 }

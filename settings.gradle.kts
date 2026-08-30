@@ -20,6 +20,7 @@ dependencyResolutionManagement {
         maven("https://gitlab.com/api/v4/projects/26519650/packages/maven") // trixnity
         maven("https://gitlab.com/api/v4/projects/47538655/packages/maven") // trixnity-messenger
         maven("https://gitlab.com/api/v4/projects/58749664/packages/maven") // sysnotify
+        maven("https://gitlab.com/api/v4/projects/72850047/packages/maven") // sqlitenity
         maven("https://gitlab.com/api/v4/projects/75787860/packages/maven") // compose multiplatform core a11y
         maven("https://gitlab.com/api/v4/projects/75787729/packages/maven") // compose multiplatform a11y
         google()
@@ -27,5 +28,5 @@ dependencyResolutionManagement {
 }
 
 plugins {
-    id("de.connect2x.conventions.c2x-settings-plugin") version "20260606.144834"
+    id("de.connect2x.conventions.c2x-settings-plugin") version "20260828.073728"
 }
