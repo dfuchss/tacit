@@ -72,7 +72,7 @@ private class TacitTimelineViewModelImpl(
                     val avatarImage = avatarUri?.let { uri ->
                         avatarCache.getOrPut(uri) {
                             matrixClient.media
-                                .getThumbnail(uri = uri, width = 64L, height = 64L)
+                                .getThumbnail(uri = uri, width = 64L, height = 64L, maxSize = 512L * 1024L)
                                 .getOrNull()
                                 ?.toByteArray(maxSize = 512L * 1024L)
                         }
@@ -122,7 +122,7 @@ private class TacitTimelineViewModelImpl(
                         val avatarImage = avatarUri?.let { uri ->
                             avatarCache.getOrPut(uri) {
                                 matrixClient.media
-                                    .getThumbnail(uri = uri, width = 48L, height = 48L)
+                                    .getThumbnail(uri = uri, width = 48L, height = 48L, maxSize = 512L * 1024L)
                                     .getOrNull()
                                     ?.toByteArray(maxSize = 512L * 1024L)
                             }

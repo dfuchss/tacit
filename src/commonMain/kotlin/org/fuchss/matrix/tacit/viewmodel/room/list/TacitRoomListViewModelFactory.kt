@@ -310,7 +310,7 @@ private class TacitRoomListViewModelImpl(
                         }
                         val avatar = avatarCache.getOrPut(avatarUri) {
                             matrixClient.media
-                                .getThumbnail(uri = avatarUri, width = 46L, height = 46L)
+                                .getThumbnail(uri = avatarUri, width = 46L, height = 46L, maxSize = 512L * 1024L)
                                 .getOrNull()
                                 ?.toByteArray(maxSize = 512L * 1024L)
                         }
