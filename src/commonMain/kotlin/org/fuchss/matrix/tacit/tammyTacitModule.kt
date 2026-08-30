@@ -1,5 +1,6 @@
 package org.fuchss.matrix.tacit
 
+import de.connect2x.trixnity.messenger.MatrixMessengerConfiguration
 import de.connect2x.trixnity.messenger.compose.view.i18n.I18nView
 import de.connect2x.trixnity.messenger.compose.view.room.RoomView
 import de.connect2x.trixnity.messenger.compose.view.room.settings.ChangeRoomAvatarView
@@ -88,7 +89,7 @@ fun tammyTacitModule() = module {
     }.bind<TimelineElementView<*>>()
     single<MessageBubbleView> { TacitFlatMessageView() }
     single<TimelineView> { TacitTimelineView() }
-    single<AccountSetupWizardStepList> { TacitAccountSetupWizardStepList() }
+    single<AccountSetupWizardStepList> { TacitAccountSetupWizardStepList(get<MatrixMessengerConfiguration>().features) }
     single<UserSettingsView> { TacitUserSettingsView() }
     single<AppearanceSettingsView> { TacitAppearanceSettingsView() }
     single<AppInfoView> { TacitAppInfoView() }

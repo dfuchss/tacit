@@ -28,14 +28,21 @@ import de.connect2x.trixnity.messenger.viewmodel.settings.UserSettingsViewModel
 import org.fuchss.matrix.tacit.views.TacitAttributionFooter
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 
-class TacitAccountSetupWizardStepList : AccountSetupWizardStepList {
-    override val steps = listOf(
-        AccountSetupWizardStep.ExplanationStep,
-        AccountSetupWizardStep.PrivacySettingsStep,
-        AccountSetupWizardStep.NotificationSettingsStep,
-        AccountSetupWizardStep.VerificationStep,
-        AccountSetupWizardStep.ConfirmationStep,
-    )
+class TacitAccountSetupWizardStepList(
+    private val features: MatrixMessengerConfiguration.Features = MatrixMessengerConfiguration.Features(),
+) : AccountSetupWizardStepList {
+    override val steps =
+        if (features.enableNewAccountWizard) {
+            listOf(AccountSetupWizardStep.V2.SettingsStep, AccountSetupWizardStep.V2.DeviceVerificationStep)
+        } else {
+            listOf(
+                AccountSetupWizardStep.ExplanationStep,
+                AccountSetupWizardStep.PrivacySettingsStep,
+                AccountSetupWizardStep.NotificationSettingsStep,
+                AccountSetupWizardStep.VerificationStep,
+                AccountSetupWizardStep.ConfirmationStep,
+            )
+        }
 }
 
 class TacitUserSettingsView : UserSettingsView {
