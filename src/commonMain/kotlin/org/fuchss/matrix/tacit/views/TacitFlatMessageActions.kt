@@ -1,8 +1,10 @@
 package org.fuchss.matrix.tacit.views
 
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Reply
@@ -14,6 +16,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -22,10 +25,13 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
+import de.connect2x.trixnity.messenger.compose.view.buttonPointerModifier
 import de.connect2x.trixnity.messenger.compose.view.common.EmojiSelector
+import de.connect2x.trixnity.messenger.compose.view.common.modifier.focusHighlighting
 import de.connect2x.trixnity.messenger.compose.view.i18n.I18nView
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedDropdownMenu
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedDropdownMenuItem
+import org.fuchss.matrix.tacit.accentColor
 import org.fuchss.matrix.tacit.tacitBorder
 import org.fuchss.matrix.tacit.tacitSurface
 import org.fuchss.matrix.tacit.tacitText
@@ -192,7 +198,7 @@ private fun TacitQuickReactionPickerButton(
             .clip(TacitShapes.compact)
             .background(tacitSurface, TacitShapes.compact)
             .border(1.dp, tacitBorder, TacitShapes.compact)
-            .clickable(onClick = onClick),
+            .tacitInteractive(onClickLabel = emoji, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Text(emoji, color = tacitText)
@@ -210,7 +216,8 @@ internal fun TacitQuickActionButton(
             .clip(TacitShapes.compact)
             .background(tacitSurface, TacitShapes.compact)
             .border(1.dp, tacitBorder, TacitShapes.compact)
-            .clickable(onClick = onClick)
+            .tacitInteractive(onClickLabel = label, onClick = onClick)
+            // unchanged: keeps the button at its current visual size
             .padding(horizontal = 7.dp, vertical = 3.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -220,4 +227,25 @@ internal fun TacitQuickActionButton(
             Text(label ?: "?", color = tacitText)
         }
     }
+}
+
+/**
+ * Makes a bespoke `Box`-based control behave like a real button: a hand cursor on pointer devices
+ * (upstream [buttonPointerModifier], the multiplatform wrapper around `pointerHoverIcon`) and a
+ * visible focus ring driven by upstream [focusHighlighting]. `clickable` with an explicit
+ * interaction source also makes the control focusable and keyboard-activatable, and feeds the very
+ * same source that the focus ring observes.
+ */
+@Composable
+private fun Modifier.tacitInteractive(onClickLabel: String? = null, onClick: () -> Unit): Modifier {
+    val interactionSource = remember { MutableInteractionSource() }
+    return this
+        .focusHighlighting(interactionSource, color = accentColor, shape = TacitShapes.compact)
+        .buttonPointerModifier()
+        .clickable(
+            interactionSource = interactionSource,
+            indication = LocalIndication.current,
+            onClickLabel = onClickLabel,
+            onClick = onClick,
+        )
 }
