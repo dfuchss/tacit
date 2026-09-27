@@ -12,7 +12,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.FirstBaseline
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import de.connect2x.trixnity.messenger.compose.view.DI
 import de.connect2x.trixnity.messenger.compose.view.Platform
@@ -32,6 +36,7 @@ import de.connect2x.trixnity.messenger.util.html.HtmlNode
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.BaseTimelineElementHolderViewModel
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.TimelineElementHolderViewModel
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.message.RoomMessageTimelineElementViewModel
+import kotlin.math.roundToInt
 
 internal data class TacitStandaloneSpoiler(
     val reason: String?,
@@ -146,6 +151,12 @@ private fun TacitMessageTextContent(
         }
 
         if (element is RoomMessageTimelineElementViewModel.TextBased.Notice) {
+            // The icon is anchored to the *first* baseline of the body instead of to the top of the row:
+            // the first line box grows whenever it contains a mention chip (the chip is an inline
+            // placeholder that is centred on the text and much taller than it), which used to push the
+            // text down while a top-aligned icon stayed put. Center alignment would be wrong as soon as
+            // the notice spans more than one line, so we align by the first line's text instead.
+            val opticalCenterAboveBaseline = rememberOpticalCenterAboveBaseline(MaterialTheme.typography.bodyMedium)
             Row(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
@@ -153,7 +164,7 @@ private fun TacitMessageTextContent(
                     imageVector = Icons.Filled.SmartToy,
                     contentDescription = i18n.automated(),
                     modifier = Modifier
-                        .padding(top = 2.dp)
+                        .alignBy { it.measuredHeight / 2 + opticalCenterAboveBaseline }
                         .size(14.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                 )
@@ -162,7 +173,7 @@ private fun TacitMessageTextContent(
                     element = element,
                     standaloneSpoiler = standaloneSpoiler,
                     uriCaller = uriCaller,
-                    modifier = contentModifier,
+                    modifier = contentModifier.alignBy(FirstBaseline),
                 )
             }
         } else {
@@ -174,6 +185,26 @@ private fun TacitMessageTextContent(
                 modifier = contentModifier,
             )
         }
+    }
+}
+
+/**
+ * Distance in pixels between the baseline of a line of [style] text and the optical center of that text
+ * (the middle between the ascent and the descent). Aligning the center of a leading icon this far above the
+ * body's first baseline keeps the icon visually centered on the first line, no matter how tall that line box
+ * becomes because of inline content such as mention chips, and it tracks font scaling and theme typography
+ * instead of a hardcoded offset.
+ */
+@Composable
+private fun rememberOpticalCenterAboveBaseline(style: TextStyle): Int {
+    val textMeasurer = rememberTextMeasurer()
+    return remember(textMeasurer, style) {
+        // RichTextDisplay lays its paragraphs out with the line height dropped, so the line box of a plain
+        // line of text is exactly ascent + descent; measure the same way to get comparable metrics.
+        val measured = textMeasurer.measure(text = "Hg", style = style.copy(lineHeight = TextUnit.Unspecified))
+        val ascent = measured.firstBaseline
+        val descent = measured.size.height - measured.firstBaseline
+        ((ascent - descent) / 2f).roundToInt()
     }
 }
 
