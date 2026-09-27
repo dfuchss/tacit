@@ -10,6 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import de.connect2x.trixnity.core.model.events.m.room.JoinRulesEventContent
 import de.connect2x.trixnity.messenger.compose.view.DI
@@ -19,6 +20,10 @@ import de.connect2x.trixnity.messenger.compose.view.common.HeaderBackButtonType
 import de.connect2x.trixnity.messenger.compose.view.common.Tooltip
 import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.room.settings.*
+import de.connect2x.trixnity.messenger.compose.view.theme.components
+import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedButton
+import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedDropdownMenu
+import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedDropdownMenuItem
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedUserAvatar
 import de.connect2x.trixnity.messenger.viewmodel.room.settings.RoomSettingsViewModel
 import org.fuchss.matrix.tacit.*
@@ -92,7 +97,15 @@ private fun DmRoomSettings(
         error,
         onClose,
         if (isSinglePane) HeaderBackButtonType.BACK else HeaderBackButtonType.CLOSE,
-        null,
+        {
+            // DMs need this at least as much as group rooms: the dev info pane is the only route to
+            // "reset encryption", and a 1:1 chat is the most common place to hit an undecryptable
+            // session. It used to pass no action here, leaving DMs with no in-app recovery path.
+            DefaultSettingsDevInfoAction(
+                i18n = i18n,
+                roomSettingsViewModel = roomSettingsViewModel,
+            )
+        },
     ) {
         SettingsScrollableContent(
             scrollState = scrollState,
@@ -247,18 +260,20 @@ private fun RoomCategoryAssignmentSection(
         )
 
         Box {
-            OutlinedButton(
+            ThemedButton(
+                style = MaterialTheme.components.commonButton,
                 onClick = { menuOpen = true },
                 enabled = !moveInProgress,
             ) {
                 Text(i18n.tacitMoveToCategoryLabel())
             }
 
-            DropdownMenu(
+            ThemedDropdownMenu(
                 expanded = menuOpen,
                 onDismissRequest = { menuOpen = false },
+                offset = DpOffset(0.dp, 4.dp),
             ) {
-                DropdownMenuItem(
+                ThemedDropdownMenuItem(
                     text = { Text(i18n.tacitNoCategoryAssigned()) },
                     onClick = {
                         menuOpen = false
@@ -270,7 +285,7 @@ private fun RoomCategoryAssignmentSection(
                     .sortedBy { it.displayName.lowercase() }
                     .forEach { target ->
                         if (target.roomId == currentCategoryRoomId) return@forEach
-                        DropdownMenuItem(
+                        ThemedDropdownMenuItem(
                             text = { Text(target.displayName) },
                             onClick = {
                                 menuOpen = false
