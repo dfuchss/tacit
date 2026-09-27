@@ -39,6 +39,7 @@ import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.Timeline
 import de.connect2x.trixnity.messenger.viewmodel.util.throttleFirst
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withTimeoutOrNull
 import org.fuchss.matrix.tacit.viewmodel.room.timeline.TacitTimelineViewModel
@@ -141,26 +142,44 @@ class TacitTimelineView : TimelineView {
                         }
                     }
 
-                    LaunchedEffect(scrollTo, renderedTimelineViewElements.value, showTypingIndicator.value) {
-                        if (scrollTo != null) {
-                            val index = withTimeoutOrNull(5.seconds) {
-                                renderedTimelineViewElements.value.indexOfFirst { it.key == scrollTo }
-                            } ?: -1
-                            if (index >= 0) {
-                                listState.scrollIntoView(
-                                    when {
-                                        index == 0 && showTypingIndicator.value -> 0
-                                        showTypingIndicator.value -> index + 1
-                                        else -> index
-                                    }
-                                )
-                                scrollTo = null
-                            }
+                    LaunchedEffect(scrollTo, showTypingIndicator.value) {
+                        val scrollToKey = scrollTo ?: return@LaunchedEffect
+                        // The requested element is not necessarily rendered yet; the view model may
+                        // still be (re-)loading that part of the timeline. `indexOfFirst` does not
+                        // suspend, so actually wait for the element to show up instead of giving up
+                        // after the first look. The budget stays below the view model's own five
+                        // second deadline so that the acknowledgement below still reaches it.
+                        val index = withTimeoutOrNull(4.seconds) {
+                            snapshotFlow { renderedTimelineViewElements.value.indexOfFirst { it.key == scrollToKey } }
+                                .first { it >= 0 }
+                        } ?: -1
+                        when {
+                            // Index 0 is the newest element, i.e. the request is "go to the end of
+                            // the timeline" (that is what the jump-to-end button asks for). Pin to
+                            // the very end instead of using `scrollIntoView`: the latter positions
+                            // the item flush with the viewport start *including* the content
+                            // padding, so the list stops a few pixels short, `isPinnedToEnd` never
+                            // becomes true and the jump-to-end button stays on screen.
+                            index == 0 -> listState.animateScrollToItem(0)
+                            // Any other element is merely revealed, without jumping to the end.
+                            index > 0 -> listState.scrollIntoView(if (showTypingIndicator.value) index + 1 else index)
                         }
+                        // The view model waits for this acknowledgement and warns ("could not
+                        // scroll to ..., because UI did not set finishedScrollTo") when it never
+                        // arrives. Acknowledge even when the element could not be found: there is
+                        // nothing left to wait for in that case either.
+                        finishedScrollTo.value = scrollToKey
+                        scrollTo = null
                     }
 
                     val visibleItems = rememberVisibleItems(listState)
-                    updateVisibleItems(timelineViewModel, visibleItems, renderedTimelineViewElements, finishedScrollTo)
+                    // Deliberately the unfiltered list: `updateVisibleItems` reports its first and
+                    // last element as the loaded timeline bounds, and the view model only accepts a
+                    // view state whose bounds match its own element list exactly. Passing the
+                    // rendered list would report the wrong bounds whenever a redacted element sits
+                    // at either end, and the view state (including `finishedScrollTo`) would then
+                    // never reach the view model.
+                    updateVisibleItems(timelineViewModel, visibleItems, timelineViewElements, finishedScrollTo)
 
                     val isPinnedToEnd = remember {
                         derivedStateOf {
