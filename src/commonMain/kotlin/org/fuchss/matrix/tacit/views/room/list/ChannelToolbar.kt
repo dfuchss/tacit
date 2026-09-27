@@ -1,8 +1,10 @@
 package org.fuchss.matrix.tacit.views.room.list
 
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
@@ -16,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import de.connect2x.trixnity.messenger.compose.view.collectAsTextFieldValueState
 import de.connect2x.trixnity.messenger.compose.view.pointerMoveFilter
@@ -209,13 +212,24 @@ private fun RowScope.ToolbarSearchField(
                         innerTextField()
                     }
                     if (searchText.text.isNotBlank()) {
+                        val clearInteractionSource = remember { MutableInteractionSource() }
                         Icon(
                             Icons.Default.Close,
                             contentDescription = clearSearchLabel,
                             tint = tacitTextMuted,
                             modifier = Modifier
                                 .size(16.dp)
-                                .clickable { onClear() },
+                                .clickable(
+                                    interactionSource = clearInteractionSource,
+                                    indication = LocalIndication.current,
+                                    onClickLabel = clearSearchLabel,
+                                    role = Role.Button,
+                                    onClick = onClear,
+                                )
+                                .tacitInteractive(
+                                    interactionSource = clearInteractionSource,
+                                    shape = TacitShapes.circle,
+                                ),
                         )
                     }
                 }
@@ -247,6 +261,7 @@ private fun ToolbarIconButton(
     primary: Boolean = false,
 ) {
     var hovered by remember { mutableStateOf(false) }
+    val interactionSource = remember { MutableInteractionSource() }
     val background = when {
         !enabled -> tacitSurface
         primary && hovered -> accentColor
@@ -280,7 +295,19 @@ private fun ToolbarIconButton(
                     true
                 },
             )
-            .clickable(enabled = enabled, onClick = onClick),
+            .clickable(
+                interactionSource = interactionSource,
+                indication = LocalIndication.current,
+                enabled = enabled,
+                onClickLabel = contentDescription,
+                role = Role.Button,
+                onClick = onClick,
+            )
+            .tacitInteractive(
+                interactionSource = interactionSource,
+                shape = TacitShapes.control,
+                enabled = enabled,
+            ),
         contentAlignment = Alignment.Center,
     ) {
         Icon(

@@ -1,31 +1,41 @@
 package org.fuchss.matrix.tacit.views.room.list
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MarkAsUnread
 import androidx.compose.material.icons.filled.MarkChatRead
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import de.connect2x.trixnity.core.model.RoomId
 import de.connect2x.trixnity.core.model.events.m.Presence
 import de.connect2x.trixnity.messenger.compose.view.DI
+import de.connect2x.trixnity.messenger.compose.view.common.Tooltip
 import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.pointerMoveFilter
+import de.connect2x.trixnity.messenger.compose.view.theme.components.ButtonStyle
+import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedButton
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedUserAvatar
 import de.connect2x.trixnity.messenger.viewmodel.roomlist.RoomListViewModel
 import org.fuchss.matrix.tacit.*
@@ -56,7 +66,12 @@ internal fun ChannelRow(
     val time = room.time.collectAsState().value
     val notificationCount = room.notificationCount.collectAsState().value
     var hovered by remember { mutableStateOf(false) }
-    val showReadToggle = hovered && !showInviteActions
+    // `hasFocus` covers the row itself and every focusable inside it (e.g. the read toggle), so the
+    // toggle stays composed once the keyboard focus has moved into it.
+    var rowFocused by remember { mutableStateOf(false) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val highlighted = hovered || rowFocused
+    val showReadToggle = highlighted && !showInviteActions
     val itemSelectedBackground = tacitAccent(0.35f)
     val itemHoverBackground = tacitSurfaceAlt
     val itemUnreadBackground = tacitSurfaceAlt
@@ -76,7 +91,7 @@ internal fun ChannelRow(
             .background(
                 when {
                     selected -> itemSelectedBackground
-                    hovered -> itemHoverBackground
+                    highlighted -> itemHoverBackground
                     isUnread -> itemUnreadBackground
                     else -> Color.Transparent
                 }
@@ -85,7 +100,7 @@ internal fun ChannelRow(
                 1.dp,
                 when {
                     selected -> accentColor.copy(alpha = 0.7f)
-                    hovered -> tacitBorder
+                    highlighted -> tacitBorder
                     else -> Color.Transparent
                 },
                 TacitShapes.card,
@@ -100,125 +115,249 @@ internal fun ChannelRow(
                     true
                 },
             )
-            .clickable {
+            .onFocusChanged { rowFocused = it.hasFocus }
+            .clickable(
+                interactionSource = interactionSource,
+                indication = LocalIndication.current,
+                role = Role.Button,
+            ) {
                 if (mode is RoomListMode.DirectMessages) {
                     TacitRoomNavigationState.showMembersPane = false
                 }
                 roomListViewModel.selectRoom(room.roomId)
             }
+            .tacitInteractive(interactionSource = interactionSource, shape = TacitShapes.card)
             .padding(horizontal = 10.dp, vertical = 8.dp),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(
-                modifier = Modifier
-                    .width(40.dp),
-                contentAlignment = Alignment.CenterStart,
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                if (isDirectRoom && presence == Presence.ONLINE) {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(dmPresenceColor(presence).copy(alpha = 0.18f))
-                            .border(
-                                width = 1.5.dp,
-                                color = dmPresenceColor(presence).copy(alpha = if (selected) 0.95f else 0.72f),
-                                shape = CircleShape,
-                            ),
-                        contentAlignment = Alignment.Center,
-                    ) {
+                Box(
+                    modifier = Modifier
+                        .width(40.dp),
+                    contentAlignment = Alignment.CenterStart,
+                ) {
+                    val presenceLabel = if (isDirectRoom) dmPresenceLabel(presence, i18n) else null
+                    if (presenceLabel != null) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(dmPresenceColor(presence).copy(alpha = 0.18f))
+                                .border(
+                                    width = 1.5.dp,
+                                    color = dmPresenceColor(presence).copy(alpha = if (selected) 0.95f else 0.72f),
+                                    shape = CircleShape,
+                                )
+                                // The ring is the only presence cue; without this it is colour-only
+                                // and invisible to screen readers.
+                                .semantics { contentDescription = presenceLabel },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            ThemedUserAvatar(
+                                initials = roomImageInitials ?: dmInitials(channelTitle),
+                                image = roomImage,
+                                size = 28.dp,
+                            )
+                        }
+                    } else {
                         ThemedUserAvatar(
                             initials = roomImageInitials ?: dmInitials(channelTitle),
                             image = roomImage,
                             size = 28.dp,
                         )
                     }
+                }
+                Spacer(Modifier.width(8.dp))
+
+                if (showInviteActions) {
+                    // Invite rows squeeze two independently ellipsized lines into whatever the
+                    // actions leave over ("Invitati…" / "from ta…"). Give the text the full row
+                    // width (the actions move to their own line below) and offer the full text on
+                    // hover for the rest.
+                    val inviteTooltip = listOfNotNull(
+                        channelTitle.takeIf { it.isNotBlank() },
+                        lastMessage?.takeIf { it.isNotBlank() },
+                    ).joinToString(" · ")
+                    Tooltip(
+                        tooltip = { Text(inviteTooltip) },
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        ChannelRowText(
+                            channelTitle = channelTitle,
+                            lastMessage = lastMessage,
+                            selected = selected,
+                            isUnread = isUnread,
+                            titleMaxLines = 2,
+                        )
+                    }
                 } else {
-                    ThemedUserAvatar(
-                        initials = roomImageInitials ?: dmInitials(channelTitle),
-                        image = roomImage,
-                        size = 28.dp,
+                    ChannelRowText(
+                        modifier = Modifier.weight(1f),
+                        channelTitle = channelTitle,
+                        lastMessage = lastMessage,
+                        selected = selected,
+                        isUnread = isUnread,
+                        titleMaxLines = 1,
                     )
                 }
-            }
-            Spacer(Modifier.width(8.dp))
 
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = channelTitle,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = if (selected) Color.White else tacitText,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        fontWeight = if (isUnread && !selected) FontWeight.SemiBold else FontWeight.Normal,
-                        modifier = Modifier.weight(1f, fill = false),
+                if (!showInviteActions) {
+                    if (!time.isNullOrBlank()) {
+                        Text(
+                            text = time,
+                            color = if (selected) tacitText else tacitTextMuted,
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier
+                                .padding(end = 6.dp)
+                                .alpha(if (showReadToggle) 0f else 1f),
+                            maxLines = 1,
+                        )
+                    }
+
+                    TrailingRoomIndicator(
+                        showReadToggle = showReadToggle,
+                        isUnread = isUnread,
+                        notificationCount = notificationCount,
+                        badgeBackground = badgeBackground,
+                        badgeContent = badgeContent,
+                        selected = selected,
+                        onToggle = {
+                            if (isUnread) room.markRead() else room.markUnread()
+                        },
+                        contentDescription = if (isUnread) i18n.markRoomAsRead() else i18n.markRoomAsUnread(),
                     )
                 }
-                if (!lastMessage.isNullOrBlank()) {
-                    Text(
-                        text = lastMessage,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (selected) tacitText else tacitTextMuted,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
-
-            if (!time.isNullOrBlank()) {
-                Text(
-                    text = time,
-                    color = if (selected) tacitText else tacitTextMuted,
-                    style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier
-                        .padding(end = 6.dp)
-                        .alpha(if (showReadToggle) 0f else 1f),
-                    maxLines = 1,
-                )
-            }
-
-            if (!showInviteActions) {
-                TrailingRoomIndicator(
-                    showReadToggle = showReadToggle,
-                    isUnread = isUnread,
-                    notificationCount = notificationCount,
-                    badgeBackground = badgeBackground,
-                    badgeContent = badgeContent,
-                    selected = selected,
-                    onToggle = {
-                        if (isUnread) room.markRead() else room.markUnread()
-                    },
-                    contentDescription = if (isUnread) i18n.markRoomAsRead() else i18n.markRoomAsUnread(),
-                )
             }
 
             if (showInviteActions) {
-                Row(
-                    modifier = Modifier.padding(start = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    TextButton(
-                        onClick = { onDeclineInvite?.invoke() },
-                        enabled = !inviteActionInProgress,
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
-                    ) {
-                        Text(i18n.tacitDecline())
-                    }
-                    TextButton(
-                        onClick = { onAcceptInvite?.invoke() },
-                        enabled = !inviteActionInProgress,
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
-                    ) {
-                        Text(i18n.tacitAccept())
-                    }
-                }
+                InviteActions(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 6.dp),
+                    declineLabel = i18n.tacitDecline(),
+                    acceptLabel = i18n.tacitAccept(),
+                    onDecline = { onDeclineInvite?.invoke() },
+                    onAccept = { onAcceptInvite?.invoke() },
+                    enabled = !inviteActionInProgress,
+                )
             }
         }
+    }
+}
 
+@Composable
+private fun ChannelRowText(
+    channelTitle: String,
+    lastMessage: String?,
+    selected: Boolean,
+    isUnread: Boolean,
+    titleMaxLines: Int,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier) {
+        Text(
+            text = channelTitle,
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (selected) Color.White else tacitText,
+            maxLines = titleMaxLines,
+            overflow = TextOverflow.Ellipsis,
+            fontWeight = if (isUnread && !selected) FontWeight.SemiBold else FontWeight.Normal,
+        )
+        if (!lastMessage.isNullOrBlank()) {
+            Text(
+                text = lastMessage,
+                style = MaterialTheme.typography.bodySmall,
+                color = if (selected) tacitText else tacitTextMuted,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+/**
+ * Accept/decline pair for invite rows.
+ *
+ * Styled once here instead of repeating raw Material `TextButton`s; also used for the
+ * "selected guild" invite row in `RoomListBody`.
+ */
+@Composable
+internal fun InviteActions(
+    declineLabel: String,
+    acceptLabel: String,
+    onDecline: () -> Unit,
+    onAccept: () -> Unit,
+    enabled: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        InviteActionButton(
+            label = declineLabel,
+            onClick = onDecline,
+            enabled = enabled,
+            primary = false,
+        )
+        InviteActionButton(
+            label = acceptLabel,
+            onClick = onAccept,
+            enabled = enabled,
+            primary = true,
+        )
+    }
+}
+
+@Composable
+private fun InviteActionButton(
+    label: String,
+    onClick: () -> Unit,
+    enabled: Boolean,
+    primary: Boolean,
+) {
+    val contentPadding = PaddingValues(horizontal = 12.dp, vertical = 2.dp)
+    val focusedBorder = BorderStroke(2.dp, tacitText)
+    val style = if (primary) {
+        ButtonStyle.filled(
+            shape = TacitShapes.compact,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = accentColor,
+                contentColor = tacitOnAccent(),
+                disabledContainerColor = tacitSurfaceAlt,
+                disabledContentColor = tacitTextMuted,
+            ),
+            elevation = null,
+            contentPadding = contentPadding,
+            textStyle = MaterialTheme.typography.labelMedium,
+            focusedBorder = focusedBorder,
+        )
+    } else {
+        ButtonStyle.outlined(
+            shape = TacitShapes.compact,
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = tacitText,
+                disabledContentColor = tacitTextMuted,
+            ),
+            enabledBorder = BorderStroke(1.dp, tacitBorder),
+            disabledBorder = BorderStroke(1.dp, tacitBorder),
+            contentPadding = contentPadding,
+            textStyle = MaterialTheme.typography.labelMedium,
+            focusedBorder = focusedBorder,
+        )
+    }
+
+    ThemedButton(
+        onClick = onClick,
+        enabled = enabled,
+        style = style,
+        modifier = Modifier.heightIn(min = 30.dp),
+    ) {
+        Text(label, maxLines = 1)
     }
 }
 
@@ -280,6 +419,7 @@ private fun ReadToggleButton(
     contentDescription: String,
 ) {
     var hovered by remember { mutableStateOf(false) }
+    val interactionSource = remember { MutableInteractionSource() }
     val background = if (hovered) tacitSurfaceAlt else tacitSurface
     val borderColor = tacitBorder
     val iconTint = if (isUnread) accentColor else tacitText
@@ -301,7 +441,16 @@ private fun ReadToggleButton(
                     true
                 },
             )
-            .clickable(onClick = onToggle),
+            // Own focus target, so the toggle is reachable by keyboard instead of being buried in
+            // the row-wide clickable.
+            .clickable(
+                interactionSource = interactionSource,
+                indication = LocalIndication.current,
+                onClickLabel = contentDescription,
+                role = Role.Button,
+                onClick = onToggle,
+            )
+            .tacitInteractive(interactionSource = interactionSource, shape = TacitShapes.compact),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
@@ -374,6 +523,7 @@ private fun DmStatTile(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
     Column(
         modifier = modifier
             .clip(TacitShapes.control)
@@ -383,7 +533,13 @@ private fun DmStatTile(
                 color = if (selected) accentColor else tacitBorder,
                 shape = TacitShapes.control,
             )
-            .clickable(onClick = onClick)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = LocalIndication.current,
+                role = Role.Button,
+                onClick = onClick,
+            )
+            .tacitInteractive(interactionSource = interactionSource, shape = TacitShapes.control)
             .padding(horizontal = 10.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {

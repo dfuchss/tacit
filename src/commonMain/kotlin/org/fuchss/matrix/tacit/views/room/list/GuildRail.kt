@@ -2,6 +2,7 @@ package org.fuchss.matrix.tacit.views.room.list
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -14,6 +15,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -28,12 +30,15 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import de.connect2x.trixnity.messenger.compose.view.DI
 import de.connect2x.trixnity.messenger.abi.TrixnityMessengerPrivateApi
+import de.connect2x.trixnity.messenger.compose.view.buttonPointerModifier
+import de.connect2x.trixnity.messenger.compose.view.common.Tooltip
 import de.connect2x.trixnity.messenger.compose.view.files.decodeToImageBitmapOrNull
 import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.pointerMoveFilter
@@ -61,6 +66,7 @@ internal fun GuildRail(
     onReorderGuild: (fromIndex: Int, toIndex: Int) -> Unit,
     onCreateGuild: () -> Unit,
 ) {
+    val i18n = DI.get<TacitI18nView>()
     val density = LocalDensity.current
     val guildStepPx = remember(density) { with(density) { (guildPillSize + guildPillSpacing).toPx() } }
     var draggingGuildKey by remember { mutableStateOf<String?>(null) }
@@ -97,14 +103,16 @@ internal fun GuildRail(
             .padding(vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        GuildPill(
-            label = null,
-            selected = selectedGuild == null,
-            onClick = { onSelectGuild(null) },
-            dmIndicator = false, // No small icon at the bottom right for now :D
-            isTacitHome = true,
-            unreadCount = dmUnreadCount,
-        )
+        Tooltip(tooltip = { Text(i18n.tacitAllDms()) }) {
+            GuildPill(
+                label = null,
+                selected = selectedGuild == null,
+                onClick = { onSelectGuild(null) },
+                dmIndicator = false, // No small icon at the bottom right for now :D
+                isTacitHome = true,
+                unreadCount = dmUnreadCount,
+            )
+        }
 
         Spacer(Modifier.height(TacitSpacing.paneGap))
 
@@ -115,6 +123,8 @@ internal fun GuildRail(
         ) {
             itemsIndexed(guilds, key = { _, g -> "${g.userId.full}:${g.roomId.full}" }) { index, guild ->
                 val guildKey = guild.key()
+                val guildName = guild.displayName?.ifBlank { null } ?: guild.roomId.full
+                val pillInteractionSource = remember(guildKey) { MutableInteractionSource() }
                 if (hintBeforeIndex == index) {
                     GuildDropHint()
                 }
@@ -131,10 +141,15 @@ internal fun GuildRail(
                         }
                         .alpha(if (draggingGuildKey == guildKey) 0.96f else 1f)
                         .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
+                            interactionSource = pillInteractionSource,
                             indication = null,
+                            onClickLabel = guildName,
+                            role = Role.Button,
                             onClick = { onSelectGuild(guild) },
                         )
+                        // Drag-to-reorder has no static cue of its own: at least offer the hand
+                        // cursor over the whole pill.
+                        .buttonPointerModifier()
                         .pointerInput(guilds, guildKey, index) {
                             detectDragGestures(
                                 onDragStart = {
@@ -169,13 +184,20 @@ internal fun GuildRail(
                             )
                         }
                 ) {
-                    GuildPill(
-                        label = guild.guildLabel(),
-                        selected = selectedGuild?.roomId == guild.roomId && selectedGuild.userId == guild.userId,
-                        onClick = null,
-                        avatarImage = guildAvatars[guild.key()],
-                        unreadCount = guildUnreadCounts[guild.key()] ?: 0,
-                    )
+                    // `guildLabel()` collapses the name to 1-3 letters, so "General" and "Gaming"
+                    // look the same; the tooltip is the only way to tell them apart short of
+                    // clicking.
+                    Tooltip(tooltip = { Text(guildName) }) {
+                        GuildPill(
+                            label = guild.guildLabel(),
+                            selected = selectedGuild?.roomId == guild.roomId && selectedGuild.userId == guild.userId,
+                            onClick = null,
+                            avatarImage = guildAvatars[guild.key()],
+                            unreadCount = guildUnreadCounts[guild.key()] ?: 0,
+                            interactionSource = pillInteractionSource,
+                            showDragAffordance = guilds.size > 1 && draggingGuildKey == null,
+                        )
+                    }
                 }
             }
             if (hintBeforeIndex == guilds.size) {
@@ -220,32 +242,43 @@ private fun GuildDropHint() {
 private fun GuildCreateButton(onClick: () -> Unit) {
     val i18n = DI.get<TacitI18nView>()
     var hovered by remember { mutableStateOf(false) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val label = i18n.tacitCreateGuildDescriptionIcon()
 
-    Box(
-        modifier = Modifier
-            .padding(top = TacitSpacing.compactGap)
-            .size(guildPillSize)
-            .clip(CircleShape)
-            .background(if (hovered) tacitSurfaceAlt else tacitSurface)
-            .border(1.dp, tacitBorder, CircleShape)
-            .pointerMoveFilter(
-                onEnter = {
-                    hovered = true
-                    true
-                },
-                onExit = {
-                    hovered = false
-                    true
-                },
+    Tooltip(tooltip = { Text(label) }) {
+        Box(
+            modifier = Modifier
+                .padding(top = TacitSpacing.compactGap)
+                .size(guildPillSize)
+                .clip(CircleShape)
+                .background(if (hovered) tacitSurfaceAlt else tacitSurface)
+                .border(1.dp, tacitBorder, CircleShape)
+                .pointerMoveFilter(
+                    onEnter = {
+                        hovered = true
+                        true
+                    },
+                    onExit = {
+                        hovered = false
+                        true
+                    },
+                )
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = LocalIndication.current,
+                    onClickLabel = label,
+                    role = Role.Button,
+                    onClick = onClick,
+                )
+                .tacitInteractive(interactionSource = interactionSource, shape = CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                Icons.Default.Add,
+                contentDescription = label,
+                tint = if (hovered) Color.White else accentColor
             )
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            Icons.Default.Add,
-            contentDescription = i18n.tacitCreateGuildDescriptionIcon(),
-            tint = if (hovered) Color.White else accentColor
-        )
+        }
     }
 }
 
@@ -259,9 +292,15 @@ private fun GuildPill(
     isTacitHome: Boolean = false,
     avatarImage: ByteArray? = null,
     unreadCount: Int = 0,
+    interactionSource: MutableInteractionSource? = null,
+    showDragAffordance: Boolean = false,
 ) {
     val i18n = DI.get<TacitI18nView>()
     var hovered by remember { mutableStateOf(false) }
+    // When the pill itself is not clickable, the caller owns the click (and therefore the focus);
+    // reuse its interaction source so the focus ring is drawn around the pill, not around the row.
+    val ownInteractionSource = remember { MutableInteractionSource() }
+    val pillInteractionSource = interactionSource ?: ownInteractionSource
     val pillShape = if (selected) TacitShapes.selectedPill else TacitShapes.circle
     @OptIn(TrixnityMessengerPrivateApi::class)
     val avatarBitmap = remember(avatarImage) { avatarImage?.decodeToImageBitmapOrNull() }
@@ -314,9 +353,19 @@ private fun GuildPill(
                         },
                     )
                     .then(
-                        if (onClick != null) Modifier.clickable(onClick = onClick)
-                        else Modifier
-                    ),
+                        if (onClick != null) {
+                            Modifier.clickable(
+                                interactionSource = pillInteractionSource,
+                                indication = LocalIndication.current,
+                                onClickLabel = label,
+                                role = Role.Button,
+                                onClick = onClick,
+                            )
+                        } else {
+                            Modifier
+                        }
+                    )
+                    .tacitInteractive(interactionSource = pillInteractionSource, shape = pillShape),
                 contentAlignment = Alignment.Center,
             ) {
                 if (isTacitHome) {
@@ -366,6 +415,18 @@ private fun GuildPill(
                         )
                     }
                 }
+            }
+            if (showDragAffordance && hovered) {
+                // Static hint that the pill can be dragged; GuildDropHint only shows up once a drag
+                // is already running.
+                Icon(
+                    Icons.Default.DragIndicator,
+                    contentDescription = null,
+                    tint = tacitTextMuted,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .size(12.dp),
+                )
             }
             if (unreadCount > 0) {
                 Box(
