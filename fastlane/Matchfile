@@ -1,0 +1,18 @@
+CI_JOB_TOKEN = ENV["CI_JOB_TOKEN"]
+git_url("https://gitlab-ci-token:" + CI_JOB_TOKEN + "@gitlab.com/connect2x/build-infrastructure/ios-distribution-match.git")
+
+#git_url("git@gitlab.com:connect2x/build-infrastructure/ios-distribution-match.git")
+
+git_branch("main")
+
+storage_mode("git")
+
+type("appstore") # The default type, can be: appstore, adhoc, enterprise or development
+
+app_identifier(["de.connect2x.tammy"])
+# username("user@fastlane.tools") # Your Apple Developer Portal username
+
+# For all available options run `fastlane match --help`
+# Remove the # in the beginning of the line to enable the other options
+
+# The docs are available on https://docs.fastlane.tools/actions/match

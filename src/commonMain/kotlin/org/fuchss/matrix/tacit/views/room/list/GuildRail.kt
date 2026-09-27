@@ -33,7 +33,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import de.connect2x.trixnity.messenger.compose.view.DI
-import de.connect2x.trixnity.messenger.compose.view.files.toImageBitmap
+import de.connect2x.trixnity.messenger.abi.TrixnityMessengerPrivateApi
+import de.connect2x.trixnity.messenger.compose.view.files.decodeToImageBitmapOrNull
 import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.pointerMoveFilter
 import org.fuchss.matrix.tacit.*
@@ -262,6 +263,8 @@ private fun GuildPill(
     val i18n = DI.get<TacitI18nView>()
     var hovered by remember { mutableStateOf(false) }
     val pillShape = if (selected) TacitShapes.selectedPill else TacitShapes.circle
+    @OptIn(TrixnityMessengerPrivateApi::class)
+    val avatarBitmap = remember(avatarImage) { avatarImage?.decodeToImageBitmapOrNull() }
 
     Box(
         modifier = Modifier
@@ -326,10 +329,10 @@ private fun GuildPill(
                             .padding(2.dp)
                             .clip(if (selected) TacitShapes.control else TacitShapes.circle),
                     )
-                } else if (avatarImage != null && avatarImage.toImageBitmap() != null) {
+                } else if (avatarBitmap != null) {
 
                     Image(
-                        bitmap = avatarImage.toImageBitmap()!!,
+                        bitmap = avatarBitmap,
                         contentDescription = label,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier

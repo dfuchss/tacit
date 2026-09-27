@@ -12,20 +12,48 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Changed
 
-- DEPENDENCY: bump c2x-settings-plugin version
-- Use gitlab shell runners
-- Update Trixnity Messenger to 4.10.0
-- Dropped macOS x64 support
-
 ### Deprecated
 
 ### Removed
 
 ### Fixed
 
-- iOS: push notifications register for sandbox or production environment
-
 ### Security
+
+## 26.9.2
+
+### Changed
+
+- Update Trixnity Messenger to 4.10.3
+
+## 26.9.1
+
+### Added
+
+- Automated iOS releases
+
+### Changed
+
+- Update Trixnity Messenger to 4.10.2
+
+## 26.9.0
+
+### Changed
+
+- Update Trixnity Messenger to 4.10.1
+
+## 26.8.0
+
+### Changed
+
+- DEPENDENCY: bump c2x-settings-plugin version
+- Use gitlab shell runners
+- Update Trixnity Messenger to 4.10.0
+- Dropped macOS x64 support
+
+### Fixed
+
+- iOS: push notifications register for sandbox or production environment
 
 ## 26.6.3
 

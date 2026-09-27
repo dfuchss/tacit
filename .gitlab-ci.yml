@@ -42,6 +42,8 @@ compile:android:
     - ./gradlew
       uploadAndroidDistributable
       --stacktrace
+  after_script:
+    - rm android_keystore.jks
 
 compile:linux-x64:
   stage: compile
@@ -102,6 +104,8 @@ compile:macos-arm64:
     - ./gradlew
       uploadPlatformDistributable
       --stacktrace
+  after_script:
+    - security delete-keychain "$(realpath apple_keychain.keychain)"
 
 compile:web:
   stage: compile
@@ -253,6 +257,34 @@ publish:release:playstore:
     - echo $ANDROID_SERVICE_ACCOUNT_JSON_BASE64 | base64 --decode > android_service-account.json
   script:
     - fastlane android release
+
+publish:release:ios:
+  stage: publish
+  interruptible: true
+  tags: [ "c2x","mac","arm64","shell","medium" ]
+  timeout: 2h
+  rules:
+    - *if-release
+  artifacts:
+    name: build
+    when: always
+    expire_in: 1 day
+    paths:
+      - "iosApp/build/tammy-archive.xcarchive"
+  before_script:
+    - echo $APPLE_MOBILE_PROVISION | base64 --decode > tammy.mobileprovision
+    - echo $APPLE_DEV_CERT_BASE64 | base64 --decode > dev.cer
+    - echo $APPLE_DEV_PK_BASE64 | base64 --decode > dev.p12
+    - echo $APPLE_DISTRIBUTION_CERT_BASE64 | base64 --decode > dist.cer
+    - echo $APPLE_DISTRIBUTION_PK_BASE64 | base64 --decode > dist.p12
+    - echo $APPLE_AUTH_KEY_BASE64 | base64 --decode > AuthKey_9C3783X4A3.p8
+    - xcodebuild -version # might help to identify differences in local and remote XCode versions
+  script:
+    - ./gradlew iosMarketingVersion
+    - fastlane ios beta --verbose
+  after_script:
+    - fastlane ios cleanup --verbose # removes fastlane setup like the temp keychain
+    - rm tammy.mobileprovision dev.cer dev.p12 dist.cer dist.p12 AuthKey_9C3783X4A3.p8
 
 publish:release:gitlab:
   stage: publish

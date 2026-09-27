@@ -146,6 +146,15 @@ After that you can stop the first script and delete the emulators:
 ./fastlane/delete_screenshot_emulators.sh
 ```
 
+For **iOS** you have to manually add the following files under `Build Phases` -> `Copy Bundle Resources` (otherwise fastlane will crash in the CI...):
+* lognity.json
+* Tammy.icon
+* main.swift
+* all the files in `iosApp/Screenshots`
+* Since the CI will crash if those files are mentioned in the .xcproject file, do **NOT** commit those changes!
+
+Then, run `fastlane ios screenshots`
+
 ## Important environment variables
 
 This does not include default GitLab environment variables that are used.

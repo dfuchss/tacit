@@ -153,6 +153,7 @@ kotlin {
                 implementation(sharedLibs.lognity.core)
                 implementation(sharedLibs.lognity.config)
                 implementation(sharedLibs.lognity.core.config)
+                implementation(libs.okio.fakefilesystem) // for iOS, shared code needs to be located here
             }
             //kotlin.srcDir(buildConfigGenerator.map { it.outputs })
         }
@@ -183,10 +184,11 @@ kotlin {
         commonTest {
             dependencies {
                 implementation(kotlin("test"))
-                @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
-                implementation(compose.uiTest)
-                implementation(libs.okio.fakefilesystem)
+                implementation(sharedLibs.compose.uiTest)
             }
+        }
+        androidInstrumentedTest {
+            dependsOn(commonTest.get())
         }
     }
 }
@@ -365,6 +367,22 @@ tasks.register("scanAndroidLibreForNonFreeClasses", Exec::class) {
     }
 }
 
+val iosMarketingVersion by tasks.registering {
+    group = "build config"
+    description = "we need a MARKETING_VERSION for iOS releases that is coming from gradle"
+
+    val generatedSrc = layout.buildDirectory.dir("generatedSrc/")
+    doLast {
+        val outputFile = generatedSrc.get().file("version.txt")
+        outputFile.asFile.apply {
+            ensureParentDirsCreated()
+            createNewFile()
+            writeText(appPublishedVersion)
+        }
+    }
+    outputs.dirs(generatedSrc)
+}
+
 val gitLabProjectUrl =
     "${System.getenv("CI_API_V4_URL")}/projects/${System.getenv("CI_PROJECT_ID")}"
 
@@ -406,14 +424,6 @@ val distributions = listOf(
     ),
     Distribution(
         "zip", "Linux", "x64",
-        listOf("packageReleasePlatformZip")
-    ),
-    Distribution(
-        "dmg", "MacOS", "x64",
-        listOf("packageReleaseDmg", "notarizeReleaseDmg")
-    ),
-    Distribution(
-        "zip", "MacOS", "x64",
         listOf("packageReleasePlatformZip")
     ),
     Distribution(
@@ -694,7 +704,7 @@ val platformZipDistribution =
     distributions.first { it.type == "zip" && it.platform == platformName && it.architecture == architectureName }
 val zipDistributionDir = distributionDir.map { it.dir("zip").also { it.asFile.mkdirs() } }
 
-val packageReleasePlatformZip by tasks.creating(Zip::class) {
+val packageReleasePlatformZip by tasks.registering(Zip::class) {
     group = "compose desktop"
     from(appDistributionDir)
 

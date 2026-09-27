@@ -15,6 +15,7 @@ out/
 
 ### Mac OS ###
 .DS_Store
+iosApp/**/xcuserdata/
 
 
 app-data/
