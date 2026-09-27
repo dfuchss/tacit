@@ -83,8 +83,10 @@ class TacitTypingIndicatorView : TypingIndicatorView {
     }
 }
 
+private val whitespaceRegex = Regex("\\s+")
+
 private fun String.typingInitials(): String {
-    val parts = split(Regex("\\s+")).filter { it.isNotBlank() }
+    val parts = split(whitespaceRegex).filter { it.isNotBlank() }
     return when {
         parts.isEmpty() -> "?"
         parts.size == 1 -> parts.first().take(2).uppercase()
