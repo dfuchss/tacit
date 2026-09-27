@@ -157,6 +157,36 @@ internal class MatrixSession(private val http: MatrixHttp, val userId: String, v
         setAccountData("m.direct", buildJsonObject { put(otherUserId, buildJsonArray { add(kotlinx.serialization.json.JsonPrimitive(roomId)) }) })
     }
 
+    /** Event id of the newest `m.room.message` in [roomId] whose body contains [bodyFragment], polling briefly. */
+    fun findMessageEventId(roomId: String, bodyFragment: String, attempts: Int = 40): String {
+        repeat(attempts) {
+            val hit = call("GET", "/_matrix/client/v3/rooms/${encodePath(roomId)}/messages?dir=b&limit=30")["chunk"]?.jsonArray
+                ?.map { it.jsonObject }
+                ?.firstOrNull {
+                    it["type"]?.jsonPrimitive?.content == "m.room.message" &&
+                        it["content"]?.jsonObject?.get("body")?.jsonPrimitive?.content?.contains(bodyFragment) == true
+                }
+            if (hit != null) return hit.getValue("event_id").jsonPrimitive.content
+            Thread.sleep(250)
+        }
+        error("no message containing '$bodyFragment' in $roomId")
+    }
+
+    /** Reacts to [eventId] with [key] (an `m.reaction` annotation). */
+    fun react(roomId: String, eventId: String, key: String) {
+        call(
+            "PUT",
+            "/_matrix/client/v3/rooms/${encodePath(roomId)}/send/m.reaction/${UUID.randomUUID()}",
+            buildJsonObject {
+                put("m.relates_to", buildJsonObject {
+                    put("rel_type", "m.annotation")
+                    put("event_id", eventId)
+                    put("key", key)
+                })
+            },
+        )
+    }
+
     /** Body of the newest `m.room.message` in [roomId] as the server sees it (null if none yet). */
     fun lastMessageBody(roomId: String): String? =
         call("GET", "/_matrix/client/v3/rooms/${encodePath(roomId)}/messages?dir=b&limit=10")["chunk"]?.jsonArray

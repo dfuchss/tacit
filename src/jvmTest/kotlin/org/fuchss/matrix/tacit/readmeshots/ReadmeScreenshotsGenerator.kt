@@ -13,12 +13,15 @@ import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isPopup
 import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.performScrollToIndex
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.SkikoComposeUiTest
 import androidx.compose.ui.unit.Density
@@ -169,18 +172,34 @@ class ReadmeScreenshotsGenerator {
         ollie.setPresence("online")
         mira.sendText(miraDm, "Did you see the new trail photos? 📸")
         ollie.sendText(ollieDm, "Thanks for the tips yesterday, that fixed it!")
+        // Runs of consecutive messages from one sender (remote and local) exercise message grouping.
         val kickoff = mira.sendText(hike, "Hey all 👋 who's in for the ridge trail on Saturday?")
+        mira.sendText(hike, "Forecast says sunny all day ☀️")
+        mira.sendText(hike, "I was thinking we start early and do the full loop")
         ollie.sendText(hike, "Count me in 🥾 I'll bring the map")
         pip.sendReply(hike, "Saturday works for me too!", replyTo = kickoff)
         mira.sendText(hike, "Great, 9 o'clock at the trailhead then? 🌄")
         // The local user answers last, so the timeline sits at the bottom with both bubble styles visible.
-        ui.await(30_000, "open the group chat and answer") {
+        ui.await(45_000, "open the group chat and answer") {
             val timeline = app.selectRoom(RoomId(hike))
             delay(1_000)
-            with(app) { sendMessage(timeline.inputAreaViewModel, "Perfect, see you all there 😊") }
+            with(app) {
+                sendMessage(timeline.inputAreaViewModel, "Perfect, see you all there 😊")
+                delay(700)
+                sendMessage(timeline.inputAreaViewModel, "I'll bring snacks for everyone")
+                delay(700)
+                sendMessage(timeline.inputAreaViewModel, "And the good camera 📷")
+            }
         }
+        // Reactions on the local user's message (remote users react).
+        val perfectEventId = ollie.findMessageEventId(hike, "see you all there")
+        ollie.react(hike, perfectEventId, "🎉")
+        pip.react(hike, perfectEventId, "🎉")
+        mira.react(hike, perfectEventId, "🥾")
         step("overview") {
-            ui.waitForNode("own message in the group chat", hasText("see you all there", substring = true))
+            ui.waitForNode("own message in the group chat", hasText("good camera", substring = true))
+            ui.settleForCapture() // the lazy list only composes visible rows: anchor it at the end first
+            ui.waitForNode("reactions on the own message", hasText("🎉", substring = true))
             ui.settleForCapture()
             ui.capture("overview")
         }
@@ -210,6 +229,8 @@ class ReadmeScreenshotsGenerator {
         }
         tacit2.setPresence("online")
         tacit2.sendText(dmRoomId, "Howdy 👋")
+        tacit2.sendText(dmRoomId, "Just installed Tacit")
+        tacit2.sendText(dmRoomId, "Looks neat so far!")
         step("chatting") {
             ui.await(30_000, "open DM and send a message") {
                 val timeline = app.selectRoom(dmRoom)
@@ -218,6 +239,9 @@ class ReadmeScreenshotsGenerator {
             }
             ui.waitForNode("own message in the timeline", hasText("Let's chat 😊", substring = true))
             ui.waitForNode("tacit2's message in the timeline", hasText("Howdy", substring = true))
+            tacit2.react(dmRoomId, tacit2.findMessageEventId(dmRoomId, "Let's chat"), "👍")
+            ui.settleForCapture()
+            ui.waitForNode("reaction in the DM", hasText("👍", substring = true))
             ui.settleForCapture()
             ui.capture("chatting")
         }
@@ -236,7 +260,9 @@ class ReadmeScreenshotsGenerator {
         // 5. guild_create: the real dialog, filled in, before creating the guild through it
         step("guild_create") {
             ui.settleForCapture()
-            ui.click(hasContentDescription("Create guild"))
+            ui.click(hasText("has created the chat", substring = true)) // moves focus out of the composer
+            ui.parkPointer()
+            ui.activate(hasContentDescription("Create guild")) // no pointer hover: the button has a tooltip
             ui.waitForNode("create guild dialog", hasText("Create Guild"))
             ui.typeInto(hasText("Guild name"), "Adventure")
             ui.typeInto(hasText("Guild topic (optional)"), "This is my guild for adventurers :)")
@@ -260,7 +286,9 @@ class ReadmeScreenshotsGenerator {
         // 7. guild_invite: the real invite dialog with a user directory hit
         step("guild_invite") {
             ui.settleForCapture()
-            ui.click(hasContentDescription("Invite members"))
+            ui.click(hasText("has created the group", substring = true))
+            ui.parkPointer()
+            ui.activate(hasContentDescription("Invite members"))
             ui.waitForNode("invite dialog", hasText("Invite to Guild"))
             ui.typeInto(hasText("Matrix user ID"), "tac")
             ui.waitForNode("user directory result", hasText(tacit2.userId, substring = true) and hasClickAction())
@@ -403,8 +431,15 @@ class ReadmeScreenshotsGenerator {
         fun settleForCapture() {
             settle(300)
             parkPointer()
-            escapeKeyPressed.tryEmit(Unit)
-            settle(1_200)
+            // Hover tooltips are popups; a modal dialog above the hovered button swallows the pointer "exit", so
+            // dismiss them the way the app does on Escape and wait until no popup is left.
+            val popupDeadline = System.currentTimeMillis() + 6_000
+            do {
+                escapeKeyPressed.tryEmit(Unit)
+                settle(600)
+            } while (test.onAllNodes(isPopup()).fetchSemanticsNodes().isNotEmpty() && System.currentTimeMillis() < popupDeadline)
+            println("SCREENSHOT settle: popups=${test.onAllNodes(isPopup()).fetchSemanticsNodes().size}")
+            settle(600)
             val chevron = hasContentDescription("Jump to the end")
             val spinner = SemanticsMatcher.expectValue(SemanticsProperties.ProgressBarRangeInfo, ProgressBarRangeInfo.Indeterminate)
             fun unsettled() = test.onAllNodes(chevron or spinner).fetchSemanticsNodes().isNotEmpty()
@@ -427,13 +462,23 @@ class ReadmeScreenshotsGenerator {
             pump()
         }
 
-        private fun parkPointer() {
+        fun parkPointer() {
             runCatching {
                 test.onAllNodes(isRoot()).onFirst().performMouseInput {
                     moveTo(Offset(60f, (ScreenshotFrame.CONTENT_HEIGHT_PX - 40).toFloat())) // the footer strip
                 }
             }.onFailure { println("SCREENSHOT settle: park pointer failed $it") }
             pump()
+        }
+
+        /**
+         * Triggers a control's click action without moving the pointer onto it. Used for buttons that open a modal
+         * dialog: a real click would leave the button hovered underneath the dialog (the dialog swallows the
+         * pointer "exit"), so its hover tooltip would show up in the capture.
+         */
+        fun activate(matcher: SemanticsMatcher) {
+            test.onAllNodes(matcher).onFirst().performSemanticsAction(SemanticsActions.OnClick)
+            settle(200)
         }
 
         fun click(matcher: SemanticsMatcher) {
@@ -450,6 +495,8 @@ class ReadmeScreenshotsGenerator {
         }
 
         fun capture(name: String) {
+            val popups = test.onAllNodes(isPopup()).fetchSemanticsNodes().size
+            if (popups > 0) println("SCREENSHOT WARNING: $name captured with $popups popup(s) open")
             val out = File(outputDir, "$name.png")
             out.writeBytes(ScreenshotFrame.toPng(captureRoot()))
             println("SCREENSHOT wrote ${out.absolutePath}")
