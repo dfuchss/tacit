@@ -8,9 +8,12 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Reply
+import androidx.compose.material.icons.outlined.Cancel
+import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Report
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -55,14 +58,39 @@ internal fun tacitMessageActionMenuEntries(
     canEdit: Boolean,
     canRedact: Boolean,
     canReport: Boolean,
+    canCopy: Boolean,
+    canRetrySend: Boolean,
+    canAbortSend: Boolean,
     onReply: () -> Unit,
     onEdit: () -> Unit,
     onShowInfo: () -> Unit,
     onReport: () -> Unit,
     onDelete: () -> Unit,
+    onCopy: () -> Unit,
+    onRetrySend: () -> Unit,
+    onAbortSend: () -> Unit,
 ): List<TacitMessageActionMenuEntry> {
     val deleteColor = MaterialTheme.colorScheme.error
     return buildList {
+        // Recovery of a message that never left the device comes first: for an outbox element the
+        // rest of this menu is almost empty (no event id -> no reply/edit/redact/report), and a
+        // stuck message is the only thing the user wants to act on.
+        if (canRetrySend) add(
+            TacitMessageActionMenuEntry(
+                i18n.retrySendMessage(),
+                Icons.Outlined.Refresh,
+                accentColor,
+                onRetrySend
+            )
+        )
+        if (canAbortSend) add(
+            TacitMessageActionMenuEntry(
+                i18n.abortSendMessage(),
+                Icons.Outlined.Cancel,
+                deleteColor,
+                onAbortSend
+            )
+        )
         if (canReply) add(
             TacitMessageActionMenuEntry(
                 i18n.replyMessage(),
@@ -70,6 +98,14 @@ internal fun tacitMessageActionMenuEntries(
             )
         )
         if (canEdit) add(TacitMessageActionMenuEntry(i18n.editMessage(), Icons.Outlined.Edit, tacitText, onEdit))
+        if (canCopy) add(
+            TacitMessageActionMenuEntry(
+                i18n.commonCopy(),
+                Icons.Outlined.ContentCopy,
+                tacitText,
+                onCopy
+            )
+        )
         add(TacitMessageActionMenuEntry(i18n.infoMessage(), Icons.Outlined.Info, tacitText, onShowInfo))
         if (canReport) add(
             TacitMessageActionMenuEntry(

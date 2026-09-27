@@ -10,12 +10,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoDelete
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -25,6 +29,7 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.isSecondaryPressed
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.CollectionItemInfo
 import androidx.compose.ui.semantics.collectionItemInfo
@@ -44,9 +49,13 @@ import de.connect2x.trixnity.messenger.compose.view.room.timeline.RedactionWarni
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.TimelineElementViewSelector
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.message.bubble.MessageBubbleContent
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.message.bubble.MessageBubbleView
+import de.connect2x.trixnity.messenger.compose.view.theme.components
+import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedProgressIndicator
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedUserAvatar
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.BaseTimelineElementHolderViewModel
+import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.OutboxElementHolderViewModel
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.TimelineElementHolderViewModel
+import kotlinx.coroutines.launch
 import org.fuchss.matrix.tacit.*
 import org.fuchss.matrix.tacit.ui.TacitShapes
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
@@ -69,6 +78,7 @@ class TacitFlatMessageView : MessageBubbleView {
         TacitFlatMessageContainer(
             holder = holder,
             uiState = uiState,
+            needsMaxWidth = needsMaxWidth,
             additionalContextActions = additionalContextActions,
             isPreview = isPreview,
             isMentioned = isMentioned,
@@ -82,6 +92,7 @@ class TacitFlatMessageView : MessageBubbleView {
 private fun TacitFlatMessageContainer(
     holder: BaseTimelineElementHolderViewModel,
     uiState: TacitFlatMessageUiState,
+    needsMaxWidth: Boolean,
     additionalContextActions: @Composable ColumnScope.(onClose: () -> Unit) -> Unit,
     isPreview: Boolean,
     isMentioned: Boolean,
@@ -125,12 +136,21 @@ private fun TacitFlatMessageContainer(
         // The card treatment is a hover/active affordance instead of a permanent per-message frame.
         // `Modifier.background`/`Modifier.border` are draw-only, so painting them transparent keeps
         // the layout byte-for-byte identical and the row cannot jump when the pointer enters.
+        //
+        // The two send states are the deliberate exception: a message that failed to send, and one
+        // that is still on its way out, are painted *permanently* -- a message the server never
+        // accepted must not be indistinguishable from one it did, and hover is not a state the user
+        // is in while scrolling past.
         val rowHighlightColor = when {
+            uiState.hasSendError -> tacitErrorBg
+            uiState.isSending -> tacitWarningBg
             !isRowActive -> Color.Transparent
             isOwnMessage -> tacitSurfaceAlt.copy(alpha = 0.88f)
             else -> tacitSurfaceAlt.copy(alpha = 0.78f)
         }
         val rowBorderColor = when {
+            uiState.hasSendError -> tacitErrorBorder
+            uiState.isSending -> tacitWarningBorder
             !isRowActive -> Color.Transparent
             isOwnMessage -> accentColor.copy(alpha = 0.56f)
             else -> tacitBorder.copy(alpha = 0.9f)
@@ -200,16 +220,24 @@ private fun TacitFlatMessageContainer(
                     }
                     .semantics {
                         collectionItemInfo = CollectionItemInfo(index, 1, 0, 1)
+                        // The time is announced for *every* message, including the grouped ones
+                        // whose timestamp is only a trailing micro-label visually.
                         this.text = AnnotatedString(
                             "${sender?.name ?: i18n.commonUnknown()} (${holder.formattedTime}): " +
-                                    (element?.let { timelineElementViewSelector.a11yLabel(it, i18n) } ?: "")
+                                    (element?.let { timelineElementViewSelector.a11yLabel(it, i18n) } ?: "") +
+                                    // `sendError` is already localized by the view model.
+                                    (uiState.sendError?.let { " ($it)" } ?: "")
                         )
                     }
                     .padding(horizontal = 8.dp, vertical = rowVerticalPadding)
             ) {
                 if (!isPreview && isRowActive) {
                     TacitFlatMessageHoverActions(
+                        holder = holder,
                         timelineElementHolder = timelineElementHolder,
+                        outboxElementHolder = uiState.outboxElementHolder,
+                        canRetrySend = uiState.canRetrySend,
+                        canAbortSend = uiState.canAbortSend,
                         i18n = i18n,
                         rowSidePadding = rowSidePadding,
                         density = density,
@@ -261,12 +289,16 @@ private fun TacitFlatMessageContainer(
                                 .padding(2.dp),
                         )
                     }
-                    Box(Modifier.fillMaxWidth()) {
+                    Column(Modifier.fillMaxWidth()) {
                         val baseTypography = MaterialTheme.typography
-                        val mutedColor = tacitTextMuted
-                        val timelineTypography = remember(baseTypography, mutedColor) {
+                        // `labelSmall` is what upstream's MessageBubbleContent uses for *both* the
+                        // trailing info line (edited marker + time) and the send-error text. On a
+                        // failed row the muted timeline grey would bury the error, so it is lifted
+                        // to the error foreground there.
+                        val labelColor = if (uiState.hasSendError) tacitErrorText else tacitTextMuted
+                        val timelineTypography = remember(baseTypography, labelColor) {
                             baseTypography.copy(
-                                labelSmall = baseTypography.labelSmall.copy(color = mutedColor),
+                                labelSmall = baseTypography.labelSmall.copy(color = labelColor),
                             )
                         }
                         MaterialTheme(
@@ -274,14 +306,26 @@ private fun TacitFlatMessageContainer(
                             typography = timelineTypography,
                             shapes = MaterialTheme.shapes,
                         ) {
-                            MessageBubbleContent(
-                                holder = holder,
-                                needsMaxWidth = true,
-                                isMentioned = isMentioned,
-                                showActionMenu = { showActionMenu.value = true },
-                                content = { showMenu ->
-                                    Box(Modifier.fillMaxWidth()) { content(showMenu) }
-                                },
+                            // The flat row is not a Surface, so nothing establishes a content
+                            // colour for it -- which left upstream's send-error warning icon
+                            // (`Icon` tints with LocalContentColor) drawing in the Material
+                            // default. Pin it so the icon is actually legible on the dark row.
+                            CompositionLocalProvider(LocalContentColor provides tacitText) {
+                                MessageBubbleContent(
+                                    holder = holder,
+                                    needsMaxWidth = true,
+                                    isMentioned = isMentioned,
+                                    showActionMenu = { showActionMenu.value = true },
+                                    content = { showMenu ->
+                                        Box(Modifier.fillMaxWidth()) { content(showMenu) }
+                                    },
+                                )
+                            }
+                        }
+                        if (uiState.isUploading) {
+                            TacitUploadProgress(
+                                percent = uiState.uploadPercent,
+                                label = uiState.uploadProgressLabel,
                             )
                         }
                     }
@@ -317,6 +361,35 @@ private fun TacitFlatMessageContainer(
 }
 
 /**
+ * Upload progress of a media message that is still being sent. [label] is produced (and localized)
+ * by the view model; [percent] is `null` while the total size is unknown, in which case the bar is
+ * indeterminate.
+ */
+@Composable
+private fun TacitUploadProgress(percent: Float?, label: String?) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        val style = MaterialTheme.components.linearProgressIndicator
+        if (percent != null) {
+            ThemedProgressIndicator({ percent }, Modifier.weight(1f), style)
+        } else {
+            ThemedProgressIndicator(Modifier.weight(1f), style)
+        }
+        if (label != null) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = tacitTextMuted,
+                maxLines = 1,
+            )
+        }
+    }
+}
+
+/**
  * The hover affordance of a message row. Extracted into its own composable so that the action menu
  * entries, their five closures and the `canBeEdited`/`canBeRedacted`/`canBeReported` flow
  * subscriptions only exist while the row is actually hovered or one of its menus is open -- they
@@ -324,7 +397,11 @@ private fun TacitFlatMessageContainer(
  */
 @Composable
 private fun TacitFlatMessageHoverActions(
+    holder: BaseTimelineElementHolderViewModel,
     timelineElementHolder: TimelineElementHolderViewModel?,
+    outboxElementHolder: OutboxElementHolderViewModel?,
+    canRetrySend: Boolean,
+    canAbortSend: Boolean,
     i18n: TacitI18nView,
     rowSidePadding: Dp,
     density: Density,
@@ -340,12 +417,37 @@ private fun TacitFlatMessageHoverActions(
     val canEdit = timelineElementHolder?.canBeEdited?.collectAsState()?.value == true
     val canRedact = timelineElementHolder?.canBeRedacted?.collectAsState()?.value == true
     val canReport = timelineElementHolder?.canBeReported?.collectAsState()?.value == true
+
+    // Copy, mirroring upstream's contextMenuActions: the element view knows how to turn its own
+    // content into a clip entry, and a `null` entry means this element simply cannot be copied.
+    val timelineElementViewSelector = DI.get<TimelineElementViewSelector>()
+    val clipboard = LocalClipboard.current
+    val clipboardScope = rememberCoroutineScope()
+    val clipEntry = holder.element.collectAsState().value?.let { element ->
+        timelineElementViewSelector.getClipEntry(holder, element)
+    }
+
     val actions = tacitMessageActionMenuEntries(
         i18n = i18n,
         canReply = canReply,
         canEdit = canEdit,
         canRedact = canRedact,
         canReport = canReport,
+        canCopy = clipEntry != null,
+        canRetrySend = canRetrySend,
+        canAbortSend = canAbortSend,
+        onCopy = {
+            clipEntry?.let { entry -> clipboardScope.launch { clipboard.setClipEntry(entry) } }
+            showActionMenu.value = false
+        },
+        onRetrySend = {
+            outboxElementHolder?.retrySend()
+            showActionMenu.value = false
+        },
+        onAbortSend = {
+            outboxElementHolder?.abortSend()
+            showActionMenu.value = false
+        },
         onReply = {
             timelineElementHolder?.reply()
             showActionMenu.value = false
