@@ -1,6 +1,9 @@
 package org.fuchss.matrix.tacit.readmeshots
 
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
@@ -12,7 +15,10 @@ import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performMouseInput
+import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.SkikoComposeUiTest
 import androidx.compose.ui.unit.Density
@@ -66,6 +72,7 @@ class ReadmeScreenshotsGenerator {
         System.getProperty("tacit.readmeScreenshots.outputDir")?.let(::File) ?: File(repoRoot(), ".images")
 
     private val failures = mutableListOf<String>()
+    private val escapeKeyPressed = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     private val debugDir: File = File(repoRoot(), "build/readmeScreenshots")
 
     @Test
@@ -108,7 +115,6 @@ class ReadmeScreenshotsGenerator {
                 harness.runTest {
                     val ui = Ui(this)
                     mainClock.autoAdvance = false
-                    val escapeKeyPressed = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
                     setContent {
                         CompositionLocalProvider(LocalDensity provides Density(ScreenshotFrame.DENSITY)) {
                             CompositionLocalProvider(
@@ -172,12 +178,10 @@ class ReadmeScreenshotsGenerator {
             val timeline = app.selectRoom(RoomId(hike))
             delay(1_000)
             with(app) { sendMessage(timeline.inputAreaViewModel, "Perfect, see you all there 😊") }
-            delay(1_000)
-            timeline.jumpToEndOfTimeline()
         }
         step("overview") {
             ui.waitForNode("own message in the group chat", hasText("see you all there", substring = true))
-            ui.settle(2_500)
+            ui.settleForCapture()
             ui.capture("overview")
         }
 
@@ -194,7 +198,7 @@ class ReadmeScreenshotsGenerator {
         step("invite") {
             ui.await(30_000, "DM invitation to arrive") { app.roomElement(dmRoom).isInvite.first { it == true } }
             ui.waitForNode("pending invitation from tacit2", hasText("tacit2", substring = true))
-            ui.settle(1_500)
+            ui.settleForCapture()
             ui.capture("invite")
         }
 
@@ -214,12 +218,13 @@ class ReadmeScreenshotsGenerator {
             }
             ui.waitForNode("own message in the timeline", hasText("Let's chat 😊", substring = true))
             ui.waitForNode("tacit2's message in the timeline", hasText("Howdy", substring = true))
-            ui.settle(2_000)
+            ui.settleForCapture()
             ui.capture("chatting")
         }
 
         // 4. emoji_picker: typing a shortcode shows the emoji suggestions
         step("emoji_picker") {
+            ui.settleForCapture()
             ui.typeInto(messageInputMatcher(), ":part")
             ui.waitForNode("emoji suggestions", hasText(":party_face:", substring = true))
             ui.settle(500)
@@ -230,6 +235,7 @@ class ReadmeScreenshotsGenerator {
 
         // 5. guild_create: the real dialog, filled in, before creating the guild through it
         step("guild_create") {
+            ui.settleForCapture()
             ui.click(hasContentDescription("Create guild"))
             ui.waitForNode("create guild dialog", hasText("Create Guild"))
             ui.typeInto(hasText("Guild name"), "Adventure")
@@ -247,12 +253,13 @@ class ReadmeScreenshotsGenerator {
         ui.await(30_000, "open #general") { app.selectRoom(generalRoom) }
         ui.waitForNode("#general header", hasText("General discussion", substring = true))
         step("guild_ui") {
-            ui.settle(1_500)
+            ui.settleForCapture()
             ui.capture("guild_ui")
         }
 
         // 7. guild_invite: the real invite dialog with a user directory hit
         step("guild_invite") {
+            ui.settleForCapture()
             ui.click(hasContentDescription("Invite members"))
             ui.waitForNode("invite dialog", hasText("Invite to Guild"))
             ui.typeInto(hasText("Matrix user ID"), "tac")
@@ -271,7 +278,7 @@ class ReadmeScreenshotsGenerator {
         step("member_list") {
             ui.click(hasContentDescription("Toggle members pane"))
             ui.waitForNode("tacit2 in the members pane", hasText(tacit2.userId, substring = true), timeoutMillis = 60_000)
-            ui.settle(1_500)
+            ui.settleForCapture()
             ui.capture("member_list")
         }
 
@@ -279,7 +286,10 @@ class ReadmeScreenshotsGenerator {
         step("about") {
             ui.click(hasContentDescription("About Tacit"))
             ui.waitForNode("about page", hasText("Project repository"))
-            ui.settle(500)
+            // The header's back button takes focus on first render and Material3 shows its tooltip for a focused
+            // anchor; a click into the timeline clears the focus like a user would.
+            ui.click(hasText("has created the group", substring = true))
+            ui.settleForCapture()
             ui.capture("about")
             ui.await(10_000, "close about page") {
                 app.main().roomListRouterStack.waitFor(RoomListRouter.Wrapper.AppInfo::class).viewModel.close()
@@ -296,8 +306,12 @@ class ReadmeScreenshotsGenerator {
                 with(app) { sendMessage(timeline.inputAreaViewModel, "/spoiler Hidden features are waiting for you :D") }
             }
             ui.waitForNode("DM home", hasText("All DMs"))
-            runCatching { ui.waitForNode("spoiler message", hasText("Hidden features", substring = true), timeoutMillis = 15_000) }
-            ui.settle(1_500)
+            // Wait until the server has the spoiler (so the outbox placeholder is replaced by the real event).
+            ui.await(30_000, "spoiler message to reach the server") {
+                while (tacit2.lastMessageBody(dmRoomId)?.contains("Hidden features") != true) delay(250)
+            }
+            ui.waitForNode("spoiler message", hasText("Hidden features", substring = true), timeoutMillis = 30_000)
+            ui.settleForCapture()
             ui.typeInto(messageInputMatcher(), "/spo")
             ui.waitForNode("slash command suggestions", hasText("/spoiler", substring = true))
             ui.settle(500)
@@ -377,6 +391,49 @@ class ReadmeScreenshotsGenerator {
                 }
                 Thread.sleep(50)
             }
+        }
+
+        /**
+         * Brings the screen into a stable state before a capture: parks the mouse pointer on a neutral spot and
+         * dismisses tooltips (hover tooltips of the last click would otherwise leak into the picture), then - as the
+         * very last action - anchors every lazy list at its start, so the (reversed) timeline sits exactly on its
+         * newest item and the "jump to the end" chevron is gone. Sync activity that arrived between steps, or the
+         * padded scroll the view model's own jump-to-end performs, would otherwise leave the list a few px off.
+         */
+        fun settleForCapture() {
+            settle(300)
+            parkPointer()
+            escapeKeyPressed.tryEmit(Unit)
+            settle(1_200)
+            val chevron = hasContentDescription("Jump to the end")
+            val spinner = SemanticsMatcher.expectValue(SemanticsProperties.ProgressBarRangeInfo, ProgressBarRangeInfo.Indeterminate)
+            fun unsettled() = test.onAllNodes(chevron or spinner).fetchSemanticsNodes().isNotEmpty()
+            val deadline = System.currentTimeMillis() + 10_000
+            do {
+                pinListsToEnd()
+                settle(500)
+            } while (unsettled() && System.currentTimeMillis() < deadline)
+            println(
+                "SCREENSHOT settle: chevron=${test.onAllNodes(chevron).fetchSemanticsNodes().size} " +
+                    "spinners=${test.onAllNodes(spinner).fetchSemanticsNodes().size}"
+            )
+        }
+
+        /** `scrollToItem(0)` on every lazy list: the (reversed) timeline lands exactly on its newest item. */
+        private fun pinListsToEnd() {
+            val lists = test.onAllNodes(hasScrollToIndexAction())
+            val nodes = lists.fetchSemanticsNodes()
+            repeat(nodes.size) { index -> runCatching { lists[index].performScrollToIndex(0) } } // empty lists throw
+            pump()
+        }
+
+        private fun parkPointer() {
+            runCatching {
+                test.onAllNodes(isRoot()).onFirst().performMouseInput {
+                    moveTo(Offset(60f, (ScreenshotFrame.CONTENT_HEIGHT_PX - 40).toFloat())) // the footer strip
+                }
+            }.onFailure { println("SCREENSHOT settle: park pointer failed $it") }
+            pump()
         }
 
         fun click(matcher: SemanticsMatcher) {

@@ -1,6 +1,7 @@
 package org.fuchss.matrix.tacit.views.room.timeline
 
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -14,6 +15,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
@@ -47,6 +49,9 @@ import kotlin.time.Duration.Companion.seconds
 private const val additionalEndPadding = 8
 private val timelineStartPadding = 10.dp
 private val timelineEndPadding = (10 + additionalEndPadding).dp
+
+/** Height of the soft fade below the floating date header's opaque backdrop. */
+private val floatingDateHeaderFadeHeight = 16.dp
 
 private fun buildRenderableTimelineElements(
     timelineViewElements: List<TimelineViewElement>,
@@ -283,7 +288,7 @@ class TacitTimelineView : TimelineView {
                                         }
                                     }
                                 }
-                                ListDateHeader(
+                                FloatingDateHeader(
                                     visible = visibleItems,
                                     timelineViewElements = renderedTimelineViewElements,
                                     show = listState.canScrollForward,
@@ -329,5 +334,59 @@ class TacitTimelineView : TimelineView {
                 }
             }
         }
+    }
+}
+
+/**
+ * Floating date indicator drawn on top of the timeline.
+ *
+ * Replaces the upstream `ListDateHeader`, which renders a bare (and partly translucent) date pill
+ * directly over the list. Because that pill is narrower than centred timeline items such as
+ * membership notices, whatever scrolls beneath it pokes out around its edges and interleaves with
+ * the date text. Here the pill is backed by a full-width, opaque strip in the timeline's own
+ * surface colour, followed by a short fade, so content scrolling underneath is hidden completely
+ * inside the strip and reappears gradually below it.
+ */
+@Composable
+private fun FloatingDateHeader(
+    visible: State<Pair<String, String>?>,
+    timelineViewElements: State<List<TimelineViewElement>>,
+    show: Boolean,
+) {
+    if (!show) return
+
+    val formattedDate = remember(visible, timelineViewElements) {
+        derivedStateOf {
+            visible.value?.first?.let { topMostVisibleKey ->
+                timelineViewElements.value
+                    .asSequence()
+                    .filterIsInstance<TimelineViewElement.Element>()
+                    .firstOrNull { it.viewModel.key == topMostVisibleKey }
+                    ?.viewModel
+                    ?.formattedDate
+            }
+        }
+    }
+    val date = formattedDate.value ?: return
+
+    // The timeline itself is drawn on `components.timeline`, which is `colorScheme.surface`.
+    val backdropColor = MaterialTheme.colorScheme.surface
+    Column(Modifier.fillMaxWidth()) {
+        Box(Modifier.fillMaxWidth().background(backdropColor)) {
+            // Keep the pill centred over the message column, which is inset by the scrollbar gutter.
+            Box(Modifier.padding(end = additionalEndPadding.dp)) {
+                DateStickyHeader(date = date, focusable = false)
+            }
+        }
+        Spacer(
+            Modifier
+                .fillMaxWidth()
+                .height(floatingDateHeaderFadeHeight)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(backdropColor, backdropColor.copy(alpha = 0f)),
+                    )
+                )
+        )
     }
 }

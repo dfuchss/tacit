@@ -204,6 +204,12 @@ internal class ScreenshotMessenger(val multi: MatrixMultiMessenger, val messenge
         return timeline(roomId)
     }
 
+    /** The timeline currently shown in the room pane, if any. */
+    fun currentTimeline(): TimelineViewModel? =
+        (root.stack.value.active.instance as? RootRouter.Wrapper.Main)?.viewModel?.roomRouterStack?.value?.active?.instance
+            ?.let { it as? RoomRouter.Wrapper.View }?.viewModel?.timelineStack?.value?.active?.instance
+            ?.let { it as? TimelineRouter.Wrapper.View }?.viewModel
+
     /** The timeline view model of [roomId] once the room router shows that room (the room view may be replaced). */
     @OptIn(ExperimentalCoroutinesApi::class)
     suspend fun timeline(roomId: RoomId): TimelineViewModel =

@@ -157,6 +157,13 @@ internal class MatrixSession(private val http: MatrixHttp, val userId: String, v
         setAccountData("m.direct", buildJsonObject { put(otherUserId, buildJsonArray { add(kotlinx.serialization.json.JsonPrimitive(roomId)) }) })
     }
 
+    /** Body of the newest `m.room.message` in [roomId] as the server sees it (null if none yet). */
+    fun lastMessageBody(roomId: String): String? =
+        call("GET", "/_matrix/client/v3/rooms/${encodePath(roomId)}/messages?dir=b&limit=10")["chunk"]?.jsonArray
+            ?.map { it.jsonObject }
+            ?.firstOrNull { it["type"]?.jsonPrimitive?.content == "m.room.message" }
+            ?.get("content")?.jsonObject?.get("body")?.jsonPrimitive?.content
+
     /** Room ids of the children of a space (via the space hierarchy endpoint). */
     fun spaceChildren(spaceId: String): List<String> {
         val rooms = call("GET", "/_matrix/client/v1/rooms/${encodePath(spaceId)}/hierarchy")["rooms"]?.jsonArray
