@@ -10,7 +10,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import de.connect2x.trixnity.messenger.compose.view.DI
-import de.connect2x.trixnity.messenger.compose.view.TWO_PANE_THRESHOLD
 import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.room.RoomView
 import de.connect2x.trixnity.messenger.compose.view.room.SETTINGS_WEIGHT
@@ -36,6 +35,18 @@ import org.fuchss.matrix.tacit.viewmodel.room.timeline.TacitTimelineViewModel
 import org.fuchss.matrix.tacit.views.LocalTacitRoomListHidden
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 
+/**
+ * Threshold for splitting the *room pane* into timeline + extras/settings.
+ *
+ * Upstream's `TWO_PANE_THRESHOLD` (1100.dp) describes a whole window, not a single pane. Applied to
+ * the room pane it only ever triggered at roughly 1600.dp+ window width and only when the room list
+ * splitter happened to sit far enough left, so opening the room settings sometimes appeared next to
+ * the chat and sometimes replaced it. This threshold is proportionate to Tacit's own `minRoomWidth`
+ * (420.dp): at 760.dp the timeline keeps ~456.dp (TIMELINE_WEIGHT = 0.6) and the settings pane gets
+ * ~304.dp, which is still a workable settings column.
+ */
+private val roomExtrasTwoPaneThreshold = 760.dp
+
 class TacitRoomView : RoomView {
     @Composable
     override fun create(roomViewModel: RoomViewModel) {
@@ -46,7 +57,7 @@ class TacitRoomView : RoomView {
                 .background(tacitBackground)
                 .padding(TacitSpacing.appPadding)
         ) {
-            val isSinglePane = this@BoxWithConstraints.maxWidth < TWO_PANE_THRESHOLD.dp
+            val isSinglePane = this@BoxWithConstraints.maxWidth < roomExtrasTwoPaneThreshold
 
             val isSettingsShown = remember {
                 roomViewModel.extrasStack.toFlow().map { it.active.configuration is ExtrasRouter.Config.RoomSettings }

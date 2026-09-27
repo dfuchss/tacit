@@ -6,7 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
@@ -92,8 +92,25 @@ internal fun RoomListBody(
             }
 
             else -> {
-                val listState = rememberLazyListState()
-                var dmFilter by remember { mutableStateOf(DmFilter.ALL) }
+                // The room list is composed from two different call sites in TacitMessengerView
+                // (two pane vs. single pane). Keeping scroll position and the DM filter outside of
+                // the composition means a window resize across the breakpoint no longer silently
+                // throws them away.
+                val stateKey = mode.stateKey()
+                val listState = remember(stateKey) {
+                    val restored = RoomListBodyState.scrollPositions[stateKey]
+                    LazyListState(
+                        firstVisibleItemIndex = restored?.first ?: 0,
+                        firstVisibleItemScrollOffset = restored?.second ?: 0,
+                    )
+                }
+                DisposableEffect(stateKey, listState) {
+                    onDispose {
+                        RoomListBodyState.scrollPositions[stateKey] =
+                            listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset
+                    }
+                }
+                var dmFilter by RoomListBodyState.dmFilter
                 val filteredVisibleRooms = if (mode.isDirectMessages()) {
                     visibleRooms.filter { room ->
                         when (dmFilter) {
@@ -506,4 +523,18 @@ internal fun EmptyRoomList(roomListViewModel: RoomListViewModel) {
             }
         }
     }
+}
+
+/**
+ * Room list state that has to outlive the composition, because the room list is composed from two
+ * different call sites depending on the two pane / single pane breakpoint.
+ */
+private object RoomListBodyState {
+    val dmFilter = mutableStateOf(DmFilter.ALL)
+    val scrollPositions = mutableMapOf<String, Pair<Int, Int>>()
+}
+
+private fun RoomListMode.stateKey(): String = when (this) {
+    is RoomListMode.DirectMessages -> "dm"
+    is RoomListMode.GuildChannels -> "guild:${guild.key()}"
 }

@@ -35,7 +35,10 @@ import okio.FileSystem
 import org.fuchss.matrix.tacit.settings.TacitWindowCloseBehavior
 import org.fuchss.matrix.tacit.settings.readTacitWindowCloseBehavior
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
+import org.fuchss.matrix.tacit.views.minTacitWindowHeight
+import org.fuchss.matrix.tacit.views.minTacitWindowWidth
 import java.awt.Desktop
+import java.awt.Dimension
 import java.awt.GraphicsEnvironment
 import java.awt.Taskbar
 import java.awt.desktop.AppForegroundEvent
@@ -43,6 +46,7 @@ import java.awt.desktop.AppForegroundListener
 import java.awt.desktop.AppReopenedEvent
 import java.awt.desktop.AppReopenedListener
 import java.awt.dnd.DropTarget
+import kotlin.math.roundToInt
 
 private val desktopLog: Logger = Logger("org.fuchss.matrix.tacit.TacitDesktopApp")
 
@@ -311,6 +315,15 @@ private fun TacitDesktopWindow(
             } else false
         },
     ) {
+        // Without a minimum size the window can be dragged far below the smallest layout that
+        // still works: the single pane room list needs minTacitWindowWidth before the room names
+        // start disappearing behind the fixed chrome (guild rail, avatars, badges).
+        LaunchedEffect(window) {
+            window.minimumSize = Dimension(
+                minTacitWindowWidth.value.roundToInt(),
+                minTacitWindowHeight.value.roundToInt(),
+            )
+        }
         LaunchedEffect(activationRequest) {
             window.toFront()
             window.requestFocus()
