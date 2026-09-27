@@ -305,7 +305,7 @@ private fun TacitDesktopWindow(
 
     Window(
         onCloseRequest = onCloseRequest,
-        icon = MessengerTrayIcon(unreadMessages),
+        icon = TacitWindowIcon(unreadMessages),
         title = title,
         state = windowState,
         onPreviewKeyEvent = { event ->
