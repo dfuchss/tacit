@@ -333,7 +333,10 @@ class TacitTimelineView : TimelineView {
                                                 )
                                             }
                                             Text(
-                                                text = draggedFileValue.toString(),
+                                                // Not toString(): the desktop implementation
+                                                // (PathFileDescriptor) is a plain class, so that renders
+                                                // an object reference rather than the file's name.
+                                                text = draggedFileValue.fileName,
                                                 style = MaterialTheme.typography.titleSmall,
                                             )
                                         }
