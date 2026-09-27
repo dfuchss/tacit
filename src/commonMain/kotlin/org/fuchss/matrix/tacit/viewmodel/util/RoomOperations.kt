@@ -39,8 +39,9 @@ internal suspend fun MatrixClient.createGuild(
             isDirect = false,
             preset = CreateRoom.Request.Preset.PRIVATE,
             creationContent = CreateEventContent(type = RoomType.Space),
+            // Do not list the creator in `users`: the server grants the creator full power anyway and room
+            // version 12 (MSC4289) rejects creators in that field.
             powerLevelContentOverride = PowerLevelsEventContent(
-                users = mapOf(this.userId to 100),
                 events = mapOf(
                     EventType(ChildEventContent::class, "m.space.child") to 0L,
                 )
@@ -136,7 +137,6 @@ internal suspend fun GuildEntry.createCategory(
             preset = CreateRoom.Request.Preset.PRIVATE,
             creationContent = CreateEventContent(type = RoomType.Space),
             powerLevelContentOverride = PowerLevelsEventContent(
-                users = mapOf(matrixClient.userId to 100),
                 events = mapOf(
                     EventType(ChildEventContent::class, "m.space.child") to 0L,
                 ),
@@ -357,7 +357,7 @@ private suspend fun createDirectMessageRoom(
             preset = CreateRoom.Request.Preset.PRIVATE,
             invite = setOf(targetUserId),
             powerLevelContentOverride = PowerLevelsEventContent(
-                users = mapOf(matrixClient.userId to 100L, targetUserId to 100L)
+                users = mapOf(targetUserId to 100L) // the creator must not be listed (room version 12)
             ),
             initialState = listOf(InitialStateEvent(content = EncryptionEventContent(), "")),
         )
