@@ -71,11 +71,27 @@ class TacitInputAreaView : InputAreaView {
         val slashSuggestions = remember(slashCommandMatch) {
             slashCommandMatch?.let { slashCommandSuggestions(it.query) }.orEmpty()
         }
+        // Identifies the match span the suggestions belong to. Escape marks this key as dismissed;
+        // as soon as the user types on (or starts a new token) the key changes and suggestions return.
+        val suggestionKey = when {
+            slashCommandMatch != null && slashSuggestions.isNotEmpty() ->
+                "slash@${slashCommandMatch.startIndex}:${slashCommandMatch.query}"
+
+            shortcodeMatch != null && emojiSuggestions.isNotEmpty() ->
+                "emoji@${shortcodeMatch.startIndex}:${shortcodeMatch.query}"
+
+            else -> null
+        }
+        var dismissedSuggestionKey by remember { mutableStateOf<String?>(null) }
+        val suggestionsDismissed = suggestionKey != null && suggestionKey == dismissedSuggestionKey
+
         val showSlashSuggestions = canSendMessages &&
+                !suggestionsDismissed &&
                 mentionSuggestions.isNullOrEmpty() &&
                 slashSuggestions.isNotEmpty() &&
                 slashCommandMatch != null
         val showEmojiSuggestions = canSendMessages &&
+                !suggestionsDismissed &&
                 mentionSuggestions.isNullOrEmpty() &&
                 !showSlashSuggestions &&
                 emojiSuggestions.isNotEmpty() &&
@@ -187,6 +203,14 @@ class TacitInputAreaView : InputAreaView {
                                 Key.Enter -> {
                                     if (keyEvent.isShiftPressed) return@onPreviewKeyEvent false
                                     applySelectedSuggestion?.invoke() == true
+                                }
+
+                                Key.Escape -> {
+                                    // Only consume Escape when a popup is actually dismissed; otherwise the
+                                    // early return above lets it bubble up to the dialog / room close handling.
+                                    val key = suggestionKey ?: return@onPreviewKeyEvent false
+                                    dismissedSuggestionKey = key
+                                    true
                                 }
 
                                 else -> false

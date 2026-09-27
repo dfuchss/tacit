@@ -89,19 +89,28 @@ internal fun emojiShortcodeSuggestions(
     query: String,
     limit: Int = 8,
 ): List<TacitEmojiShortcode> {
-    if (query.isBlank()) return emptyList()
+    if (query.isBlank() || limit <= 0) return emptyList()
     val normalizedQuery = query.lowercase()
     val startsWith = allEmojis.asSequence()
         .filter { it.shortcode.startsWith(normalizedQuery) }
         .take(limit)
         .toList()
+    val remaining = limit - startsWith.size
+    if (remaining <= 0) return startsWith
+
+    // `contains` is a pure fallback: it only fills the slots prefix matches left open and is
+    // always ranked below them, earlier match positions first (sortedBy is stable, so the
+    // pre-sorted order of allEmojis breaks ties).
     val contains = allEmojis.asSequence()
-        .filter { it.shortcode.contains(normalizedQuery) }
-        .take(limit)
+        .mapNotNull { emoji ->
+            val matchIndex = emoji.shortcode.indexOf(normalizedQuery)
+            if (matchIndex > 0) emoji to matchIndex else null
+        }
+        .sortedBy { (_, matchIndex) -> matchIndex }
+        .take(remaining)
+        .map { (emoji, _) -> emoji }
         .toList()
-    return (startsWith + contains).distinctBy { it.shortcode }
-        .take(limit)
-        .toList()
+    return startsWith + contains
 }
 
 internal expect fun loadPlatformEmojiShortcodes(): List<TacitEmojiShortcode>
