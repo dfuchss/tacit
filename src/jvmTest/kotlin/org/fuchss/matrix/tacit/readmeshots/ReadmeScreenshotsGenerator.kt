@@ -57,7 +57,7 @@ import kotlin.coroutines.EmptyCoroutineContext
  *  2. registers two demo users and seeds rooms/messages over the client-server API,
  *  3. logs the REAL Tacit desktop UI (same DI/config as `Main.kt`) into it, headless,
  *  4. drives the UI to each screen (dialogs are opened by clicking the real buttons), captures it,
- *  5. adds rounded corners + drop shadow on a transparent background and overwrites the PNGs in place.
+ *  5. overwrites the PNGs in place, edge to edge and opaque (the consumer adds any border/shadow).
  *
  * Doubles as an end-to-end smoke test of the desktop client against a real server. It is excluded from
  * `jvmTest`/`check`; run `scripts/screenshots.sh` or `./gradlew generateReadmeScreenshots`.
