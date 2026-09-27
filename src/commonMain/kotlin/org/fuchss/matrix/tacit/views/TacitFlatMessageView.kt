@@ -313,11 +313,23 @@ private fun TacitFlatMessageContainer(
                             CompositionLocalProvider(LocalContentColor provides tacitText) {
                                 MessageBubbleContent(
                                     holder = holder,
-                                    needsMaxWidth = true,
+                                    // Honour what the element view asked for instead of forcing
+                                    // the full-width layout: with `false`, upstream places the
+                                    // time/edited/read info *beside* a short message instead of on
+                                    // a line of its own, which is what makes a run of messages read
+                                    // as a block. Media elements still pass `true`.
+                                    needsMaxWidth = needsMaxWidth,
                                     isMentioned = isMentioned,
                                     showActionMenu = { showActionMenu.value = true },
                                     content = { showMenu ->
-                                        Box(Modifier.fillMaxWidth()) { content(showMenu) }
+                                        if (needsMaxWidth) {
+                                            Box(Modifier.fillMaxWidth()) { content(showMenu) }
+                                        } else {
+                                            // Must NOT fill the width here: upstream's measure
+                                            // policy only puts the info beside the message when the
+                                            // message is narrower than the row.
+                                            content(showMenu)
+                                        }
                                     },
                                 )
                             }
