@@ -187,9 +187,39 @@ kotlin {
                 implementation(sharedLibs.compose.uiTest)
             }
         }
+        jvmTest {
+            dependencies {
+                implementation(libs.testcontainers) // README screenshot generator (tuwunel homeserver in Docker)
+            }
+        }
         androidInstrumentedTest {
             dependsOn(commonTest.get())
         }
+    }
+}
+
+// README screenshot generator (src/jvmTest/.../readmeshots): boots a real homeserver in Docker and drives the
+// real desktop UI, so it takes minutes and must never run as part of `jvmTest`/`check`. Opt in explicitly with
+// `./gradlew generateReadmeScreenshots` (or `scripts/screenshots.sh`).
+val readmeScreenshotsClassPattern = "org/fuchss/matrix/tacit/readmeshots/**"
+tasks.named<Test>("jvmTest") {
+    exclude(readmeScreenshotsClassPattern)
+    failOnNoDiscoveredTests = false // the generator is currently the only class in jvmTest
+}
+val generateReadmeScreenshots by tasks.registering(Test::class) {
+    group = "documentation"
+    description = "Regenerates the README screenshots in .images/ against a throwaway tuwunel homeserver (requires Docker)."
+    val jvmTestTask = tasks.named<Test>("jvmTest").get()
+    testClassesDirs = jvmTestTask.testClassesDirs
+    classpath = jvmTestTask.classpath
+    include(readmeScreenshotsClassPattern)
+    outputs.upToDateWhen { false }
+    maxHeapSize = "4g"
+    systemProperty("tacit.readmeScreenshots.outputDir", layout.projectDirectory.dir(".images").asFile.absolutePath)
+    testLogging {
+        showStandardStreams = true
+        events("passed", "failed", "skipped")
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
     }
 }
 
