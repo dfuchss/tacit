@@ -6,7 +6,8 @@ RUN apt-get update \
 COPY . .
 ENV TAMMY_BUILD_FLAVOR=PROD
 ENV NODE_OPTIONS="--max-old-space-size=4096"
-RUN dos2unix gradlew && ./gradlew packageReleaseWebZip
+# Cap the Gradle daemon heap (gradle.properties uses -Xmx12g) so Gradle and webpack fit into the CI runner's memory.
+RUN dos2unix gradlew && ./gradlew -Dorg.gradle.jvmargs="-Xmx6g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8 --add-opens=java.base/java.io=ALL-UNNAMED" packageReleaseWebZip
 
 FROM nginx:alpine
 COPY --from=builder /build/build/dist/composeWebCompatibility/productionExecutable/ /usr/share/nginx/html/
