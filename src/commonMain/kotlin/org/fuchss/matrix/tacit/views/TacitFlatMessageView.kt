@@ -23,7 +23,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
@@ -142,6 +148,12 @@ private fun TacitFlatMessageContainer(
         // that is still on its way out, are painted *permanently* -- a message the server never
         // accepted must not be indistinguishable from one it did, and hover is not a state the user
         // is in while scrolling past.
+        //
+        // A mention of (or reply to) the current user is a soft accent glow on top of that: a faint
+        // tint, a calmer accent border and a few feathered rings just outside the card. Upstream's
+        // own solid mention border is switched off in the theme (`mentionBorder`). The send states
+        // keep priority, and so does upstream's rule that one's own messages are never highlighted.
+        val hasMentionGlow = isMentioned && !isOwnMessage && !uiState.hasSendError && !uiState.isSending
         val rowHighlightColor = when {
             uiState.hasSendError -> tacitErrorBg
             uiState.isSending -> tacitWarningBg
@@ -152,6 +164,7 @@ private fun TacitFlatMessageContainer(
         val rowBorderColor = when {
             uiState.hasSendError -> tacitErrorBorder
             uiState.isSending -> tacitWarningBorder
+            hasMentionGlow -> accentColor.copy(alpha = if (isRowActive) 0.55f else 0.35f)
             !isRowActive -> tacitBorder.copy(alpha = 0.25f)
             isOwnMessage -> accentColor.copy(alpha = 0.56f)
             else -> tacitBorder.copy(alpha = 0.9f)
@@ -178,8 +191,13 @@ private fun TacitFlatMessageContainer(
                     .padding(horizontal = rowSidePadding)
                     .fillMaxWidth()
                     .graphicsLayer { clip = false }
+                    .drawBehind { if (hasMentionGlow) drawMentionGlow() }
                     .clip(TacitShapes.card)
                     .background(rowHighlightColor, TacitShapes.card)
+                    .then(
+                        if (hasMentionGlow) Modifier.background(accentColor.copy(alpha = if (isRowActive) 0.12f else 0.09f), TacitShapes.card)
+                        else Modifier
+                    )
                     .border(1.dp, rowBorderColor, TacitShapes.card)
                     .hoverable(hoverInteractionSource)
                     .pointerMoveFilter(
@@ -368,6 +386,23 @@ private fun TacitFlatMessageContainer(
                 }
             }
         }
+    }
+}
+
+/** Feathered accent rings just outside the card; draw-only, so nothing in the layout moves. */
+private fun DrawScope.drawMentionGlow() {
+    val glowColor = accentColor
+    val ringWidth = 2.dp.toPx()
+    val cardRadius = 16.dp.toPx() // TacitShapes.card
+    for (ring in 1..4) {
+        val spread = ring * ringWidth - ringWidth / 2
+        drawRoundRect(
+            color = glowColor.copy(alpha = 0.16f / ring),
+            topLeft = Offset(-spread, -spread),
+            size = Size(size.width + 2 * spread, size.height + 2 * spread),
+            cornerRadius = CornerRadius(cardRadius + spread),
+            style = Stroke(width = ringWidth),
+        )
     }
 }
 

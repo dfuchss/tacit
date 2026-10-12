@@ -49,7 +49,8 @@ private class TacitThemeLightMessengerColors(
         return base.copy(
             link = readableLink,
             linkByMe = readableLink,
-            mentionBorder = accentColor,
+            // Upstream draws a solid 3.dp border from this; TacitFlatMessageView paints a soft glow instead.
+            mentionBorder = Color.Transparent,
         )
     }
 }
@@ -64,7 +65,8 @@ private class TacitThemeDarkMessengerColors(
         return base.copy(
             link = readableLink,
             linkByMe = readableLink,
-            mentionBorder = accentColor,
+            // Upstream draws a solid 3.dp border from this; TacitFlatMessageView paints a soft glow instead.
+            mentionBorder = Color.Transparent,
         )
     }
 }
