@@ -29,6 +29,7 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.isSecondaryPressed
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.CollectionItemInfo
@@ -133,9 +134,9 @@ private fun TacitFlatMessageContainer(
     ) {
         val rowSidePadding = if (maxWidth < 400.dp) 10.dp else 20.dp
         val density = LocalDensity.current
-        // The card treatment is a hover/active affordance instead of a permanent per-message frame.
-        // `Modifier.background`/`Modifier.border` are draw-only, so painting them transparent keeps
-        // the layout byte-for-byte identical and the row cannot jump when the pointer enters.
+        // The card treatment is faint at rest and fully shown on hover/active, instead of a permanent
+        // per-message frame. `Modifier.background`/`Modifier.border` are draw-only, so changing their
+        // alpha keeps the layout byte-for-byte identical and the row cannot jump when the pointer enters.
         //
         // The two send states are the deliberate exception: a message that failed to send, and one
         // that is still on its way out, are painted *permanently* -- a message the server never
@@ -144,14 +145,14 @@ private fun TacitFlatMessageContainer(
         val rowHighlightColor = when {
             uiState.hasSendError -> tacitErrorBg
             uiState.isSending -> tacitWarningBg
-            !isRowActive -> Color.Transparent
+            !isRowActive -> tacitSurfaceAlt.copy(alpha = 0.3f)
             isOwnMessage -> tacitSurfaceAlt.copy(alpha = 0.88f)
             else -> tacitSurfaceAlt.copy(alpha = 0.78f)
         }
         val rowBorderColor = when {
             uiState.hasSendError -> tacitErrorBorder
             uiState.isSending -> tacitWarningBorder
-            !isRowActive -> Color.Transparent
+            !isRowActive -> tacitBorder.copy(alpha = 0.25f)
             isOwnMessage -> accentColor.copy(alpha = 0.56f)
             else -> tacitBorder.copy(alpha = 0.9f)
         }
@@ -313,23 +314,15 @@ private fun TacitFlatMessageContainer(
                             CompositionLocalProvider(LocalContentColor provides tacitText) {
                                 MessageBubbleContent(
                                     holder = holder,
-                                    // Honour what the element view asked for instead of forcing
-                                    // the full-width layout: with `false`, upstream places the
-                                    // time/edited/read info *beside* a short message instead of on
-                                    // a line of its own, which is what makes a run of messages read
-                                    // as a block. Media elements still pass `true`.
-                                    needsMaxWidth = needsMaxWidth,
+                                    // Always full width: upstream then puts the time/edited/read info on a
+                                    // line of its own at the row's trailing edge, i.e. in the card's
+                                    // bottom-right corner for every message. (With `false` it sits
+                                    // right behind short text instead, so the corner is not consistent.)
+                                    needsMaxWidth = true,
                                     isMentioned = isMentioned,
                                     showActionMenu = { showActionMenu.value = true },
                                     content = { showMenu ->
-                                        if (needsMaxWidth) {
-                                            Box(Modifier.fillMaxWidth()) { content(showMenu) }
-                                        } else {
-                                            // Must NOT fill the width here: upstream's measure
-                                            // policy only puts the info beside the message when the
-                                            // message is narrower than the row.
-                                            content(showMenu)
-                                        }
+                                        Box(Modifier.fillMaxWidth()) { content(showMenu) }
                                     },
                                 )
                             }
@@ -347,10 +340,16 @@ private fun TacitFlatMessageContainer(
             if (!isPreview) {
                 val reactionsSideModifier = Modifier
                     .zIndex(2f)
-                    // The pull-up has to shrink with the card's bottom padding, otherwise the
-                    // reactions would creep into a compact row by the 4.dp it saves.
-                    .padding(start = rowSidePadding + AvatarGutterWidth)
-                    .offset(y = -(14.dp + rowVerticalPadding))
+                    // + the card's own 8.dp inner padding, so the chips start on the message text's left edge
+                    .padding(start = rowSidePadding + 8.dp + AvatarGutterWidth)
+                    // The chips straddle the card's bottom edge: pulled up by half their height (plus the
+                    // Column's 3.dp spacing) and drawn above the card (zIndex). The layout only reserves the
+                    // half that hangs below the edge, so the next row is not pushed down further than needed.
+                    .layout { measurable, constraints ->
+                        val placeable = measurable.measure(constraints)
+                        val pullUp = placeable.height / 2 + 3.dp.roundToPx()
+                        layout(placeable.width, placeable.height - pullUp) { placeable.place(0, -pullUp) }
+                    }
                 if (uiState.hasReactions) {
                     TacitMessageReactions(
                         modifier = reactionsSideModifier,
