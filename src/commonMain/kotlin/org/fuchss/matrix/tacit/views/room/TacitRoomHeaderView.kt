@@ -4,12 +4,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalAbsoluteTonalElevation
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -20,6 +24,7 @@ import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.pointerMoveFilter
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.RoomHeaderView
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.RoomHeaderViewImpl
+import de.connect2x.trixnity.messenger.compose.view.theme.components
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.RoomHeaderViewModel
 import org.fuchss.matrix.tacit.*
 import org.fuchss.matrix.tacit.ui.TacitShapes
@@ -36,22 +41,41 @@ class TacitRoomHeaderView(
     ) {
         val isDirectChat = roomHeaderViewModel.isDirectChat.collectAsState().value
         val showMembersButton = !isDirectChat && !showBackButton
-        Box(modifier = Modifier.fillMaxWidth()) {
-            delegate.create(
-                roomHeaderViewModel = roomHeaderViewModel,
-                showSettingsButton = false,
-                showBackButton = showBackButton,
-            )
-            if (showMembersButton) {
-                MembersPaneToggleButton(
-                    active = TacitRoomNavigationState.showMembersPane,
-                    onClick = {
-                        TacitRoomNavigationState.showMembersPane = !TacitRoomNavigationState.showMembersPane
-                    },
-                    modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .padding(end = 14.dp),
-                )
+        // The delegate draws the header bar only over its own (weighted) width, so paint an identical
+        // surface behind the whole row to let the bar span under the members button as well.
+        val headerStyle = MaterialTheme.components.header
+        val parentElevation = LocalAbsoluteTonalElevation.current
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = headerStyle.shape,
+            color = headerStyle.color,
+            contentColor = headerStyle.contentColor,
+            tonalElevation = headerStyle.tonalElevation,
+            shadowElevation = headerStyle.shadowElevation,
+        ) {
+            // Surface raised the elevation for its content; reset it so the delegate's own surface matches.
+            CompositionLocalProvider(LocalAbsoluteTonalElevation provides parentElevation) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(modifier = Modifier.weight(1f)) {
+                        delegate.create(
+                            roomHeaderViewModel = roomHeaderViewModel,
+                            showSettingsButton = false,
+                            showBackButton = showBackButton,
+                        )
+                    }
+                    if (showMembersButton) {
+                        MembersPaneToggleButton(
+                            active = TacitRoomNavigationState.showMembersPane,
+                            onClick = {
+                                TacitRoomNavigationState.showMembersPane = !TacitRoomNavigationState.showMembersPane
+                            },
+                            modifier = Modifier.padding(start = 8.dp, end = 14.dp),
+                        )
+                    }
+                }
             }
         }
     }
