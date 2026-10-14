@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
@@ -79,6 +80,25 @@ private fun buildRenderableTimelineElements(
     }.asReversed()
 }
 
+/**
+ * Upstream [scrollIntoView] picks its reference points with `first()`/`last()` on the items that lie
+ * *completely* inside the viewport and therefore throws `NoSuchElementException: List is empty.` when
+ * there is none -- e.g. when the anchor (the read marker of an unread room) is taller than the
+ * timeline, or the list has not been laid out yet. Anchor the item at the viewport start instead,
+ * which is what upstream does for an item at or before the first visible one.
+ */
+private suspend fun LazyListState.safeScrollIntoView(index: Int) {
+    val layoutInfo = layoutInfo
+    val hasFullyVisibleItem = layoutInfo.visibleItemsInfo.any { item ->
+        item.offset >= layoutInfo.viewportStartOffset && item.offset + item.size <= layoutInfo.viewportEndOffset
+    }
+    if (hasFullyVisibleItem) {
+        scrollIntoView(index)
+    } else {
+        scrollToItem(index, -layoutInfo.viewportStartOffset)
+    }
+}
+
 class TacitTimelineView : TimelineView {
     @Composable
     override fun ColumnScope.create(timelineViewModel: TimelineViewModel) {
@@ -130,7 +150,7 @@ class TacitTimelineView : TimelineView {
                             if (targetIndex == 0) {
                                 listState.scrollToItem(0)
                             } else {
-                                listState.scrollIntoView(targetIndex)
+                                listState.safeScrollIntoView(targetIndex)
                             }
                             initialAnchorApplied = true
                         }
@@ -162,7 +182,7 @@ class TacitTimelineView : TimelineView {
                             // becomes true and the jump-to-end button stays on screen.
                             index == 0 -> listState.animateScrollToItem(0)
                             // Any other element is merely revealed, without jumping to the end.
-                            index > 0 -> listState.scrollIntoView(if (showTypingIndicator.value) index + 1 else index)
+                            index > 0 -> listState.safeScrollIntoView(if (showTypingIndicator.value) index + 1 else index)
                         }
                         // The view model waits for this acknowledgement and warns ("could not
                         // scroll to ..., because UI did not set finishedScrollTo") when it never
