@@ -620,4 +620,49 @@ open class TacitI18nView(
         EN - "Exit Tacit"
         DE - "Tacit beenden"
     }
+
+    open fun tacitDevelopmentTitle() = translate {
+        EN - "Development"
+        DE - "Entwicklung"
+    }
+
+    open fun tacitMarkAllAsRead() = translate {
+        EN - "Mark all as read"
+        DE - "Alle als gelesen markieren"
+    }
+
+    open fun tacitMarkAllAsReadDescription() = translate {
+        EN - "Moves the read marker of every joined room in all accounts to its latest event."
+        DE - "Setzt die Lesemarkierung aller beigetretenen Räume in allen Konten auf das neueste Ereignis."
+    }
+
+    open fun tacitMarkAllAsReadChecking() = translate {
+        EN - "Checking rooms…"
+        DE - "Räume werden geprüft…"
+    }
+
+    open fun tacitMarkAllAsReadProgress(processed: Int, total: Int) = translate {
+        EN - "Marking rooms as read… ($processed/$total)"
+        DE - "Räume werden als gelesen markiert… ($processed/$total)"
+    }
+
+    open fun tacitMarkAllAsReadDone(markedRooms: Int) = translate {
+        EN - if (markedRooms == 1) "Done: 1 room marked as read" else "Done: $markedRooms rooms marked as read"
+        DE - if (markedRooms == 1) "Fertig: 1 Raum als gelesen markiert" else "Fertig: $markedRooms Räume als gelesen markiert"
+    }
+
+    open fun tacitMarkAllAsReadNothingToDo() = translate {
+        EN - "Done: everything was already read"
+        DE - "Fertig: Es war bereits alles gelesen"
+    }
+
+    open fun tacitMarkAllAsReadPartiallyFailed(markedRooms: Int, failedRooms: Int) = translate {
+        EN - "$markedRooms rooms marked as read, $failedRooms failed"
+        DE - "$markedRooms Räume als gelesen markiert, $failedRooms fehlgeschlagen"
+    }
+
+    open fun tacitMarkAllAsReadFailed() = translate {
+        EN - "Marking all rooms as read failed"
+        DE - "Markieren aller Räume als gelesen fehlgeschlagen"
+    }
 }

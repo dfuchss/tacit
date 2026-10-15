@@ -1,15 +1,20 @@
 package org.fuchss.matrix.tacit.views.settings
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.CallSplit
+import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material.icons.outlined.Code
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.capitalize
@@ -25,6 +30,8 @@ import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedListI
 import de.connect2x.trixnity.messenger.viewmodel.MainViewModel
 import de.connect2x.trixnity.messenger.viewmodel.settings.AppInfoViewModel
 import de.connect2x.trixnity.messenger.viewmodel.settings.UserSettingsViewModel
+import org.fuchss.matrix.tacit.viewmodel.settings.TacitMarkAllAsReadState
+import org.fuchss.matrix.tacit.viewmodel.settings.TacitUserSettingsViewModel
 import org.fuchss.matrix.tacit.views.TacitAttributionFooter
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 
@@ -52,17 +59,61 @@ class TacitUserSettingsView : UserSettingsView {
         Box(Modifier.fillMaxSize()) {
             Column {
                 Header(userSettingsViewModel::closeUserSettings, i18n.commonSettings().capitalize(Locale.current))
-                Column {
+                Column(Modifier.verticalScroll(rememberScrollState())) {
                     AccountsInfoButton(userSettingsViewModel)
                     NotificationsSettingsButton(userSettingsViewModel)
                     AppearanceSettingsButton(userSettingsViewModel)
                     PrivacySettingsButton(userSettingsViewModel)
                     DeviceSettingsButton(userSettingsViewModel)
                     ProfilesSettingsButton(userSettingsViewModel)
+                    (userSettingsViewModel as? TacitUserSettingsViewModel)?.let { DevelopmentSettings(it) }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun DevelopmentSettings(viewModel: TacitUserSettingsViewModel) {
+    val i18n = DI.get<TacitI18nView>()
+    val state by viewModel.markAllAsReadState.collectAsState()
+    val running = state is TacitMarkAllAsReadState.Running
+    Text(
+        text = i18n.tacitDevelopmentTitle(),
+        style = MaterialTheme.typography.titleSmall,
+        fontWeight = FontWeight.SemiBold,
+        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp),
+    )
+    ThemedListItemButton(
+        leadingContent = { Icon(Icons.Default.DoneAll, null) },
+        headlineContent = { Text(i18n.tacitMarkAllAsRead()) },
+        supportingContent = {
+            Text(
+                when (val current = state) {
+                    TacitMarkAllAsReadState.Idle -> i18n.tacitMarkAllAsReadDescription()
+                    is TacitMarkAllAsReadState.Running ->
+                        current.total?.let { i18n.tacitMarkAllAsReadProgress(current.processed, it) }
+                            ?: i18n.tacitMarkAllAsReadChecking()
+
+                    is TacitMarkAllAsReadState.Done -> when {
+                        current.failedRooms > 0 ->
+                            i18n.tacitMarkAllAsReadPartiallyFailed(current.markedRooms, current.failedRooms)
+
+                        current.markedRooms == 0 -> i18n.tacitMarkAllAsReadNothingToDo()
+                        else -> i18n.tacitMarkAllAsReadDone(current.markedRooms)
+                    }
+
+                    TacitMarkAllAsReadState.Failed -> i18n.tacitMarkAllAsReadFailed()
+                }
+            )
+        },
+        trailingContent = if (running) {
+            { CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp) }
+        } else null,
+        enabled = !running,
+        onClick = viewModel::markAllAsRead,
+        modifier = Modifier.heightIn(min = 72.dp),
+    )
 }
 
 class TacitAppInfoView : AppInfoView {

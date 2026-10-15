@@ -30,6 +30,7 @@ import de.connect2x.trixnity.messenger.viewmodel.room.timeline.TimelineViewModel
 import de.connect2x.trixnity.messenger.viewmodel.roomlist.RoomListElementViewModelFactory
 import de.connect2x.trixnity.messenger.viewmodel.roomlist.RoomListViewModelFactory
 import de.connect2x.trixnity.messenger.viewmodel.settings.AppearanceSettingsViewModelFactory
+import de.connect2x.trixnity.messenger.viewmodel.settings.UserSettingsViewModelFactory
 import org.fuchss.matrix.tacit.viewmodel.room.list.TacitRoomListElementViewModelFactory
 import org.fuchss.matrix.tacit.viewmodel.room.list.TacitRoomListViewModelFactory
 import org.fuchss.matrix.tacit.viewmodel.room.settings.TacitChangeRoomAvatarViewModelFactory
@@ -37,6 +38,8 @@ import org.fuchss.matrix.tacit.viewmodel.room.settings.TacitRoomSettingsViewMode
 import org.fuchss.matrix.tacit.viewmodel.room.timeline.TacitInputAreaViewModelFactory
 import org.fuchss.matrix.tacit.viewmodel.room.timeline.TacitTimelineViewModelFactory
 import org.fuchss.matrix.tacit.viewmodel.settings.TacitAppearanceSettingsViewModelFactory
+import org.fuchss.matrix.tacit.viewmodel.settings.TacitMarkAllAsRead
+import org.fuchss.matrix.tacit.viewmodel.settings.TacitUserSettingsViewModelFactory
 import org.fuchss.matrix.tacit.views.*
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 import org.fuchss.matrix.tacit.views.room.TacitRoomHeaderView
@@ -62,6 +65,8 @@ fun tammyTacitModule() = module {
     single<TimelineViewModelFactory> { TacitTimelineViewModelFactory }
     single<InputAreaViewModelFactory> { TacitInputAreaViewModelFactory }
     single<AppearanceSettingsViewModelFactory> { TacitAppearanceSettingsViewModelFactory }
+    single<UserSettingsViewModelFactory> { TacitUserSettingsViewModelFactory }
+    single { TacitMarkAllAsRead(get(), get(), get()) }
     single<RoomSettingsViewModelFactory> { TacitRoomSettingsViewModelFactory }
     single<ChangeRoomAvatarViewModelFactory> { TacitChangeRoomAvatarViewModelFactory }
     single<MainView> { TacitMainView() }
