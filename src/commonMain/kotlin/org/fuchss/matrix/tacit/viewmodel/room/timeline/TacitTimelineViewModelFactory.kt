@@ -9,6 +9,7 @@ import de.connect2x.trixnity.core.model.EventId
 import de.connect2x.trixnity.core.model.RoomId
 import de.connect2x.trixnity.core.model.UserId
 import de.connect2x.trixnity.core.model.events.m.room.Membership
+import de.connect2x.trixnity.messenger.MatrixMessengerSettingsHolder
 import de.connect2x.trixnity.messenger.viewmodel.MatrixClientViewModelContext
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.InputAreaViewModel
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.TimelineViewModel
@@ -18,6 +19,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.flow.SharingStarted.Companion.WhileSubscribed
 import kotlinx.coroutines.launch
+import org.koin.core.component.get
 import org.fuchss.matrix.tacit.viewmodel.room.timeline.entry.ChannelMemberEntry
 import org.fuchss.matrix.tacit.viewmodel.util.findExistingDirectMessageRoom
 import org.fuchss.matrix.tacit.viewmodel.util.findOrCreateDM
@@ -54,6 +56,8 @@ private class TacitTimelineViewModelImpl(
 
     private val avatarCache = mutableMapOf<String, ByteArray?>()
     private val _scrollToEndRequests = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    private val caughtUp = MutableStateFlow(false)
+    private var lastCaughtUpReceiptEventId: EventId? = null
 
     override val scrollToEndRequests: Flow<Unit> = _scrollToEndRequests
     override val inputAreaViewModel: InputAreaViewModel =
@@ -156,6 +160,35 @@ private class TacitTimelineViewModelImpl(
         coroutineScope.launch {
             runCatching { matrixClient.user.loadMembers(roomId, false) }
         }
+        // Upstream only moves the receipt to the last visible *message*, but trixnity clears the
+        // notification count only when the receipt sits exactly on `room.lastEventId`, which may be a
+        // trailing state event. So once caught up, move the receipt to that event as well.
+        coroutineScope.launch {
+            caughtUp
+                .flatMapLatest { isCaughtUp ->
+                    if (isCaughtUp) matrixClient.room.getById(roomId).map { it?.lastEventId }.filterNotNull().distinctUntilChanged()
+                    else emptyFlow()
+                }
+                .collect { markReceiptOn(it) }
+        }
+    }
+
+    override fun setCaughtUp(caughtUp: Boolean) {
+        this.caughtUp.value = caughtUp
+    }
+
+    private suspend fun markReceiptOn(eventId: EventId) {
+        if (eventId == lastCaughtUpReceiptEventId) return
+        val ownReceipts = matrixClient.user.getReceiptsById(roomId, matrixClient.userId).first()?.receipts.orEmpty()
+        if (ownReceipts.values.any { it.eventId == eventId }) {
+            lastCaughtUpReceiptEventId = eventId
+            return
+        }
+        val isPublic = get<MatrixMessengerSettingsHolder>().get(userId).first()?.base?.readMarkerIsPublic ?: false
+        lastCaughtUpReceiptEventId = eventId
+        matrixClient.api.room
+            .setReadMarkers(roomId, fullyRead = eventId, read = eventId.takeIf { isPublic }, privateRead = eventId)
+            .onFailure { lastCaughtUpReceiptEventId = null }
     }
 
     override suspend fun findExistingDirectMessageRoom(userId: UserId): RoomId? =

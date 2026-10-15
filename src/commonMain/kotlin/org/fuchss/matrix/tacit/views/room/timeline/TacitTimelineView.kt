@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.dp
 import de.connect2x.trixnity.messenger.compose.view.DI
@@ -206,6 +207,16 @@ class TacitTimelineView : TimelineView {
                             val lastVisibleItem = listState.layoutInfo.visibleItemsInfo.firstOrNull()
                             lastVisibleItem != null && lastVisibleItem.index == 0 && lastVisibleItem.offset == 0
                         }
+                    }
+                    // Caught up: the newest content is shown (nothing newer left to load, list pinned
+                    // to the end) and the user can actually see it.
+                    val windowInfo = LocalWindowInfo.current
+                    LaunchedEffect(tacitTimelineViewModel, listState) {
+                        snapshotFlow {
+                            windowInfo.isWindowFocused && showTypingIndicator.value && isPinnedToEnd.value
+                        }
+                            .distinctUntilChanged()
+                            .collect { tacitTimelineViewModel?.setCaughtUp(it) }
                     }
                     val newestTimelineKey = remember(renderedTimelineViewElements.value) {
                         renderedTimelineViewElements.value

@@ -13,6 +13,12 @@ internal interface TacitTimelineViewModel : TimelineViewModel {
     val typingIndicatorText: StateFlow<String?>
     val scrollToEndRequests: Flow<Unit>
 
+    /**
+     * Reports whether the user currently sees the newest content of the room (timeline scrolled to the
+     * end, window focused). While true, the own read receipt is kept on the room's last event.
+     */
+    fun setCaughtUp(caughtUp: Boolean)
+
     suspend fun findExistingDirectMessageRoom(userId: UserId): RoomId?
     suspend fun findOrCreateDirectMessageRoom(userId: UserId): RoomId?
 }
