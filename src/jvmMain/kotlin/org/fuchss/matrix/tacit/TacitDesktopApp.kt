@@ -279,14 +279,25 @@ private fun ApplicationScope.TacitDesktopTray(
     )
 }
 
+/** Whether the OS draws the unread counter on the app icon itself (the macOS Dock badge). */
+private val isTaskbarBadgeSupported: Boolean =
+    Taskbar.isTaskbarSupported() && Taskbar.getTaskbar().isSupported(Taskbar.Feature.ICON_BADGE_NUMBER)
+
 @Composable
 private fun DesktopTaskbarIcon(unreadMessages: Int) {
-    if (Taskbar.isTaskbarSupported() && Taskbar.getTaskbar().isSupported(Taskbar.Feature.ICON_IMAGE)) {
-        Taskbar.getTaskbar().iconImage =
-            MessengerTrayIcon(unreadMessages, iconSize = 1024f).toAwtImage(
+    if (!Taskbar.isTaskbarSupported()) return
+    val taskbar = Taskbar.getTaskbar()
+    if (taskbar.isSupported(Taskbar.Feature.ICON_IMAGE)) {
+        // With a native badge the OS shows the counter, so the image itself stays plain.
+        val drawnUnread = if (isTaskbarBadgeSupported) 0 else unreadMessages
+        taskbar.iconImage =
+            MessengerTrayIcon(drawnUnread, iconSize = 1024f).toAwtImage(
                 Density(1f),
                 LayoutDirection.Ltr,
             )
+    }
+    if (isTaskbarBadgeSupported) {
+        taskbar.setIconBadge(if (unreadMessages > 0) unreadMessages.toString() else null)
     }
 }
 
@@ -305,7 +316,8 @@ private fun TacitDesktopWindow(
 
     Window(
         onCloseRequest = onCloseRequest,
-        icon = TacitWindowIcon(unreadMessages),
+        // The OS badge already carries the counter, so the window icon must not add a second indicator.
+        icon = TacitWindowIcon(if (isTaskbarBadgeSupported) 0 else unreadMessages),
         title = title,
         state = windowState,
         onPreviewKeyEvent = { event ->
