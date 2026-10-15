@@ -60,11 +60,12 @@ internal fun ChannelRow(
     val isDirectRoom = room.isDirectRoom.collectAsState().value
     val roomImageInitials = room.roomImageInitials.collectAsState().value
     val roomImage = room.roomImage.collectAsState().value
-    val isUnread = room.isUnread.collectAsState().value == true
+    val notificationCount = room.notificationCount.collectAsState().value
+    // A leftover notification count (e.g. receipt not on a trailing state event) counts as unread too.
+    val isUnread = room.isUnread.collectAsState().value == true || !notificationCount.isNullOrBlank()
     val presence = room.presence.collectAsState().value
     val lastMessage = room.lastMessage.collectAsState().value
     val time = room.time.collectAsState().value
-    val notificationCount = room.notificationCount.collectAsState().value
     var hovered by remember { mutableStateOf(false) }
     // `hasFocus` covers the row itself and every focusable inside it (e.g. the read toggle), so the
     // toggle stays composed once the keyboard focus has moved into it.

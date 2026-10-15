@@ -87,4 +87,13 @@ private class TacitRoomListElementViewModelImpl(
     override val isDirectRoom: StateFlow<Boolean> = roomType
         .map { it == TacitRoomType.DIRECT_MESSAGE }
         .stateIn(coroutineScope, WhileSubscribed(), false)
+
+    // trixnity's isUnread only compares the receipt with the last *relevant* event, while the notification count
+    // (and the global/tray count built from it) also includes events after it. Treat leftover notifications as
+    // unread so rows, guild pills and the DM badge agree with the global count.
+    override val isUnread: StateFlow<Boolean?> =
+        combine(delegate.isUnread, delegate.notificationCount) { isUnread, notificationCount ->
+            if (isUnread == null && notificationCount == null) null
+            else isUnread == true || !notificationCount.isNullOrBlank()
+        }.stateIn(coroutineScope, WhileSubscribed(), null)
 }
