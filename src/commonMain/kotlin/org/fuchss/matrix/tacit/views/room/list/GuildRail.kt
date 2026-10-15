@@ -66,7 +66,6 @@ internal fun GuildRail(
     onReorderGuild: (fromIndex: Int, toIndex: Int) -> Unit,
     onCreateGuild: () -> Unit,
 ) {
-    val i18n = DI.get<TacitI18nView>()
     val density = LocalDensity.current
     val guildStepPx = remember(density) { with(density) { (guildPillSize + guildPillSpacing).toPx() } }
     var draggingGuildKey by remember { mutableStateOf<String?>(null) }
@@ -103,16 +102,14 @@ internal fun GuildRail(
             .padding(vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Tooltip(tooltip = { Text(i18n.tacitAllDms()) }) {
-            GuildPill(
-                label = null,
-                selected = selectedGuild == null,
-                onClick = { onSelectGuild(null) },
-                dmIndicator = false, // No small icon at the bottom right for now :D
-                isTacitHome = true,
-                unreadCount = dmUnreadCount,
-            )
-        }
+        GuildPill(
+            label = null,
+            selected = selectedGuild == null,
+            onClick = { onSelectGuild(null) },
+            dmIndicator = false, // No small icon at the bottom right for now :D
+            isTacitHome = true,
+            unreadCount = dmUnreadCount,
+        )
 
         Spacer(Modifier.height(TacitSpacing.paneGap))
 
@@ -184,20 +181,15 @@ internal fun GuildRail(
                             )
                         }
                 ) {
-                    // `guildLabel()` collapses the name to 1-3 letters, so "General" and "Gaming"
-                    // look the same; the tooltip is the only way to tell them apart short of
-                    // clicking.
-                    Tooltip(tooltip = { Text(guildName) }) {
-                        GuildPill(
-                            label = guild.guildLabel(),
-                            selected = selectedGuild?.roomId == guild.roomId && selectedGuild.userId == guild.userId,
-                            onClick = null,
-                            avatarImage = guildAvatars[guild.key()],
-                            unreadCount = guildUnreadCounts[guild.key()] ?: 0,
-                            interactionSource = pillInteractionSource,
-                            showDragAffordance = guilds.size > 1 && draggingGuildKey == null,
-                        )
-                    }
+                    GuildPill(
+                        label = guild.guildLabel(),
+                        selected = selectedGuild?.roomId == guild.roomId && selectedGuild.userId == guild.userId,
+                        onClick = null,
+                        avatarImage = guildAvatars[guild.key()],
+                        unreadCount = guildUnreadCounts[guild.key()] ?: 0,
+                        interactionSource = pillInteractionSource,
+                        showDragAffordance = guilds.size > 1 && draggingGuildKey == null,
+                    )
                 }
             }
             if (hintBeforeIndex == guilds.size) {
