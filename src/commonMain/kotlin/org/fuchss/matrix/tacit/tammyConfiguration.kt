@@ -63,6 +63,7 @@ fun MatrixMultiMessengerConfiguration.tammyConfiguration(
     messengerConfiguration {
         clientConfiguration {
             deleteRooms = MatrixClientConfiguration.DeleteRooms.OnLeave
+            modulesFactories += ::tacitClientModule
         }
         modulesFactories += listOf(
             { composeViewModule(this) },
