@@ -6,8 +6,13 @@ RUN apt-get update \
 COPY . .
 ENV TAMMY_BUILD_FLAVOR=PROD
 ENV NODE_OPTIONS="--max-old-space-size=4096"
+# c2x conventions derive the app version from GitLab CI variables; without them it is <version>-SNAPSHOT.LOCAL.
+ARG CI_COMMIT_TAG=""
+ARG CI_COMMIT_TIMESTAMP=""
 # Cap the Gradle daemon heap (gradle.properties uses -Xmx12g) so Gradle and webpack fit into the CI runner's memory.
-RUN dos2unix gradlew && ./gradlew -Dorg.gradle.jvmargs="-Xmx6g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8 --add-opens=java.base/java.io=ALL-UNNAMED" packageReleaseWebZip
+RUN dos2unix gradlew \
+    && if [ -n "$CI_COMMIT_TAG$CI_COMMIT_TIMESTAMP" ]; then export CI=true; fi \
+    && ./gradlew -Dorg.gradle.jvmargs="-Xmx6g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8 --add-opens=java.base/java.io=ALL-UNNAMED" packageReleaseWebZip
 
 FROM nginx:alpine
 COPY --from=builder /build/build/dist/composeWebCompatibility/productionExecutable/ /usr/share/nginx/html/

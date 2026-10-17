@@ -21,3 +21,6 @@ jobs:
     with:
       image-name: tacit
       push: true
+      build-args: |
+        CI_COMMIT_TAG=${{ github.ref_type == 'tag' && github.ref_name || '' }}
+        CI_COMMIT_TIMESTAMP=${{ github.event.head_commit.timestamp }}
