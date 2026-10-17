@@ -43,6 +43,14 @@ The builds are **not signed**, so macOS and Windows warn you on the first start:
   **System Settings** > **Privacy & Security**, scroll to **Security** and click **Open Anyway** (the button only shows for
   about an hour after the attempt). Right-click > **Open** no longer works. If macOS says the app is "damaged", run
   `xattr -cr /Applications/Tacit.app`.
+
+  macOS asks again for every new version you download in a browser. Downloads made with `curl` are not flagged, so
+  they open without the prompt:
+
+  ```bash
+  curl -LO https://gitlab.com/dfuchss/tacit/-/releases/permalink/latest/downloads/tacit-macos-arm64.dmg
+  open tacit-macos-arm64.dmg
+  ```
 - **Windows:** unzip and run `Tacit.exe`. If SmartScreen warns you, click **More info** > **Run anyway**.
 - **Linux:** unzip and run `./Tacit/bin/Tacit`.
 

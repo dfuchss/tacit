@@ -21,6 +21,14 @@ Pick the file for your system:
 The **Open Anyway** button only shows for about an hour after the failed attempt. If it is gone, start Tacit again.
 The old right-click > **Open** shortcut no longer works on current macOS versions.
 
+macOS asks again for every new version you download in a browser. Downloads made with `curl` are not flagged, so they
+open without the prompt:
+
+```bash
+curl -LO https://github.com/dfuchss/tacit/releases/download/{{tag}}/Tacit-{{version}}-macos-arm64.dmg
+open Tacit-{{version}}-macos-arm64.dmg
+```
+
 <details>
 <summary>macOS says Tacit is "damaged and can't be opened"</summary>
 
