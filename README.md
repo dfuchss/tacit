@@ -26,14 +26,16 @@ Tacit is based on [Trixnity Messenger](https://gitlab.com/connect2x/trixnity-mes
 
 ## Download / Install
 
-Releases are published on GitLab: https://gitlab.com/dfuchss/tacit/-/releases.
-The release files themselves are hosted on GitHub Releases and linked from there.
+Download the latest release for your system:
 
-| System | File |
+| System | Download |
 |---|---|
-| macOS (Apple Silicon) | `Tacit-<version>-macos-arm64.dmg` |
-| Windows (x64) | `Tacit-<version>-windows-x64.zip` |
-| Linux (x64) | `Tacit-<version>-linux-x64.zip` |
+| macOS (Apple Silicon) | [tacit-macos-arm64.dmg](https://gitlab.com/dfuchss/tacit/-/releases/permalink/latest/downloads/tacit-macos-arm64.dmg) |
+| Windows (x64) | [tacit-windows-x64.zip](https://gitlab.com/dfuchss/tacit/-/releases/permalink/latest/downloads/tacit-windows-x64.zip) |
+| Linux (x64) | [tacit-linux-x64.zip](https://gitlab.com/dfuchss/tacit/-/releases/permalink/latest/downloads/tacit-linux-x64.zip) |
+
+All releases and their notes are on [GitLab](https://gitlab.com/dfuchss/tacit/-/releases); the files themselves are
+hosted on GitHub Releases.
 
 The builds are **not signed**, so macOS and Windows warn you on the first start:
 
