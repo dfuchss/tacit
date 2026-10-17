@@ -1,0 +1,87 @@
+name: Release
+
+# Builds the desktop packages and publishes them as a GitHub Release (file hosting),
+# then creates the matching GitLab Release that links to those files.
+on:
+  push:
+    tags:
+      - 'v*-tacit.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to release, e.g. v26.9.2-tacit.1'
+        required: true
+        type: string
+
+env:
+  TAG: ${{ inputs.tag || github.ref_name }}
+
+jobs:
+  build:
+    uses: ./.github/workflows/build.yml
+
+  release:
+    name: Publish release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - uses: actions/download-artifact@v8
+        with:
+          path: artifacts
+
+      - name: Rename artifacts
+        run: |
+          version="${TAG#v}"
+          mkdir release
+          cp artifacts/tacit-macos-arm64/*.dmg "release/Tacit-${version}-macos-arm64.dmg"
+          cp artifacts/tacit-linux-x64/*.zip "release/Tacit-${version}-linux-x64.zip"
+          cp artifacts/tacit-windows-x64/*.zip "release/Tacit-${version}-windows-x64.zip"
+          ls -l release
+
+      - name: Build release notes
+        run: .github/scripts/release-notes.sh "$TAG" > release-notes.md
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$TAG" release/* \
+            --title "Tacit ${TAG#v}" \
+            --notes-file release-notes.md \
+            --latest \
+            --verify-tag
+
+      - name: Create GitLab Release
+        env:
+          GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
+        run: |
+          sha="$(git rev-parse HEAD)"
+          base="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}"
+          jq -n \
+            --arg tag "$TAG" \
+            --arg ref "$sha" \
+            --arg name "Tacit ${TAG#v}" \
+            --rawfile description release-notes.md \
+            --arg base "$base" \
+            --args '{
+              tag_name: $tag,
+              ref: $ref,
+              name: $name,
+              description: $description,
+              assets: {
+                links: [
+                  $ARGS.positional[] | {name: ., url: ($base + "/" + .), link_type: "package"}
+                ]
+              }
+            }' $(cd release && ls) > gitlab-release.json
+          curl --fail-with-body --silent --show-error \
+            --request POST "https://gitlab.com/api/v4/projects/dfuchss%2Ftacit/releases" \
+            --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" \
+            --header "Content-Type: application/json" \
+            --data @gitlab-release.json
