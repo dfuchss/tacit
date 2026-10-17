@@ -2,6 +2,7 @@ package org.fuchss.matrix.tacit.readmeshots
 
 import com.arkivanov.decompose.DecomposeSettings
 import com.arkivanov.decompose.DefaultComponentContext
+import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
@@ -125,6 +126,7 @@ private fun screenshotMessengerOverridesModule() = module {
 
 internal class ScreenshotMessenger(val multi: MatrixMultiMessenger, val messenger: MatrixMessenger, val root: RootViewModel) {
     companion object {
+        @OptIn(ExperimentalDecomposeApi::class)
         suspend fun start(rootDir: Path): ScreenshotMessenger {
             // Headless: there is no AWT main thread and the routers are driven from background coroutines (exactly
             // like trixnity-messenger's own integration tests), so decompose's main-thread assertion is just noise.

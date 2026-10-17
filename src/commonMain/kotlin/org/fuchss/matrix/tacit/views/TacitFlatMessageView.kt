@@ -7,9 +7,7 @@ import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoDelete
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -298,15 +296,6 @@ private fun TacitFlatMessageContainer(
                             modifier = Modifier.padding(top = 4.dp),
                         )
                         Spacer(Modifier.width(10.dp))
-                    }
-                    if (uiState.redactionInProgress) {
-                        Icon(
-                            imageVector = Icons.Default.AutoDelete,
-                            contentDescription = i18n.messageBubbleBeingDeleted(),
-                            modifier = Modifier
-                                .size(16.dp)
-                                .padding(2.dp),
-                        )
                     }
                     Column(Modifier.fillMaxWidth()) {
                         val baseTypography = MaterialTheme.typography

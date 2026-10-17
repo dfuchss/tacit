@@ -30,7 +30,6 @@ internal data class TacitFlatMessageUiState(
     val timelineElementHolder: TimelineElementHolderViewModel?,
     /** Non-null for a pending, uploading or failed message. See [timelineElementHolder]. */
     val outboxElementHolder: OutboxElementHolderViewModel?,
-    val redactionInProgress: Boolean,
     val showBigGap: Boolean,
     /**
      * `true` when this message directly follows another message of the same sender (and no big gap
@@ -82,7 +81,6 @@ internal fun rememberTacitFlatMessageUiState(
     val timelineElementHolder = remember(holder) { holder as? TimelineElementHolderViewModel }
     val outboxElementHolder = remember(holder) { holder as? OutboxElementHolderViewModel }
 
-    val redactionInProgress = timelineElementHolder?.redactionInProgress?.collectAsState()?.value == true
     val showBigGap = holder.showBigGapBefore.collectAsState().value == true
     // `isFirstInUserSequence` is `false` only for a run of messages by the same sender. It starts
     // out as `null`, so we deliberately compare against `false` and fall back to the full (first in
@@ -113,7 +111,6 @@ internal fun rememberTacitFlatMessageUiState(
     return TacitFlatMessageUiState(
         timelineElementHolder = timelineElementHolder,
         outboxElementHolder = outboxElementHolder,
-        redactionInProgress = redactionInProgress,
         showBigGap = showBigGap,
         isContinuation = isContinuation,
         showRedactionWarning = showRedactionWarning,
