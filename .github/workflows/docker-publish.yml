@@ -10,9 +10,10 @@ on:
       - '**.md'
       - '.github/**'
 
-    # Publish `v1.2.3` tags as releases.
+    # Publish Tacit release tags (e.g. `v26.9.2-tacit.1`) as releases.
+    # Mirrored upstream tags (`v26.x.y`) are intentionally not matched.
     tags:
-      - v*
+      - 'v*-tacit.*'
 
 jobs:
   push:
