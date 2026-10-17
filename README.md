@@ -85,9 +85,9 @@ Tacit versions follow `v<upstream>-tacit.<n>`, e.g. `v26.9.2-tacit.1`. The numer
 
 1. Move the `[Unreleased]` entries in `CHANGELOG.tacit.md` to a new `## 26.9.2-tacit.1` section and commit.
 2. `git tag v26.9.2-tacit.1`
-3. Push the tag to gitlab.com and origin first, then to github.com. The GitHub push triggers
+3. Push the tag to gitlab.com first, then to github.com. The GitHub push triggers
    `.github/workflows/release.yml`, which builds the packages, creates the GitHub Release and then the GitLab Release:
-   `git push gitlab.com v26.9.2-tacit.1 && git push origin v26.9.2-tacit.1 && git push github.com v26.9.2-tacit.1`
+   `git push gitlab.com v26.9.2-tacit.1 && git push github.com v26.9.2-tacit.1`
 4. The same tag also triggers the Docker image build.
 
 The workflow needs the repository secret `GITLAB_TOKEN` on github.com: a gitlab.com project access token with the `api`
