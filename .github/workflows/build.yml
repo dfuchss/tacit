@@ -1,6 +1,7 @@
 name: Build
 
 on:
+  workflow_call:
   workflow_dispatch:
   push:
     branches:
@@ -39,23 +40,24 @@ jobs:
             artifact-paths: |
               build/compose/binaries/main-release/zip/*.zip
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-java@v5
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '17'
 
-      - uses: gradle/actions/setup-gradle@v5
+      - uses: gradle/actions/setup-gradle@v6
 
       - name: Build packages
         shell: bash
-        # c2x conventions treat any set CI as GitLab CI and then require CI_COMMIT_TIMESTAMP
+        # c2x conventions derive the app version from GitLab CI variables
         run: |
-          unset CI
+          export CI_COMMIT_TIMESTAMP="$(TZ=UTC git log -1 --date=format-local:%Y-%m-%dT%H:%M:%SZ --format=%cd)"
+          if [ "${{ github.ref_type }}" = tag ]; then export CI_COMMIT_TAG="${{ github.ref_name }}"; fi
           ./gradlew -Dorg.gradle.jvmargs="-Xmx6g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8 --add-opens=java.base/java.io=ALL-UNNAMED" ${{ matrix.tasks }} --stacktrace
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7
         with:
           name: tacit-${{ matrix.name }}
           path: ${{ matrix.artifact-paths }}
