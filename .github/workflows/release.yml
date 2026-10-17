@@ -69,6 +69,7 @@ jobs:
             --arg name "Tacit ${TAG#v}" \
             --rawfile description release-notes.md \
             --arg base "$base" \
+            --arg version "${TAG#v}" \
             --args '{
               tag_name: $tag,
               ref: $ref,
@@ -76,7 +77,13 @@ jobs:
               description: $description,
               assets: {
                 links: [
-                  $ARGS.positional[] | {name: ., url: ($base + "/" + .), link_type: "package"}
+                  $ARGS.positional[] | {
+                    name: .,
+                    url: ($base + "/" + .),
+                    link_type: "package",
+                    # stable URL: /-/releases/permalink/latest/downloads/tacit-<platform>-<arch>.<ext>
+                    direct_asset_path: ("/tacit-" + ltrimstr("Tacit-" + $version + "-"))
+                  }
                 ]
               }
             }' $(cd release && ls) > gitlab-release.json
