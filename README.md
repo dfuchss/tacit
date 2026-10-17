@@ -21,7 +21,31 @@ Tacit is based on [Trixnity Messenger](https://gitlab.com/connect2x/trixnity-mes
 
 - **Target platform:** Desktop / Web
 - **Other platforms:** Android/iOS are currently not actively tested in Tacit.
+- **Releases:** Unsigned desktop builds for macOS (Apple Silicon), Linux and Windows, see [Download / Install](#download--install). Changes are listed in [CHANGELOG.tacit.md](CHANGELOG.tacit.md).
 - **Maturity:** Alpha — expect rough edges, breaking changes, and frequent iteration.
+
+## Download / Install
+
+Releases are published on GitLab: https://gitlab.com/dfuchss/tacit/-/releases.
+The release files themselves are hosted on GitHub Releases and linked from there.
+
+| System | File |
+|---|---|
+| macOS (Apple Silicon) | `Tacit-<version>-macos-arm64.dmg` |
+| Windows (x64) | `Tacit-<version>-windows-x64.zip` |
+| Linux (x64) | `Tacit-<version>-linux-x64.zip` |
+
+The builds are **not signed**, so macOS and Windows warn you on the first start:
+
+- **macOS:** drag Tacit to Applications and open it. When macOS blocks it, click **Done**, then open
+  **System Settings** > **Privacy & Security**, scroll to **Security** and click **Open Anyway** (the button only shows for
+  about an hour after the attempt). Right-click > **Open** no longer works. If macOS says the app is "damaged", run
+  `xattr -cr /Applications/Tacit.app`.
+- **Windows:** unzip and run `Tacit.exe`. If SmartScreen warns you, click **More info** > **Run anyway**.
+- **Linux:** unzip and run `./Tacit/bin/Tacit`.
+
+The web version is available as a Docker image: `ghcr.io/dfuchss/tacit` (tags: `dev` for the latest development state,
+`<version>` for releases such as `26.9.2-tacit.1`).
 
 ## Screenshots
 
@@ -52,6 +76,20 @@ A matrix space is translated to the idea of guilds in Tacit. Guilds only contain
 ### About
 ![About](.images/about.png)
 
+
+## Releasing
+
+Tacit versions follow `v<upstream>-tacit.<n>`, e.g. `v26.9.2-tacit.1`. The numeric `appVersion` stays unchanged.
+
+1. Move the `[Unreleased]` entries in `CHANGELOG.tacit.md` to a new `## 26.9.2-tacit.1` section and commit.
+2. `git tag v26.9.2-tacit.1`
+3. Push the tag to gitlab.com and origin first, then to github.com. The GitHub push triggers
+   `.github/workflows/release.yml`, which builds the packages, creates the GitHub Release and then the GitLab Release:
+   `git push gitlab.com v26.9.2-tacit.1 && git push origin v26.9.2-tacit.1 && git push github.com v26.9.2-tacit.1`
+4. The same tag also triggers the Docker image build.
+
+The workflow needs the repository secret `GITLAB_TOKEN` on github.com: a gitlab.com project access token with the `api`
+scope and the Developer role or higher.
 
 ## Development / Building
 
