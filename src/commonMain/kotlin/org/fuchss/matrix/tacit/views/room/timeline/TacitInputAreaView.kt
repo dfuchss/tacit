@@ -180,7 +180,8 @@ class TacitInputAreaView : InputAreaView {
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .height(IntrinsicSize.Max)
+                        // No IntrinsicSize here: the text field's intrinsic height ignores its line limit, so a
+                        // long draft would stretch the row over the whole timeline. The field caps itself and scrolls.
                         .padding(horizontal = 10.dp, vertical = 10.dp)
                         .onPreviewKeyEvent { keyEvent ->
                             val autocompleteVisible = showSlashSuggestions || showEmojiSuggestions
@@ -230,7 +231,8 @@ class TacitInputAreaView : InputAreaView {
                         if (isEdit) {
                             EditButton(inputAreaViewModel)
                         }
-                        Box(Modifier.fillMaxHeight(), contentAlignment = Alignment.Center) {
+                        // Bottom-aligned so the buttons stay next to the last line of a multi-line draft.
+                        Box(Modifier.align(Alignment.Bottom), contentAlignment = Alignment.Center) {
                             AttachmentButton(
                                 inputAreaViewModel = inputAreaViewModel,
                                 insideTextInputField = false,
