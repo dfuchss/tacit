@@ -14,6 +14,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+## 26.9.2-tacit.2
+
+Based on Tammy 26.9.2.
+
+### Changed
+
+- Install instructions explain how to download updates on macOS without the "Open Anyway" prompt
+- Updated README screenshots
+
+### Fixed
+
+- Long multi-line messages no longer push the timeline out of view; the message input grows up to six lines and then
+  scrolls
+
 ## 26.9.2-tacit.1
 
 First Tacit release, based on Tammy 26.9.2.
