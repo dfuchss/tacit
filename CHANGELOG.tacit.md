@@ -10,13 +10,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- Desktop self-update on macOS, Windows and Linux: checks for new releases at startup and daily (can be turned off),
-  verifies the download against `SHA256SUMS`, and installs it with **Restart to update** after Tacit has fully exited,
-  restoring the previous version if the swap fails
-
 ### Changed
 
 ### Fixed
+
+## 26.9.2-tacit.3
+
+Based on Tammy 26.9.2.
+
+### Added
+
+- Desktop self-update on macOS, Windows and Linux: checks for new releases about once a day (can be turned off under
+  **Settings** > **About the app**), verifies the download against `SHA256SUMS`, and installs it with
+  **Restart to update** after Tacit has fully exited, restoring the previous version if the swap fails
+- Releases publish a `SHA256SUMS` file
+
+### Changed
+
+- The About screen shows the full Tacit version, e.g. `26.9.2-tacit.3`
+- Updated README screenshots, including the update notice
 
 ## 26.9.2-tacit.2
 
