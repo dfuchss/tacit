@@ -144,6 +144,8 @@ If you run the messenger from the IDE or command line, the
 
 `./gradlew run`
 
+To try Tacit against the seeded demo data of the screenshots (logged in as `tacit`, throwaway homeserver in Docker; the URL and credentials are printed on start): `./gradlew runDemo`
+
 ### Android
 
 In Android Studio or IntelliJ, choose the Android configuration and run on an emulated or your physical device.

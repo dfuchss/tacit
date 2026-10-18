@@ -104,6 +104,11 @@ internal class MatrixSession(private val http: MatrixHttp, val userId: String, v
         Thread.sleep(500)
     }
 
+    /** Sets a state event of [type] with [stateKey]. */
+    fun sendState(roomId: String, type: String, stateKey: String, content: JsonObject) {
+        call("PUT", "/_matrix/client/v3/rooms/${encodePath(roomId)}/state/${encodePath(type)}/${encodePath(stateKey)}", content)
+    }
+
     fun sendMessage(roomId: String, content: JsonObject): String =
         call(
             "PUT",

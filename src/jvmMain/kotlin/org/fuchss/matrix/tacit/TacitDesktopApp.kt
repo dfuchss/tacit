@@ -19,6 +19,7 @@ import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.decompose.extensions.compose.lifecycle.LifecycleController
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import de.connect2x.lognity.api.logger.Logger
+import de.connect2x.trixnity.messenger.MatrixMessenger
 import de.connect2x.trixnity.messenger.MatrixMessengerSettingsHolder
 import de.connect2x.trixnity.messenger.compose.view.*
 import de.connect2x.trixnity.messenger.compose.view.profiles.Profiles
@@ -31,6 +32,7 @@ import de.connect2x.trixnity.messenger.multi.MatrixMultiMessengerConfiguration
 import de.connect2x.trixnity.messenger.multi.create
 import de.connect2x.trixnity.messenger.util.defaultDragAndDropHandler
 import de.connect2x.trixnity.messenger.util.defaultUriHandler
+import de.connect2x.trixnity.messenger.viewmodel.RootViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.map
@@ -82,6 +84,7 @@ private class WindowActivationController {
 fun startTacitMultiMessenger(
     args: Array<String>,
     updater: TacitUpdater,
+    activeMessengerOnce: (MatrixMessenger, RootViewModel) -> Unit = { _, _ -> },
     configuration: MatrixMultiMessengerConfiguration.() -> Unit,
 ) = runBlocking(Dispatchers.Default) {
     desktopLog.info { "Starting Tacit desktop client" }
@@ -97,7 +100,7 @@ fun startTacitMultiMessenger(
     }
     matrixMultiMessenger.defaultUriHandler.start(args)
     updater.start()
-    tacitMessengerApp(matrixMultiMessenger, lifecycle, updater)
+    tacitMessengerApp(matrixMultiMessenger, lifecycle, updater, activeMessengerOnce)
 
     desktopLog.info { "Shutting down client gracefully.." }
     matrixMultiMessenger.closeSuspending()
@@ -143,6 +146,7 @@ private fun tacitMessengerApp(
     matrixMultiMessenger: MatrixMultiMessenger,
     lifecycle: LifecycleRegistry,
     updater: TacitUpdater,
+    activeMessengerOnce: (MatrixMessenger, RootViewModel) -> Unit,
 ) {
     updateAppClassName(matrixMultiMessenger.di.get<MatrixMultiMessengerConfiguration>().appName)
 
@@ -169,7 +173,7 @@ private fun tacitMessengerApp(
         WithProfileSelection(
             matrixMultiMessenger = matrixMultiMessenger,
             componentContext = DefaultComponentContext(lifecycle),
-            activeMessengerOnce = { _, _ -> },
+            activeMessengerOnce = activeMessengerOnce,
             activeMessenger = { matrixMessenger, rootViewModel ->
                 val unreadMessages by matrixMessenger.notificationCount.collectAsState()
                 val messengerSettings = remember(matrixMessenger) {

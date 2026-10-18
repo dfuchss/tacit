@@ -86,7 +86,7 @@ class ReadmeScreenshotsGenerator {
         const val NEXT_VERSION = "26.9.2-tacit.4"
     }
 
-    private val password = "screenshots-demo-password"
+    private val password = DEMO_PASSWORD
     private val outputDir: File =
         System.getProperty("tacit.readmeScreenshots.outputDir")?.let(::File) ?: File(repoRoot(), ".images")
 
@@ -109,20 +109,9 @@ class ReadmeScreenshotsGenerator {
             container.start()
             val serverUrl = container.clientServerUrl()
             val http = MatrixHttp(serverUrl)
-            // The first registered user is made server admin and auto-joined to the admin room by tuwunel,
-            // exactly like the original screenshots show.
-            val tacit = http.register("tacit", password, "Tacit (macOS)")
-            val tacit2 = http.register("tacit2", password, "Element (Firefox)")
-            tacit.setAvatar(DemoAvatars.png("T", 0xFF2F80ED.toInt(), 0xFF56CCF2.toInt()))
-            tacit2.setAvatar(DemoAvatars.png("T", 0xFFF2994A.toInt(), 0xFFF2C94C.toInt()))
-            // A few more (invented) demo users so the DM home looks lived-in.
-            val mira = http.register("mira", password, "Element (Android)")
-                .apply { setDisplayName("Mira Moon"); setAvatar(DemoAvatars.png("M", 0xFF9B51E0.toInt(), 0xFFBB6BD9.toInt())) }
-            val ollie = http.register("ollie", password, "Element (iOS)")
-                .apply { setDisplayName("Ollie Orbit"); setAvatar(DemoAvatars.png("O", 0xFF27AE60.toInt(), 0xFF6FCF97.toInt())) }
-            val pip = http.register("pip", password, "Element (Web)")
-                .apply { setDisplayName("Pip Pixel"); setAvatar(DemoAvatars.png("P", 0xFFEB5757.toInt(), 0xFFF2994A.toInt())) }
-            val friends = DemoFriends(mira, ollie, pip)
+            val users = seedDemoUsers(http)
+            val (tacit, tacit2) = users.tacit to users.tacit2
+            val friends = DemoFriends(users.mira, users.ollie, users.pip)
 
             val app = runBlocking { ScreenshotMessenger.start(dataDir.toOkioPath()) }
             try {

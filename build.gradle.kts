@@ -233,6 +233,18 @@ val generateReadmeScreenshots by tasks.registering(Test::class) {
     }
 }
 
+// Interactive demo (src/jvmTest/.../readmeshots/DemoApp.kt): the real desktop app, logged in as `tacit` against the same
+// seeded throwaway homeserver (requires Docker). Run with `./gradlew runDemo`.
+val runDemo by tasks.registering(JavaExec::class) {
+    group = "application"
+    description = "Starts Tacit interactively against a seeded throwaway demo homeserver (requires Docker)."
+    val jvmTestTask = tasks.named<Test>("jvmTest").get()
+    classpath = jvmTestTask.classpath + files(jvmTestTask.testClassesDirs)
+    mainClass.set("org.fuchss.matrix.tacit.readmeshots.DemoAppKt")
+    maxHeapSize = "4g"
+    if (org.gradle.internal.os.OperatingSystem.current().isMacOsX) jvmArgs("-Xdock:name=Tacit Demo")
+    standardInput = System.`in`
+}
 
 dependencies {
     androidTestImplementation(libs.screengrab)

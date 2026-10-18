@@ -524,5 +524,15 @@ class TacitUpdater private constructor(
                 force = System.getenv("TACIT_UPDATE_FORCE").let { it == "1" || it.equals("true", ignoreCase = true) },
             )
         }
+
+        /** An updater that never checks or installs, regardless of flavor or test overrides (e.g. for the demo). */
+        fun disabled(appDataDir: Path): TacitUpdater = TacitUpdater(
+            currentVersion = null,
+            install = TacitInstallLocation.ManualOnly("updater disabled"),
+            asset = null,
+            appDataDir = appDataDir,
+            apiUrl = DEFAULT_API_URL,
+            force = false,
+        )
     }
 }

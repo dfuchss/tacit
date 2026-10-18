@@ -28,6 +28,7 @@ import de.connect2x.trixnity.messenger.MatrixMessengerSettingsBase
 import de.connect2x.trixnity.messenger.MatrixMessengerSettingsHolder
 import de.connect2x.trixnity.messenger.createRoot
 import de.connect2x.trixnity.messenger.multi.MatrixMultiMessenger
+import de.connect2x.trixnity.messenger.multi.MatrixMultiMessengerConfiguration
 import de.connect2x.trixnity.messenger.multi.create
 import de.connect2x.trixnity.messenger.multi.singleModeMatrixMessenger
 import de.connect2x.trixnity.messenger.secrets.GetKey
@@ -96,18 +97,21 @@ internal fun configureScreenshotLogging(messengerDir: Path) {
  * Everything else (views, view models, theme, i18n, DI wiring) is exactly what `Main.kt` boots.
  */
 internal suspend fun createScreenshotMultiMessenger(rootDir: Path, updates: ScreenshotUpdateController): MatrixMultiMessenger =
-    MatrixMultiMessenger.create(Dispatchers.Default) {
-        tammyConfiguration {
-            modulesFactories += { module { single<RootPath> { RootPath(rootDir) } } }
-            messengerConfiguration {
-                databaseEncryptionEnabled = false
-                modulesFactories += { screenshotMessengerOverridesModule(updates) }
-            }
+    MatrixMultiMessenger.create(Dispatchers.Default) { isolatedTacitConfiguration(rootDir, updates) }
+
+/** [tammyConfiguration] with app data in [rootDir], no database encryption and no OS keychain; [updates] replaces the updater. */
+internal fun MatrixMultiMessengerConfiguration.isolatedTacitConfiguration(rootDir: Path, updates: ScreenshotUpdateController? = null) {
+    tammyConfiguration {
+        modulesFactories += { module { single<RootPath> { RootPath(rootDir) } } }
+        messengerConfiguration {
+            databaseEncryptionEnabled = false
+            modulesFactories += { isolatedMessengerOverridesModule(updates) }
         }
     }
+}
 
-private fun screenshotMessengerOverridesModule(updates: ScreenshotUpdateController) = module {
-    single<TacitUpdateController> { updates }
+private fun isolatedMessengerOverridesModule(updates: ScreenshotUpdateController?) = module {
+    if (updates != null) single<TacitUpdateController> { updates }
     single<SecretByteArrayKeyProvider>(named(PLATFORM_SECRET_KEY_PROVIDER_ID)) {
         object : SecretByteArrayKeyProvider {
             override val id: String = PLATFORM_SECRET_KEY_PROVIDER_ID
@@ -155,40 +159,7 @@ internal class ScreenshotMessenger(
         main().roomListRouterStack.waitFor(RoomListRouter.Wrapper.List::class).viewModel
 
     /** Port of trixnity-messenger's integration test login: drives the real login view models. */
-    suspend fun login(serverUrl: String, username: String, password: String) {
-        val addAccount = root.stack.waitFor(RootRouter.Wrapper.AddMatrixAccount::class).viewModel
-        addAccount.serverUrl.update(serverUrl)
-        val passwordMethod = addAccount.serverDiscoveryState
-            .filterIsInstance<AddMatrixAccountViewModel.ServerDiscoveryState.Success>()
-            .first()
-            .addMatrixAccountMethods
-            .filterIsInstance<AddMatrixAccountMethod.Password>()
-            .first()
-        addAccount.selectAddMatrixAccountMethod(passwordMethod)
-        val passwordLogin = root.stack.waitFor(RootRouter.Wrapper.PasswordLogin::class).viewModel
-        passwordLogin.username.update(username)
-        passwordLogin.password.update(password)
-        passwordLogin.canLogin.first { it }
-        passwordLogin.tryLogin()
-
-        val main = main()
-        main.accountSetupRouterStack.waitFor(AccountSetupRouter.Wrapper.ShowAccountSetup::class).viewModel.closeAccountSetup()
-        main.accountSetupRouterStack.waitFor(AccountSetupRouter.Wrapper.None::class)
-
-        // A fresh account has no cross-signing keys yet; set them up like a user would, so no verification
-        // reminders show up in the screenshots.
-        val bootstrap = withTimeoutOrNull(20.seconds) {
-            main.selfVerificationStack.waitFor(SelfVerificationRouter.Wrapper.CrossSigningBootstrap::class).viewModel
-        }
-        if (bootstrap != null) {
-            bootstrap.startCrossSigningBootstrap()
-            bootstrap.isBootstrapRunning.first { it }
-            bootstrap.isBootstrapRunning.first { !it }
-            bootstrap.recoveryKey.first { it != null }
-            bootstrap.close()
-            main.selfVerificationStack.waitFor(SelfVerificationRouter.Wrapper.None::class)
-        }
-    }
+    suspend fun login(serverUrl: String, username: String, password: String) = root.loginWithPassword(serverUrl, username, password)
 
     suspend fun roomElementNamed(nameFragment: String): RoomListElementViewModel {
         val roomList = roomList()
@@ -278,3 +249,39 @@ internal class ScreenshotMessenger(
 @Suppress("UNCHECKED_CAST")
 internal suspend fun <C : Any, W : Any, T : Any> Value<ChildStack<C, W>>.waitFor(clazz: KClass<T>): T =
     toFlow().first { clazz.isInstance(it.active.instance) }.active.instance as T
+
+/** Port of trixnity-messenger's integration test login: drives the real login view models of [this] root. */
+internal suspend fun RootViewModel.loginWithPassword(serverUrl: String, username: String, password: String) {
+    val addAccount = stack.waitFor(RootRouter.Wrapper.AddMatrixAccount::class).viewModel
+    addAccount.serverUrl.update(serverUrl)
+    val passwordMethod = addAccount.serverDiscoveryState
+        .filterIsInstance<AddMatrixAccountViewModel.ServerDiscoveryState.Success>()
+        .first()
+        .addMatrixAccountMethods
+        .filterIsInstance<AddMatrixAccountMethod.Password>()
+        .first()
+    addAccount.selectAddMatrixAccountMethod(passwordMethod)
+    val passwordLogin = stack.waitFor(RootRouter.Wrapper.PasswordLogin::class).viewModel
+    passwordLogin.username.update(username)
+    passwordLogin.password.update(password)
+    passwordLogin.canLogin.first { it }
+    passwordLogin.tryLogin()
+
+    val main = stack.waitFor(RootRouter.Wrapper.Main::class).viewModel
+    main.accountSetupRouterStack.waitFor(AccountSetupRouter.Wrapper.ShowAccountSetup::class).viewModel.closeAccountSetup()
+    main.accountSetupRouterStack.waitFor(AccountSetupRouter.Wrapper.None::class)
+
+    // A fresh account has no cross-signing keys yet; set them up like a user would, so no verification
+    // reminders show up in the screenshots.
+    val bootstrap = withTimeoutOrNull(20.seconds) {
+        main.selfVerificationStack.waitFor(SelfVerificationRouter.Wrapper.CrossSigningBootstrap::class).viewModel
+    }
+    if (bootstrap != null) {
+        bootstrap.startCrossSigningBootstrap()
+        bootstrap.isBootstrapRunning.first { it }
+        bootstrap.isBootstrapRunning.first { !it }
+        bootstrap.recoveryKey.first { it != null }
+        bootstrap.close()
+        main.selfVerificationStack.waitFor(SelfVerificationRouter.Wrapper.None::class)
+    }
+}
