@@ -42,6 +42,8 @@ class TacitAppearanceSettingsView : AppearanceSettingsView {
         val defaultAccentColor = DI.get<DefaultAccentColor>().value
         val packedAccentColor by appearanceSettingsViewModel.accentColor.collectAsState()
         val isFocusHighlighting by appearanceSettingsViewModel.isFocusHighlighting.collectAsState()
+        val canToggleSystemFont by appearanceSettingsViewModel.canToggleSystemFont.collectAsState()
+        val isSystemFont by appearanceSettingsViewModel.isSystemFont.collectAsState()
         val activeAccentColor = packedAccentColor?.let { Color(it.toULong()) } ?: defaultAccentColor
         val tacitAppearanceSettingsViewModel = appearanceSettingsViewModel as? TacitAppearanceSettingsViewModel
         val languageSelection by (tacitAppearanceSettingsViewModel?.languageSelection?.collectAsState()
@@ -109,6 +111,16 @@ class TacitAppearanceSettingsView : AppearanceSettingsView {
                                 selected = isFocusHighlighting,
                                 onChange = { appearanceSettingsViewModel.toggleFocusHighlighting() },
                             )
+
+                            if (canToggleSystemFont) {
+                                ThemedListItemSwitch(
+                                    style = MaterialTheme.components.settingsItem,
+                                    headlineContent = { Text(i18n.appearanceSystemFontHeading()) },
+                                    supportingContent = { Text(i18n.appearanceSystemFontExplanation()) },
+                                    selected = isSystemFont,
+                                    onChange = { appearanceSettingsViewModel.toggleSystemFont() },
+                                )
+                            }
                         }
                         if (tacitAppearanceSettingsViewModel != null && Platform.current.isDesktop) {
                             SettingsCard(title = i18n.tacitDesktopBehaviorTitle(), icon = Icons.Filled.Info) {

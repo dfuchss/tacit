@@ -71,7 +71,9 @@ class TacitUserSettingsView : UserSettingsView {
                     AppearanceSettingsButton(userSettingsViewModel)
                     PrivacySettingsButton(userSettingsViewModel)
                     DeviceSettingsButton(userSettingsViewModel)
-                    ProfilesSettingsButton(userSettingsViewModel)
+                    if (userSettingsViewModel.canShowProfilesSettings) {
+                        ProfilesSettingsButton(userSettingsViewModel)
+                    }
                     (userSettingsViewModel as? TacitUserSettingsViewModel)?.let { DevelopmentSettings(it) }
                 }
             }

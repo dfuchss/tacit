@@ -233,6 +233,7 @@ val generateReadmeScreenshots by tasks.registering(Test::class) {
     }
 }
 
+
 dependencies {
     androidTestImplementation(libs.screengrab)
     androidTestImplementation(sharedLibs.compose.uiTestJunit4)
@@ -263,7 +264,8 @@ compose {
 
                 linux {
                     iconFile.set(project.file("src/jvmMain/resources/logo.png"))
-                    modules("jdk.security.auth")
+                    // jdk.unsupported: sun.misc.Unsafe for the AWT app class name workaround (CMP-3308) in TacitDesktopApp
+                    modules("jdk.security.auth", "jdk.unsupported")
                 }
                 windows {
                     menu = true

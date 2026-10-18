@@ -50,12 +50,14 @@ import java.awt.Desktop
 import java.awt.Dimension
 import java.awt.GraphicsEnvironment
 import java.awt.Taskbar
+import java.awt.Toolkit
 import java.awt.desktop.AppForegroundEvent
 import java.awt.desktop.AppForegroundListener
 import java.awt.desktop.AppReopenedEvent
 import java.awt.desktop.AppReopenedListener
 import java.awt.dnd.DropTarget
 import kotlin.math.roundToInt
+import sun.misc.Unsafe
 
 private val desktopLog: Logger = Logger("org.fuchss.matrix.tacit.TacitDesktopApp")
 
@@ -101,11 +103,49 @@ fun startTacitMultiMessenger(
     matrixMultiMessenger.closeSuspending()
 }
 
+/**
+ * Workaround for https://youtrack.jetbrains.com/issue/CMP-3308 adjusted to use an unsafe callback.
+ * (Ported from trixnity-messenger's messengerApp.kt.)
+ *
+ * Since the module system security makes it impossible to use reflection for this on our minimum target JDK, we need to
+ * use sun.misc.Unsafe to try to override the field value, without tripping up reflection security checks. What a
+ * beautiful mess.
+ */
+private fun updateAppClassName(name: String) {
+    try {
+        val toolkit = Toolkit.getDefaultToolkit()
+        if (toolkit::class.java.simpleName != "XToolkit") return
+        desktopLog.debug { "AWT Toolkit implementation is ${toolkit::class.java.name}" }
+        val classNameField = toolkit.javaClass.getDeclaredField("awtAppClassName")
+        desktopLog.debug { "Got field reference $classNameField" }
+
+        try {
+            classNameField.isAccessible = true
+            classNameField.set(null, name)
+        } catch (_: Throwable) {
+            val theUnsafe = Unsafe::class.java.getDeclaredField("theUnsafe")
+            theUnsafe.isAccessible = true
+            val unsafe = theUnsafe.get(null) as? Unsafe ?: return
+            desktopLog.debug { "Obtained sun.misc.Unsafe instance $unsafe" }
+
+            val fieldBase = unsafe.staticFieldBase(classNameField)
+            val fieldOffset = unsafe.staticFieldOffset(classNameField)
+            unsafe.putObjectVolatile(fieldBase, fieldOffset, name)
+        }
+
+        desktopLog.debug { "Successfully swapped AWT app class to $name" }
+    } catch (_: Throwable) {
+        // SILENCE
+    }
+}
+
 private fun tacitMessengerApp(
     matrixMultiMessenger: MatrixMultiMessenger,
     lifecycle: LifecycleRegistry,
     updater: TacitUpdater,
 ) {
+    updateAppClassName(matrixMultiMessenger.di.get<MatrixMultiMessengerConfiguration>().appName)
+
     application(exitProcessOnExit = false) {
         val windowState = rememberDesktopWindowState()
         val escapeKeyPressed = remember { MutableSharedFlow<Unit>(extraBufferCapacity = 1) }

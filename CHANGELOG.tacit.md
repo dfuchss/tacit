@@ -10,9 +10,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Setting to switch between the bundled font and the system font (Appearance > Accessibility), as in Tammy
+
 ### Changed
 
 ### Fixed
+
+- Linux docks and app menus show Tacit's name and icon (upstream fix CMP-3308)
+- The profiles settings entry is only shown when profiles are available
 
 ## 26.9.2-tacit.3
 
