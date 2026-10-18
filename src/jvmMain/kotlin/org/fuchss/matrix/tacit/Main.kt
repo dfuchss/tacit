@@ -10,6 +10,8 @@ import de.connect2x.trixnity.messenger.util.getAppPath
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.io.asSource
 import kotlinx.io.buffered
+import org.fuchss.matrix.tacit.update.TacitUpdater
+import kotlin.system.exitProcess
 
 @OptIn(ExperimentalCoroutinesApi::class)
 object Main {
@@ -31,8 +33,12 @@ object Main {
     @JvmStatic
     fun main(args: Array<String>) {
         configureLogging()
-        startTacitMultiMessenger(args) {
+        val updater = TacitUpdater.create()
+        startTacitMultiMessenger(args, updater) {
             tammyConfiguration()
         }
+        // The app (windows, tray, databases) is shut down here. The helper waits for this process to exit
+        // before it swaps the install, so nothing under the install is touched while Tacit still runs.
+        if (updater.launchPendingUpdate()) exitProcess(0)
     }
 }

@@ -25,11 +25,17 @@ import de.connect2x.trixnity.messenger.MatrixMessengerConfiguration
 import de.connect2x.trixnity.messenger.compose.view.DI
 import de.connect2x.trixnity.messenger.compose.view.common.Header
 import de.connect2x.trixnity.messenger.compose.view.get
+import de.connect2x.trixnity.messenger.compose.view.getOrNull
 import de.connect2x.trixnity.messenger.compose.view.settings.*
+import de.connect2x.trixnity.messenger.compose.view.theme.components
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedListItemButton
+import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedListItemSwitch
 import de.connect2x.trixnity.messenger.viewmodel.MainViewModel
 import de.connect2x.trixnity.messenger.viewmodel.settings.AppInfoViewModel
 import de.connect2x.trixnity.messenger.viewmodel.settings.UserSettingsViewModel
+import org.fuchss.matrix.tacit.BuildConfig
+import org.fuchss.matrix.tacit.update.TacitUpdateController
+import org.fuchss.matrix.tacit.update.TacitUpdateState
 import org.fuchss.matrix.tacit.viewmodel.settings.TacitMarkAllAsReadState
 import org.fuchss.matrix.tacit.viewmodel.settings.TacitUserSettingsViewModel
 import org.fuchss.matrix.tacit.views.TacitAttributionFooter
@@ -116,6 +122,71 @@ private fun DevelopmentSettings(viewModel: TacitUserSettingsViewModel) {
     )
 }
 
+@Composable
+private fun TacitUpdateSettings(i18n: TacitI18nView, controller: TacitUpdateController) {
+    val state by controller.state.collectAsState()
+    val autoCheck by controller.autoCheck.collectAsState()
+    val lastError by controller.lastError.collectAsState()
+    val uriHandler = LocalUriHandler.current
+
+    ThemedListItemSwitch(
+        style = MaterialTheme.components.settingsItem,
+        headlineContent = { Text(i18n.tacitUpdateAutoCheckTitle()) },
+        supportingContent = { Text(i18n.tacitUpdateAutoCheckDescription()) },
+        selected = autoCheck,
+        onChange = { controller.setAutoCheck(it) },
+    )
+    val busy = state == TacitUpdateState.Checking || state is TacitUpdateState.Downloading
+    ThemedListItemButton(
+        headlineContent = { Text(i18n.tacitUpdateCheckNow()) },
+        supportingContent = {
+            Text(
+                when (val current = state) {
+                    TacitUpdateState.Idle -> i18n.tacitUpdateCurrentVersion(BuildConfig.version)
+                    TacitUpdateState.Checking -> i18n.tacitUpdateChecking()
+                    TacitUpdateState.UpToDate -> i18n.tacitUpdateUpToDate()
+                    is TacitUpdateState.Downloading ->
+                        i18n.tacitUpdateDownloading(current.version, current.progress?.let { (it * 100).toInt() })
+
+                    is TacitUpdateState.ReadyToRestart -> i18n.tacitUpdateReady(current.version)
+                    is TacitUpdateState.ManualOnly -> i18n.tacitUpdateManualOnly(current.version)
+                    is TacitUpdateState.Failed -> i18n.tacitUpdateFailed(current.message)
+                }
+            )
+        },
+        trailingContent = if (busy) {
+            { CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp) }
+        } else null,
+        enabled = !busy,
+        onClick = controller::checkNow,
+        modifier = Modifier.heightIn(min = 72.dp),
+    )
+    when (state) {
+        is TacitUpdateState.ReadyToRestart -> ThemedListItemButton(
+            headlineContent = { Text(i18n.tacitUpdateRestartToUpdate()) },
+            onClick = controller::restartToUpdate,
+            modifier = Modifier.heightIn(min = 72.dp),
+        )
+
+        is TacitUpdateState.ManualOnly -> ThemedListItemButton(
+            headlineContent = { Text(i18n.tacitUpdateOpenReleasePage()) },
+            onClick = { uriHandler.openUri(controller.releaseUrl) },
+            modifier = Modifier.heightIn(min = 72.dp),
+        )
+
+        else -> Unit
+    }
+    // A failed swap is reported on the next start; the staged update stays available for a retry.
+    lastError?.let { error ->
+        Text(
+            text = i18n.tacitUpdateFailed(error),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+        )
+    }
+}
+
 class TacitAppInfoView : AppInfoView {
     @Composable
     override fun create(appInfoViewModel: AppInfoViewModel) {
@@ -130,6 +201,7 @@ class TacitAppInfoView : AppInfoView {
                         .capitalize(Locale.current),
                 )
                 AppInfoVersion(appInfoViewModel)
+                DI.getOrNull<TacitUpdateController>()?.let { TacitUpdateSettings(i18n, it) }
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()

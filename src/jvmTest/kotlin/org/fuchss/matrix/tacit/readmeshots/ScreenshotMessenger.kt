@@ -65,6 +65,7 @@ import kotlinx.io.buffered
 import kotlinx.serialization.json.JsonObject
 import okio.Path
 import org.fuchss.matrix.tacit.tammyConfiguration
+import org.fuchss.matrix.tacit.update.TacitUpdateController
 import org.fuchss.matrix.tacit.viewmodel.room.list.TacitRoomListViewModel
 import org.fuchss.matrix.tacit.viewmodel.room.list.entry.GuildEntry
 import org.koin.core.qualifier.named
@@ -94,18 +95,19 @@ internal fun configureScreenshotLogging(messengerDir: Path) {
  *    user's macOS Keychain or Windows credential vault.
  * Everything else (views, view models, theme, i18n, DI wiring) is exactly what `Main.kt` boots.
  */
-internal suspend fun createScreenshotMultiMessenger(rootDir: Path): MatrixMultiMessenger =
+internal suspend fun createScreenshotMultiMessenger(rootDir: Path, updates: ScreenshotUpdateController): MatrixMultiMessenger =
     MatrixMultiMessenger.create(Dispatchers.Default) {
         tammyConfiguration {
             modulesFactories += { module { single<RootPath> { RootPath(rootDir) } } }
             messengerConfiguration {
                 databaseEncryptionEnabled = false
-                modulesFactories += { screenshotMessengerOverridesModule() }
+                modulesFactories += { screenshotMessengerOverridesModule(updates) }
             }
         }
     }
 
-private fun screenshotMessengerOverridesModule() = module {
+private fun screenshotMessengerOverridesModule(updates: ScreenshotUpdateController) = module {
+    single<TacitUpdateController> { updates }
     single<SecretByteArrayKeyProvider>(named(PLATFORM_SECRET_KEY_PROVIDER_ID)) {
         object : SecretByteArrayKeyProvider {
             override val id: String = PLATFORM_SECRET_KEY_PROVIDER_ID
@@ -124,20 +126,26 @@ private fun screenshotMessengerOverridesModule() = module {
     }
 }
 
-internal class ScreenshotMessenger(val multi: MatrixMultiMessenger, val messenger: MatrixMessenger, val root: RootViewModel) {
+internal class ScreenshotMessenger(
+    val multi: MatrixMultiMessenger,
+    val messenger: MatrixMessenger,
+    val root: RootViewModel,
+    val updates: ScreenshotUpdateController,
+) {
     companion object {
         @OptIn(ExperimentalDecomposeApi::class)
         suspend fun start(rootDir: Path): ScreenshotMessenger {
             // Headless: there is no AWT main thread and the routers are driven from background coroutines (exactly
             // like trixnity-messenger's own integration tests), so decompose's main-thread assertion is just noise.
             DecomposeSettings.update { it.copy(mainThreadCheckEnabled = false) }
-            val multi = createScreenshotMultiMessenger(rootDir)
+            val updates = ScreenshotUpdateController()
+            val multi = createScreenshotMultiMessenger(rootDir, updates)
             val messenger = multi.singleModeMatrixMessenger().first()
             messenger.di.get<MatrixMessengerSettingsHolder>().update<MatrixMessengerSettingsBase> {
                 it.copy(preferredLang = "en") // the README is English, regardless of the machine's locale
             }
             val root = messenger.createRoot(DefaultComponentContext(LifecycleRegistry().apply { resume() }))
-            return ScreenshotMessenger(multi, messenger, root)
+            return ScreenshotMessenger(multi, messenger, root, updates)
         }
     }
 

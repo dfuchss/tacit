@@ -1,6 +1,17 @@
 package org.fuchss.matrix.tacit.readmeshots
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import org.fuchss.matrix.tacit.update.TacitUpdateCard
+import org.fuchss.matrix.tacit.update.TacitUpdateState
+import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -70,9 +81,18 @@ import kotlin.coroutines.EmptyCoroutineContext
 @OptIn(ExperimentalTestApi::class)
 class ReadmeScreenshotsGenerator {
 
+    private companion object {
+        /** The fictional next release shown on the update card. */
+        const val NEXT_VERSION = "26.9.2-tacit.4"
+    }
+
     private val password = "screenshots-demo-password"
     private val outputDir: File =
         System.getProperty("tacit.readmeScreenshots.outputDir")?.let(::File) ?: File(repoRoot(), ".images")
+
+    /** Optional `-PreadmeScreenshots=update,about`: only these PNGs are (over)written. */
+    private val only: Set<String>? =
+        System.getProperty("tacit.readmeScreenshots.only")?.split(',')?.map { it.trim() }?.filter { it.isNotEmpty() }?.toSet()
 
     private val failures = mutableListOf<String>()
     private val escapeKeyPressed = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
@@ -117,6 +137,7 @@ class ReadmeScreenshotsGenerator {
                 )
                 harness.runTest {
                     val ui = Ui(this)
+                    val i18n = app.messenger.di.get<TacitI18nView>()
                     mainClock.autoAdvance = false
                     setContent {
                         CompositionLocalProvider(LocalDensity provides Density(ScreenshotFrame.DENSITY)) {
@@ -126,7 +147,22 @@ class ReadmeScreenshotsGenerator {
                                 IsFocusHighlighting provides false,
                                 EscapeKeyPressed provides escapeKeyPressed,
                             ) {
-                                MessengerTheme { Client(app.root) }
+                                MessengerTheme {
+                                    // Same overlay as TacitDesktopApp: the update card floats over the client.
+                                    Box(Modifier.fillMaxSize()) {
+                                        Client(app.root)
+                                        val state by app.updates.state.collectAsState()
+                                        TacitUpdateCard(
+                                            i18n = i18n,
+                                            version = (state as? TacitUpdateState.ReadyToRestart)?.version,
+                                            dismissed = false,
+                                            onRestart = app.updates::restartToUpdate,
+                                            onWhatsNew = {},
+                                            onLater = {},
+                                            modifier = Modifier.align(Alignment.TopEnd).padding(top = 72.dp, end = 24.dp),
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -202,6 +238,17 @@ class ReadmeScreenshotsGenerator {
             ui.waitForNode("reactions on the own message", hasText("🎉", substring = true))
             ui.settleForCapture()
             ui.capture("overview")
+        }
+
+        // 1b. update: the floating card for a staged update over the same chat
+        step("update") {
+            app.updates.state.value = TacitUpdateState.ReadyToRestart(NEXT_VERSION)
+            ui.settleForCapture()
+            ui.waitForNode("update card", hasText("Restart", substring = true) and hasClickAction())
+            ui.settle(600) // let the enter animation finish
+            ui.capture("update")
+            app.updates.state.value = TacitUpdateState.UpToDate // the card is gone again; About shows "up to date"
+            ui.settle(600)
         }
 
         // 2. invite: tacit2 starts a DM with tacit -> pending invitation in the room list
@@ -497,6 +544,7 @@ class ReadmeScreenshotsGenerator {
         fun capture(name: String) {
             val popups = test.onAllNodes(isPopup()).fetchSemanticsNodes().size
             if (popups > 0) println("SCREENSHOT WARNING: $name captured with $popups popup(s) open")
+            if (only != null && name !in only) return
             val out = File(outputDir, "$name.png")
             out.writeBytes(ScreenshotFrame.toPng(captureRoot()))
             println("SCREENSHOT wrote ${out.absolutePath}")

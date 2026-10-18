@@ -54,6 +54,22 @@ The builds are **not signed**, so macOS and Windows warn you on the first start:
 - **Windows:** unzip and run `Tacit.exe`. If SmartScreen warns you, click **More info** > **Run anyway**.
 - **Linux:** unzip and run `./Tacit/bin/Tacit`.
 
+### In-app updates
+
+The desktop app checks GitHub for a new release about once a day (turn this off under **Settings** >
+**About the app**, which also has **Check now**). A new version is downloaded, checked against the release's
+`SHA256SUMS` and prepared in Tacit's data folder; your installed copy is not touched yet. **Restart to update** (in the
+banner, the settings or the tray menu) quits Tacit completely, swaps in the new version, keeps your sessions and
+settings, and starts it again; nothing is installed before you choose it. If the swap fails, the previous version is restored.
+
+Tacit offers **Open release page** instead of updating itself when it runs from the mounted disk image
+(`/Volumes/...`), when macOS runs it from a temporary translocated copy (open it once from Applications), or when
+the install folder or its parent folder is not writable (e.g. `C:\Program Files`); update by hand in those cases.
+
+For testing, `TACIT_UPDATE_API_URL` points the check at another release JSON, `TACIT_UPDATE_CURRENT_VERSION`
+pretends to be an older version, and `TACIT_UPDATE_FORCE=1` checks right after start and accepts the latest release even
+when it is not newer.
+
 The web version is available as a Docker image: `ghcr.io/dfuchss/tacit` (tags: `dev` for the latest development state,
 `<version>` for releases such as `26.9.2-tacit.1`).
 

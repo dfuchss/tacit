@@ -35,6 +35,11 @@ if (CI.isRelease)
     }
 
 val appSuffixedVersion = withVersionSuffix(libs.versions.appVersion)
+// withVersionSuffix strips everything after the first '-' of CI_COMMIT_TAG, which drops the
+// "-tacit.N" release suffix; the displayed/BuildConfig version keeps it.
+val tacitVersion: String =
+    System.getenv("CI_COMMIT_TAG")?.takeIf { CI.isRelease && it.isNotBlank() }?.removePrefix("v")
+        ?: appSuffixedVersion
 val appName = "Tacit"
 val appId = "org.fuchss.matrix.tacit"
 val appHomepage = "https://fuchss.org/projects/tacit"
@@ -73,6 +78,9 @@ registerMultiplatformLicensesTasks { licenseTask, target, variant ->
         tasks.register("generateBuildConfig${targetName.capitalized()}${variant.capitalized()}") {
             dependsOn(licenseTask)
             group = "build config"
+            // Regenerate when the version or flavor changes (e.g. a different CI_COMMIT_TAG), not only on license changes.
+            inputs.property("version", tacitVersion)
+            inputs.property("flavor", buildFlavor.name)
             val generatedSrc =
                 layout.buildDirectory.dir("generatedSrc/${targetName}Main/kotlin")
             doLast {
@@ -89,7 +97,7 @@ registerMultiplatformLicensesTasks { licenseTask, target, variant ->
             package $appId
 
             actual val BuildConfig: CommonBuildConfig = object : CommonBuildConfig {
-                override val version: String = "$version"
+                override val version: String = "$tacitVersion"
                 override val flavor: Flavor = Flavor.valueOf("$buildFlavor")
                 override val appName: String = "$appName"
                 override val appId: String = "$appId"
@@ -216,6 +224,8 @@ val generateReadmeScreenshots by tasks.registering(Test::class) {
     outputs.upToDateWhen { false }
     maxHeapSize = "4g"
     systemProperty("tacit.readmeScreenshots.outputDir", layout.projectDirectory.dir(".images").asFile.absolutePath)
+    // `-PreadmeScreenshots=update,about` rewrites only those PNGs (the whole scenario still runs)
+    providers.gradleProperty("readmeScreenshots").orNull?.let { systemProperty("tacit.readmeScreenshots.only", it) }
     testLogging {
         showStandardStreams = true
         events("passed", "failed", "skipped")

@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Desktop self-update on macOS, Windows and Linux: checks for new releases at startup and daily (can be turned off),
+  verifies the download against `SHA256SUMS`, and installs it with **Restart to update** after Tacit has fully exited,
+  restoring the previous version if the swap fails
+
 ### Changed
 
 ### Fixed

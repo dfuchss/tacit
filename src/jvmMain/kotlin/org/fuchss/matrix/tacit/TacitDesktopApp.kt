@@ -1,6 +1,10 @@
 package org.fuchss.matrix.tacit
 
+import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toAwtImage
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -31,9 +35,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
+import org.koin.dsl.module
 import okio.FileSystem
 import org.fuchss.matrix.tacit.settings.TacitWindowCloseBehavior
 import org.fuchss.matrix.tacit.settings.readTacitWindowCloseBehavior
+import org.fuchss.matrix.tacit.update.TacitUpdateController
+import org.fuchss.matrix.tacit.update.TacitUpdateState
+import org.fuchss.matrix.tacit.update.TacitUpdateCard
+import org.fuchss.matrix.tacit.update.TacitUpdater
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 import org.fuchss.matrix.tacit.views.minTacitWindowHeight
 import org.fuchss.matrix.tacit.views.minTacitWindowWidth
@@ -70,6 +79,7 @@ private class WindowActivationController {
 
 fun startTacitMultiMessenger(
     args: Array<String>,
+    updater: TacitUpdater,
     configuration: MatrixMultiMessengerConfiguration.() -> Unit,
 ) = runBlocking(Dispatchers.Default) {
     desktopLog.info { "Starting Tacit desktop client" }
@@ -77,9 +87,15 @@ fun startTacitMultiMessenger(
     desktopLog.info { "JVM version: ${System.getProperty("java.version")} (${System.getProperty("java.vendor")})" }
 
     val lifecycle = LifecycleRegistry()
-    val matrixMultiMessenger = MatrixMultiMessenger.create(configuration = configuration)
+    val updateModule = { module { if (updater.isEnabled) single<TacitUpdateController> { updater } } }
+    val matrixMultiMessenger = MatrixMultiMessenger.create {
+        configuration()
+        modulesFactories += updateModule
+        messengerConfiguration { modulesFactories += updateModule }
+    }
     matrixMultiMessenger.defaultUriHandler.start(args)
-    tacitMessengerApp(matrixMultiMessenger, lifecycle)
+    updater.start()
+    tacitMessengerApp(matrixMultiMessenger, lifecycle, updater)
 
     desktopLog.info { "Shutting down client gracefully.." }
     matrixMultiMessenger.closeSuspending()
@@ -88,6 +104,7 @@ fun startTacitMultiMessenger(
 private fun tacitMessengerApp(
     matrixMultiMessenger: MatrixMultiMessenger,
     lifecycle: LifecycleRegistry,
+    updater: TacitUpdater,
 ) {
     application(exitProcessOnExit = false) {
         val windowState = rememberDesktopWindowState()
@@ -97,7 +114,15 @@ private fun tacitMessengerApp(
         val trayState = rememberTrayState()
         val appName = remember { matrixMultiMessenger.di.get<MatrixMultiMessengerConfiguration>().appName }
         val globalI18n = remember { matrixMultiMessenger.di.get<TacitI18nView>() }
+        val updateState by updater.state.collectAsState()
+        // In-memory only: "Later" hides the card for this version until the next start or a newer version.
+        var dismissedUpdateVersion by remember { mutableStateOf<String?>(null) }
         LifecycleController(lifecycle, windowState)
+
+        // "Restart to update" must end the app completely, so it bypasses close-to-tray and removes the tray.
+        LaunchedEffect(updater) {
+            updater.exitRequests.collect { exitApplication() }
+        }
 
         DesktopReopenEffect(activationController)
 
@@ -127,6 +152,8 @@ private fun tacitMessengerApp(
                     trayState = trayState,
                     unreadMessages = unreadMessages,
                     i18n = i18n,
+                    updater = updater,
+                    updateState = updateState,
                     onOpen = activationController::requestOpen,
                 )
                 DesktopTaskbarIcon(unreadMessages)
@@ -169,7 +196,22 @@ private fun tacitMessengerApp(
                         EscapeKeyPressed provides escapeKeyPressed,
                     ) {
                         MessengerTheme {
-                            Client(rootViewModel)
+                            Box(Modifier.fillMaxSize()) {
+                                Client(rootViewModel)
+                                val ready = updateState as? TacitUpdateState.ReadyToRestart
+                                val uriHandler = LocalUriHandler.current
+                                TacitUpdateCard(
+                                    i18n = i18n,
+                                    version = ready?.version,
+                                    dismissed = ready != null && ready.version == dismissedUpdateVersion,
+                                    onRestart = updater::restartToUpdate,
+                                    onWhatsNew = { uriHandler.openUri(updater.releaseUrl) },
+                                    onLater = { dismissedUpdateVersion = ready?.version },
+                                    // Top end below the room header: the bottom end holds the composer's send/attach
+                                    // buttons and the timeline's scroll-to-end button.
+                                    modifier = Modifier.align(Alignment.TopEnd).padding(top = 72.dp, end = 24.dp),
+                                )
+                            }
                         }
                     }
                 }
@@ -181,6 +223,8 @@ private fun tacitMessengerApp(
                     trayState = trayState,
                     unreadMessages = 0,
                     i18n = globalI18n,
+                    updater = updater,
+                    updateState = updateState,
                     onOpen = activationController::requestOpen,
                 )
                 DesktopTaskbarIcon(0)
@@ -264,15 +308,28 @@ private fun ApplicationScope.TacitDesktopTray(
     trayState: TrayState,
     unreadMessages: Int,
     i18n: TacitI18nView,
+    updater: TacitUpdater,
+    updateState: TacitUpdateState,
     onOpen: () -> Unit,
 ) {
     if (!isTraySupported) return
+    val readyVersion = (updateState as? TacitUpdateState.ReadyToRestart)?.version
+    LaunchedEffect(readyVersion) {
+        if (readyVersion != null && updater.shouldNotify(readyVersion)) {
+            trayState.sendNotification(
+                Notification(i18n.tacitUpdateNotificationTitle(), i18n.tacitUpdateReady(readyVersion))
+            )
+        }
+    }
     Tray(
         state = trayState,
         icon = MessengerTrayIcon(unreadMessages),
         onAction = onOpen,
         menu = {
             Item(i18n.tacitTrayOpen(), onClick = onOpen)
+            if (readyVersion != null) {
+                Item(i18n.tacitUpdateRestartToUpdate(), onClick = updater::restartToUpdate)
+            }
             Separator()
             Item(i18n.tacitTrayExit(), onClick = ::exitApplication)
         },

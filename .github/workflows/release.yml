@@ -19,6 +19,8 @@ env:
 jobs:
   build:
     uses: ./.github/workflows/build.yml
+    with:
+      tag: ${{ inputs.tag || github.ref_name }}
 
   release:
     name: Publish release
@@ -45,6 +47,9 @@ jobs:
           # Version-less copies for stable links: github.com/<repo>/releases/latest/download/tacit-<platform>.<ext>
           mkdir latest
           for f in release/*; do cp "$f" "latest/tacit-${f#release/Tacit-${version}-}"; done
+          # Checksums (top level, so the GitLab step that iterates release/ is unaffected)
+          for d in release latest; do (cd "$d" && sha256sum *); done > SHA256SUMS
+          cat SHA256SUMS
           ls -l release latest
 
       - name: Build release notes
@@ -54,7 +59,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "$TAG" release/* latest/* \
+          gh release create "$TAG" release/* latest/* SHA256SUMS \
             --title "Tacit ${TAG#v}" \
             --notes-file release-notes.md \
             --latest \

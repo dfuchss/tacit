@@ -621,6 +621,91 @@ open class TacitI18nView(
         DE - "Tacit beenden"
     }
 
+    open fun tacitUpdateAutoCheckTitle() = translate {
+        EN - "Check for updates automatically"
+        DE - "Automatisch nach Updates suchen"
+    }
+
+    open fun tacitUpdateAutoCheckDescription() = translate {
+        EN - "Checks about once a day. Updates are installed when you choose \"Restart to update\"."
+        DE - "Sucht etwa einmal täglich. Updates werden installiert, wenn du \"Neu starten und aktualisieren\" wählst."
+    }
+
+    open fun tacitUpdateCurrentVersion(version: String) = translate {
+        EN - "Installed version: $version"
+        DE - "Installierte Version: $version"
+    }
+
+    open fun tacitUpdateCheckNow() = translate {
+        EN - "Check now"
+        DE - "Jetzt suchen"
+    }
+
+    open fun tacitUpdateChecking() = translate {
+        EN - "Checking for updates…"
+        DE - "Suche nach Updates…"
+    }
+
+    open fun tacitUpdateUpToDate() = translate {
+        EN - "Tacit is up to date."
+        DE - "Tacit ist auf dem neuesten Stand."
+    }
+
+    open fun tacitUpdateDownloading(version: String, percent: Int?) = translate {
+        EN - if (percent == null) "Downloading Tacit $version…" else "Downloading Tacit $version… $percent %"
+        DE - if (percent == null) "Lade Tacit $version herunter…" else "Lade Tacit $version herunter… $percent %"
+    }
+
+    open fun tacitUpdateReady(version: String) = translate {
+        EN - "Tacit $version is ready to install."
+        DE - "Tacit $version ist bereit zur Installation."
+    }
+
+    open fun tacitUpdateAvailableTitle() = translate {
+        EN - "Update available"
+        DE - "Update verfügbar"
+    }
+
+    open fun tacitUpdateWhatsNew() = translate {
+        EN - "What's new"
+        DE - "Was ist neu"
+    }
+
+    open fun tacitUpdateLater() = translate {
+        EN - "Later"
+        DE - "Später"
+    }
+
+    open fun tacitUpdateRestart() = translate {
+        EN - "Restart"
+        DE - "Neu starten"
+    }
+
+    open fun tacitUpdateManualOnly(version: String) = translate {
+        EN - "Tacit $version is available. This installation can't update itself, please download it from the release page."
+        DE - "Tacit $version ist verfügbar. Diese Installation kann sich nicht selbst aktualisieren, bitte lade sie von der Release-Seite herunter."
+    }
+
+    open fun tacitUpdateFailed(message: String) = translate {
+        EN - "Update failed: $message"
+        DE - "Update fehlgeschlagen: $message"
+    }
+
+    open fun tacitUpdateRestartToUpdate() = translate {
+        EN - "Restart to update"
+        DE - "Neu starten und aktualisieren"
+    }
+
+    open fun tacitUpdateOpenReleasePage() = translate {
+        EN - "Open release page"
+        DE - "Release-Seite öffnen"
+    }
+
+    open fun tacitUpdateNotificationTitle() = translate {
+        EN - "Tacit update available"
+        DE - "Tacit-Update verfügbar"
+    }
+
     open fun tacitDevelopmentTitle() = translate {
         EN - "Development"
         DE - "Entwicklung"
