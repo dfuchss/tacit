@@ -42,7 +42,10 @@ jobs:
           cp artifacts/tacit-macos-arm64/*.dmg "release/Tacit-${version}-macos-arm64.dmg"
           cp artifacts/tacit-linux-x64/*.zip "release/Tacit-${version}-linux-x64.zip"
           cp artifacts/tacit-windows-x64/*.zip "release/Tacit-${version}-windows-x64.zip"
-          ls -l release
+          # Version-less copies for stable links: github.com/<repo>/releases/latest/download/tacit-<platform>.<ext>
+          mkdir latest
+          for f in release/*; do cp "$f" "latest/tacit-${f#release/Tacit-${version}-}"; done
+          ls -l release latest
 
       - name: Build release notes
         run: .github/scripts/release-notes.sh "$TAG" > release-notes.md
@@ -51,7 +54,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "$TAG" release/* \
+          gh release create "$TAG" release/* latest/* \
             --title "Tacit ${TAG#v}" \
             --notes-file release-notes.md \
             --latest \

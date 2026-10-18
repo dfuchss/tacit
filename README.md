@@ -30,9 +30,9 @@ Download the latest release for your system:
 
 | System | Download |
 |---|---|
-| macOS (Apple Silicon) | [tacit-macos-arm64.dmg](https://gitlab.com/dfuchss/tacit/-/releases/permalink/latest/downloads/tacit-macos-arm64.dmg) |
-| Windows (x64) | [tacit-windows-x64.zip](https://gitlab.com/dfuchss/tacit/-/releases/permalink/latest/downloads/tacit-windows-x64.zip) |
-| Linux (x64) | [tacit-linux-x64.zip](https://gitlab.com/dfuchss/tacit/-/releases/permalink/latest/downloads/tacit-linux-x64.zip) |
+| macOS (Apple Silicon) | [tacit-macos-arm64.dmg](https://github.com/dfuchss/tacit/releases/latest/download/tacit-macos-arm64.dmg) |
+| Windows (x64) | [tacit-windows-x64.zip](https://github.com/dfuchss/tacit/releases/latest/download/tacit-windows-x64.zip) |
+| Linux (x64) | [tacit-linux-x64.zip](https://github.com/dfuchss/tacit/releases/latest/download/tacit-linux-x64.zip) |
 
 All releases and their notes are on [GitLab](https://gitlab.com/dfuchss/tacit/-/releases); the files themselves are
 hosted on GitHub Releases.
@@ -48,7 +48,7 @@ The builds are **not signed**, so macOS and Windows warn you on the first start:
   they open without the prompt:
 
   ```bash
-  curl -LO https://gitlab.com/dfuchss/tacit/-/releases/permalink/latest/downloads/tacit-macos-arm64.dmg
+  curl -LO https://github.com/dfuchss/tacit/releases/latest/download/tacit-macos-arm64.dmg
   open tacit-macos-arm64.dmg
   ```
 - **Windows:** unzip and run `Tacit.exe`. If SmartScreen warns you, click **More info** > **Run anyway**.
