@@ -56,7 +56,7 @@ class TacitRoomListView : RoomListView {
         val inviteRooms = tacitRoomListViewModel.inviteRooms.collectAsState().value
         val dmUnreadCount = tacitRoomListViewModel.dmUnreadCount.collectAsState().value
         val guildUnreadCounts = tacitRoomListViewModel.guildUnreadCounts.collectAsState().value
-        val browseChannels = tacitRoomListViewModel.browseChannels.collectAsState().value
+        val browseChannels = tacitRoomListViewModel.browseChannelsViewModel.channels.collectAsState().value
         val selectedGuild = tacitRoomListViewModel.selectedGuild.collectAsState().value
         val selectedGuildInviteFallback =
             selectedGuild?.takeIf { guild -> guild.isInvite && inviteRooms.none { it.roomId == guild.roomId } }
@@ -68,13 +68,6 @@ class TacitRoomListView : RoomListView {
         val canUseSelectedGuildAccount = tacitRoomListViewModel.canUseSelectedGuildAccount.collectAsState().value
         val canUsePreferredCreationAccount =
             tacitRoomListViewModel.canUsePreferredCreationAccount.collectAsState().value
-        val createGuildInProgress = tacitRoomListViewModel.createGuildInProgress.collectAsState().value
-        val createChannelInProgress = tacitRoomListViewModel.createChannelInProgress.collectAsState().value
-        val joiningChannelRoomId = tacitRoomListViewModel.joiningChannelRoomId.collectAsState().value
-        val inviteToGuildInProgress = tacitRoomListViewModel.inviteToGuildInProgress.collectAsState().value
-        val createDirectMessageInProgress = tacitRoomListViewModel.createDirectMessageInProgress.collectAsState().value
-        val createGroupChannelInProgress = tacitRoomListViewModel.createGroupChannelInProgress.collectAsState().value
-        val createCategoryInProgress = tacitRoomListViewModel.createCategoryInProgress.collectAsState().value
         val reorderCategoriesInProgress = tacitRoomListViewModel.reorderCategoriesInProgress.collectAsState().value
         val guildInviteActionInProgress = tacitRoomListViewModel.guildInviteActionInProgress.collectAsState().value
         val syncStates = roomListViewModel.syncStates.collectAsState().value
@@ -193,73 +186,57 @@ class TacitRoomListView : RoomListView {
 
         CreateGuildDialogContainer(
             open = createGuildDialogOpen,
-            inProgress = createGuildInProgress,
-            error = error,
+            viewModel = tacitRoomListViewModel.createGuildViewModel,
             canCreateGuild = canUsePreferredCreationAccount,
-            onCreateGuild = tacitRoomListViewModel::createGuild,
             onSetOpen = { createGuildDialogOpen = it },
         )
 
         CreateChannelDialogContainer(
             open = createChannelDialogOpen,
-            inProgress = createChannelInProgress,
-            error = error,
+            viewModel = tacitRoomListViewModel.createChannelViewModel,
             selectedGuild = selectedGuild,
             canCreateChannel = canUseSelectedGuildAccount,
-            onCreateChannel = tacitRoomListViewModel::createChannel,
             onSetOpen = { createChannelDialogOpen = it },
         )
 
         BrowseChannelsDialogContainer(
             open = browseChannelsDialogOpen,
-            joiningRoomId = joiningChannelRoomId,
-            error = error,
+            viewModel = tacitRoomListViewModel.browseChannelsViewModel,
             selectedGuild = selectedGuild,
             browseChannels = browseChannels,
             canJoinChannels = canUseSelectedGuildAccount,
-            onJoinChannel = tacitRoomListViewModel::joinChannel,
             onSetOpen = { browseChannelsDialogOpen = it },
         )
 
         InviteToGuildDialogContainer(
             open = inviteToGuildDialogOpen,
-            inProgress = inviteToGuildInProgress,
-            error = error,
+            viewModel = tacitRoomListViewModel.inviteToGuildViewModel,
             selectedGuild = selectedGuild,
             canInviteMember = canUseSelectedGuildAccount,
             canSearchUsers = canUseSelectedGuildAccount,
-            searchUsers = tacitRoomListViewModel::searchUsersForGuild,
-            onInviteMember = tacitRoomListViewModel::inviteUserToGuild,
             onSetOpen = { inviteToGuildDialogOpen = it },
         )
 
         CreateDirectMessageDialogContainer(
             open = createDirectMessageDialogOpen,
-            inProgress = createDirectMessageInProgress,
-            error = error,
+            viewModel = tacitRoomListViewModel.createDirectMessageViewModel,
             canStartDirectMessage = canUsePreferredCreationAccount,
             canSearchUsers = canUsePreferredCreationAccount,
-            searchUsers = tacitRoomListViewModel::searchUsersForDirectMessages,
-            onStartDirectMessage = tacitRoomListViewModel::startDirectMessage,
             onSetOpen = { createDirectMessageDialogOpen = it },
         )
 
         CreateGroupChannelDialogContainer(
             open = createGroupChannelDialogOpen,
-            inProgress = createGroupChannelInProgress,
-            error = error,
+            viewModel = tacitRoomListViewModel.createGroupChannelViewModel,
             canCreateGroupChannel = canUsePreferredCreationAccount,
-            onCreateGroupChannel = tacitRoomListViewModel::createGroupChannel,
             onSetOpen = { createGroupChannelDialogOpen = it },
         )
 
         CreateCategoryDialogContainer(
             open = createCategoryDialogOpen,
-            inProgress = createCategoryInProgress,
-            error = error,
+            viewModel = tacitRoomListViewModel.createCategoryViewModel,
             selectedGuild = selectedGuild,
             canCreateCategory = canUseSelectedGuildAccount,
-            onCreateCategory = tacitRoomListViewModel::createCategory,
             onSetOpen = { createCategoryDialogOpen = it },
         )
     }

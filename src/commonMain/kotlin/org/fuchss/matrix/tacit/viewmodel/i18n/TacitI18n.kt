@@ -94,6 +94,11 @@ open class TacitI18n(
         DE - "Einladung konnte nicht gesendet werden: $reason"
     }
 
+    open fun tacitUserSearchFailed(reason: String) = translate {
+        EN - "Search failed: $reason"
+        DE - "Suche fehlgeschlagen: $reason"
+    }
+
     open fun tacitStartDirectMessageFailed(reason: String) = translate {
         EN - "Could not start direct message: $reason"
         DE - "Direktnachricht konnte nicht gestartet werden: $reason"

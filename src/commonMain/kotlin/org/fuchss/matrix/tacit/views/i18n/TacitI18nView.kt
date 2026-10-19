@@ -410,11 +410,6 @@ open class TacitI18nView(
         DE - "Suche Benutzer..."
     }
 
-    open fun tacitSearchFailed() = translate {
-        EN - "Search failed."
-        DE - "Suche fehlgeschlagen."
-    }
-
     open fun tacitReasonOptionalLabel() = translate {
         EN - "Reason (optional)"
         DE - "Grund (optional)"

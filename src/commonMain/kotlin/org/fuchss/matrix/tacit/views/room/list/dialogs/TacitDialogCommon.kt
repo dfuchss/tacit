@@ -21,6 +21,10 @@ import org.fuchss.matrix.tacit.*
 import org.fuchss.matrix.tacit.ui.TacitCardSurface
 import org.fuchss.matrix.tacit.ui.TacitShapes
 import org.fuchss.matrix.tacit.viewmodel.util.UserDirectoryEntry
+import org.fuchss.matrix.tacit.viewmodel.util.UserSearchState
+import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
+import de.connect2x.trixnity.messenger.compose.view.DI
+import de.connect2x.trixnity.messenger.compose.view.get
 
 @Composable
 internal fun TacitDialogHeroCard(
@@ -127,6 +131,46 @@ internal fun TacitUserDirectoryRow(
                 )
             }
         }
+    }
+}
+
+/** Hands the dialog's user ID field to the view model's user search; the search stays idle unless [enabled]. */
+@Composable
+internal fun TacitUserSearchEffect(query: String, enabled: Boolean, onSearch: (query: String) -> Unit) {
+    LaunchedEffect(query, enabled) { onSearch(if (enabled) query else "") }
+}
+
+/** The user search's progress, hits (click one to pick it) or failure below a dialog's user ID field. */
+@Composable
+internal fun TacitUserSearchResults(state: UserSearchState, selectedUserId: String, onSelect: (userId: String) -> Unit) {
+    val i18n = DI.get<TacitI18nView>()
+    when (state) {
+        UserSearchState.Idle -> Unit
+
+        UserSearchState.Searching -> Text(
+            i18n.tacitSearchingUsers(),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.tacit.textMuted,
+        )
+
+        is UserSearchState.Results -> if (state.users.isNotEmpty()) {
+            TacitDialogSearchResultsContainer {
+                state.users.forEach { user ->
+                    TacitUserDirectoryRow(
+                        user = user,
+                        selected = selectedUserId == user.userId,
+                        selectedLabel = i18n.actionOk(),
+                        onClick = { onSelect(user.userId) },
+                    )
+                }
+            }
+        }
+
+        is UserSearchState.Failed -> Text(
+            state.message,
+            color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.bodySmall,
+        )
     }
 }
 

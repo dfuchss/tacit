@@ -13,14 +13,12 @@ import de.connect2x.trixnity.messenger.compose.view.DI
 import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.theme.components
 import de.connect2x.trixnity.messenger.compose.view.theme.components.*
-import kotlinx.coroutines.delay
-import org.fuchss.matrix.tacit.tacit
-import org.fuchss.matrix.tacit.viewmodel.util.UserDirectoryEntry
+import org.fuchss.matrix.tacit.viewmodel.util.UserSearchState
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 import org.fuchss.matrix.tacit.views.room.list.dialogs.TacitDialogHeroCard
-import org.fuchss.matrix.tacit.views.room.list.dialogs.TacitDialogSearchResultsContainer
 import org.fuchss.matrix.tacit.views.room.list.dialogs.TacitDialogSubmitError
-import org.fuchss.matrix.tacit.views.room.list.dialogs.TacitUserDirectoryRow
+import org.fuchss.matrix.tacit.views.room.list.dialogs.TacitUserSearchEffect
+import org.fuchss.matrix.tacit.views.room.list.dialogs.TacitUserSearchResults
 
 @Composable
 internal fun InviteToGuildDialog(
@@ -28,7 +26,8 @@ internal fun InviteToGuildDialog(
     isInviting: Boolean,
     canInviteMember: Boolean,
     canSearchUsers: Boolean,
-    searchUsers: suspend (query: String) -> Result<List<UserDirectoryEntry>>,
+    userSearch: UserSearchState,
+    onSearchUsers: (query: String) -> Unit,
     onDismiss: () -> Unit,
     onInviteMember: (userId: String, reason: String) -> Unit,
     submitError: String? = null,
@@ -36,32 +35,7 @@ internal fun InviteToGuildDialog(
     val i18n = DI.get<TacitI18nView>()
     var userId by remember { mutableStateOf("") }
     var reason by remember { mutableStateOf("") }
-    var searchInProgress by remember { mutableStateOf(false) }
-    var searchError by remember { mutableStateOf<String?>(null) }
-    var searchResults by remember { mutableStateOf<List<UserDirectoryEntry>>(emptyList()) }
-
-    LaunchedEffect(userId, canInviteMember, canSearchUsers) {
-        val query = userId.trim()
-        if (!canInviteMember || !canSearchUsers || query.length < 2) {
-            searchInProgress = false
-            searchError = null
-            searchResults = emptyList()
-            return@LaunchedEffect
-        }
-        delay(220)
-        searchInProgress = true
-        searchError = null
-        searchUsers(query).fold(
-            onSuccess = { entries ->
-                searchResults = entries
-            },
-            onFailure = { throwable ->
-                searchResults = emptyList()
-                searchError = throwable.message ?: i18n.tacitSearchFailed()
-            }
-        )
-        searchInProgress = false
-    }
+    TacitUserSearchEffect(query = userId, enabled = canInviteMember && canSearchUsers, onSearch = onSearchUsers)
 
     ThemedModalDialog(onDismissRequest = onDismiss) {
         ModalDialogHeader {
@@ -79,36 +53,7 @@ internal fun InviteToGuildDialog(
                     maxLines = 1,
                 )
                 if (canSearchUsers && userId.trim().length >= 2) {
-                    when {
-                        searchInProgress -> {
-                            Text(
-                                i18n.tacitSearchingUsers(),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.tacit.textMuted,
-                            )
-                        }
-
-                        searchResults.isNotEmpty() -> {
-                            TacitDialogSearchResultsContainer {
-                                searchResults.forEach { user ->
-                                    TacitUserDirectoryRow(
-                                        user = user,
-                                        selected = userId == user.userId,
-                                        selectedLabel = i18n.actionOk(),
-                                        onClick = { userId = user.userId },
-                                    )
-                                }
-                            }
-                        }
-
-                        searchError != null -> {
-                            Text(
-                                searchError.orEmpty(),
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodySmall,
-                            )
-                        }
-                    }
+                    TacitUserSearchResults(state = userSearch, selectedUserId = userId, onSelect = { userId = it })
                 }
                 OutlinedTextField(
                     value = reason,

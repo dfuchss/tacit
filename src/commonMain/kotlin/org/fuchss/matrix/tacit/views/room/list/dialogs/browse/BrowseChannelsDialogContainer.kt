@@ -1,7 +1,8 @@
 package org.fuchss.matrix.tacit.views.room.list.dialogs.browse
 
 import androidx.compose.runtime.Composable
-import de.connect2x.trixnity.core.model.RoomId
+import androidx.compose.runtime.collectAsState
+import org.fuchss.matrix.tacit.viewmodel.room.list.dialogs.TacitBrowseChannelsViewModel
 import org.fuchss.matrix.tacit.viewmodel.room.list.entry.GuildEntry
 import org.fuchss.matrix.tacit.viewmodel.room.list.entry.SpaceChannelEntry
 import org.fuchss.matrix.tacit.views.room.list.dialogs.rememberTacitDialogSubmission
@@ -9,17 +10,16 @@ import org.fuchss.matrix.tacit.views.room.list.dialogs.rememberTacitDialogSubmis
 @Composable
 internal fun BrowseChannelsDialogContainer(
     open: Boolean,
-    joiningRoomId: RoomId?,
-    error: String?,
+    viewModel: TacitBrowseChannelsViewModel,
     selectedGuild: GuildEntry?,
     browseChannels: List<SpaceChannelEntry>,
     canJoinChannels: Boolean,
-    onJoinChannel: (guild: GuildEntry, channel: SpaceChannelEntry, onSuccess: () -> Unit) -> Unit,
     onSetOpen: (Boolean) -> Unit,
 ) {
     val guild = selectedGuild ?: return
     if (!open) return
-    val submission = rememberTacitDialogSubmission(error)
+    val joiningRoomId = viewModel.joiningRoomId.collectAsState().value
+    val submission = rememberTacitDialogSubmission(viewModel.error.collectAsState().value)
 
     BrowseChannelsDialog(
         guildName = guild.displayName ?: guild.roomId.full,
@@ -30,7 +30,7 @@ internal fun BrowseChannelsDialogContainer(
         onJoinChannel = { channel ->
             if (!channel.isJoinable || channel.isJoined) return@BrowseChannelsDialog
             submission.submit()
-            onJoinChannel(guild, channel) { onSetOpen(false) }
+            viewModel.joinChannel(guild, channel) { onSetOpen(false) }
         },
         submitError = submission.error,
     )

@@ -1,6 +1,7 @@
 package org.fuchss.matrix.tacit.views.room
 
 import org.fuchss.matrix.tacit.ui.TacitSizes
+import org.fuchss.matrix.tacit.viewmodel.util.UserSearchState
 import org.fuchss.matrix.tacit.viewmodel.util.initialsOf
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -87,7 +88,8 @@ internal fun ChannelMembersPane(
             isStartingDirectMessage = false,
             canStartDirectMessage = true,
             canSearchUsers = false,
-            searchUsers = { Result.success(emptyList()) },
+            userSearch = UserSearchState.Idle,
+            onSearchUsers = {},
             presetUserId = selectedMember.userId.full,
             presetDisplayName = selectedMember.displayName,
             onDismiss = { selectedMemberForDm = null },
