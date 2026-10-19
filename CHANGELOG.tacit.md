@@ -14,6 +14,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+## 26.9.2-tacit.5
+
+Based on Tammy 26.9.2.
+
+### Added
+
+- The create-category dialog explains how to move a channel into the new category
+- "Mark all as read" also clears leftover notifications of rooms you already left and tells you about pending invites,
+  which can keep the unread badge up
+
+### Changed
+
+- Quoted text (`>` blockquotes) uses the same full-width card style as reply quotes
+- No more tooltips on room events, date pills and the back/close arrow of headers that only repeated the visible text
+- Your own invite and join are grouped with the other room events, with the encrypted-history notice above the group
+- The typing indicator lines up with the message cards
+- More of the UI is translated to German (typing indicator, slash commands, error messages)
+- Avatars load without an in-memory cache, so a failed avatar is retried instead of staying blank
+- Builds and releases only run after the tests pass
+
+### Fixed
+
+- Moving a room to another category no longer leaves it in the old one
+- Dialogs can no longer be submitted twice, and show their errors inside the dialog
+- Starting a direct message only reuses a joined direct chat, not a left room or a space
+- Emotes no longer show "null" as the sender
+
 ## 26.9.2-tacit.4
 
 Based on Tammy 26.9.2.
