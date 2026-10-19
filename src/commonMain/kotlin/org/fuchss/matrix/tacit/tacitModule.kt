@@ -1,6 +1,7 @@
 package org.fuchss.matrix.tacit
 
 import de.connect2x.trixnity.messenger.MatrixMessengerConfiguration
+import de.connect2x.trixnity.messenger.multi.MatrixMultiMessengerConfiguration
 import de.connect2x.trixnity.messenger.compose.view.i18n.I18nView
 import de.connect2x.trixnity.messenger.i18n.I18n
 import de.connect2x.trixnity.messenger.compose.view.room.RoomView
@@ -58,23 +59,32 @@ import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
 
-fun tammyTacitModule() = module {
+/**
+ * Registers Tacit at both Koin levels, mirroring upstream add-ons such as `addNunitoThemeTypography()`.
+ *
+ * The multi messenger (profiles, login, the app shell's tray and global i18n) only gets [tacitViewModule]. Each
+ * messenger additionally gets [tacitViewModelModule], whose bindings need a profile or `MatrixClients`.
+ * Call it after the `composeViewModule` registrations so that Tacit's bindings override upstream's.
+ */
+fun MatrixMultiMessengerConfiguration.addTacit() {
+    modulesFactories += ::tacitViewModule
+    messengerConfiguration {
+        modulesFactories += listOf(::tacitViewModule, ::tacitViewModelModule)
+    }
+}
 
+/**
+ * View, I18n and I18nView overrides. Like upstream's `composeViewModule`, these are registered at the multi and the
+ * messenger level: screens shown before a messenger exists (profiles, the desktop shell's [TacitI18nView]) resolve
+ * them from the multi messenger's Koin.
+ */
+fun tacitViewModule() = module {
     single<RoomListView> { TacitRoomListView() }
     single<RoomListContainerView> { TacitRoomListContainerView() }
     single<TacitI18n> { TacitI18n(get(), get(), get(), get()) }
     single<I18n> { get<TacitI18n>() }
     single<TacitI18nView> { TacitI18nView(get(), get(), get(), get()) }
     single<I18nView> { get<TacitI18nView>() }
-    single<RoomListViewModelFactory> { TacitRoomListViewModelFactory }
-    single<RoomListElementViewModelFactory> { TacitRoomListElementViewModelFactory }
-    single<TimelineViewModelFactory> { TacitTimelineViewModelFactory }
-    single<InputAreaViewModelFactory> { TacitInputAreaViewModelFactory }
-    single<AppearanceSettingsViewModelFactory> { TacitAppearanceSettingsViewModelFactory }
-    single<UserSettingsViewModelFactory> { TacitUserSettingsViewModelFactory }
-    single { TacitMarkAllAsRead(get(), get(), get()) }
-    single<RoomSettingsViewModelFactory> { TacitRoomSettingsViewModelFactory }
-    single<ChangeRoomAvatarViewModelFactory> { TacitChangeRoomAvatarViewModelFactory }
     single<MainView> { TacitMainView() }
     single<MessengerView> { TacitMessengerView() }
     single<AccountAvatarView> { TacitAccountAvatarView() }
@@ -107,4 +117,17 @@ fun tammyTacitModule() = module {
     single<AppearanceSettingsView> { TacitAppearanceSettingsView() }
     single<AppInfoView> { TacitAppInfoView() }
     single<LegalFooterView> { TacitLegalFooterView() }
+}
+
+/** View-model factories and messenger-scoped services; they need a profile or `MatrixClients`, so messenger level only. */
+fun tacitViewModelModule() = module {
+    single<RoomListViewModelFactory> { TacitRoomListViewModelFactory }
+    single<RoomListElementViewModelFactory> { TacitRoomListElementViewModelFactory }
+    single<TimelineViewModelFactory> { TacitTimelineViewModelFactory }
+    single<InputAreaViewModelFactory> { TacitInputAreaViewModelFactory }
+    single<AppearanceSettingsViewModelFactory> { TacitAppearanceSettingsViewModelFactory }
+    single<UserSettingsViewModelFactory> { TacitUserSettingsViewModelFactory }
+    single { TacitMarkAllAsRead(get(), get(), get()) }
+    single<RoomSettingsViewModelFactory> { TacitRoomSettingsViewModelFactory }
+    single<ChangeRoomAvatarViewModelFactory> { TacitChangeRoomAvatarViewModelFactory }
 }

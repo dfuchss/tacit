@@ -31,7 +31,6 @@ fun MatrixMultiMessengerConfiguration.tammyConfiguration(
 
     modulesFactories += listOf(
         { composeViewModule(null) },
-        ::tammyTacitModule,
         // TODO this needs to be removed and fixed, as there is no MatrixMessengerSettingsHolderImpl at MultiMessenger level!
         ::platformMatrixMessengerSettingsHolderModule,
         // TODO there should be a more clean way for I18n
@@ -64,7 +63,6 @@ fun MatrixMultiMessengerConfiguration.tammyConfiguration(
         }
         modulesFactories += listOf(
             { composeViewModule(this) },
-            ::tammyTacitModule,
             ::tammyThemeModule
         )
         when (BuildConfig.flavor) {
@@ -78,6 +76,7 @@ fun MatrixMultiMessengerConfiguration.tammyConfiguration(
             }
         }
     }
+    addTacit()
     addNunitoThemeTypography()
     customConfig()
 }
