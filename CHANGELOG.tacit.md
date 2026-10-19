@@ -10,14 +10,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+### Changed
+
+### Fixed
+
+## 26.9.2-tacit.4
+
+Based on Tammy 26.9.2.
+
+### Added
+
 - Setting to switch between the bundled font and the system font (Appearance > Accessibility), as in Tammy
+- Runs of room events (joins, invites, room settings, …) collapse into one row such as "6 room events by Alice and
+  Bob" that expands on click
+- Clicking a reply quote briefly highlights the message it jumps to
 
 ### Changed
+
+- Reply quotes are redesigned: a full-width card tinted in the quoted sender's colour, with their avatar and name
+- The composer shows a "Replying to …" card while writing a reply
+- Room events are shown as muted pills instead of bright accent pills
+- Updated README screenshots
 
 ### Fixed
 
 - Linux docks and app menus show Tacit's name and icon (upstream fix CMP-3308)
 - The profiles settings entry is only shown when profiles are available
+- The macOS Dock icon is no longer larger than other apps' icons
 
 ## 26.9.2-tacit.3
 
