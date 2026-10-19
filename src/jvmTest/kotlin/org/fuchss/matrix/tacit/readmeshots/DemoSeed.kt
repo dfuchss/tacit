@@ -37,9 +37,9 @@ internal fun seedDemoUsers(http: MatrixHttp): DemoUsers {
 /**
  * Seeds the conversations of the README overview purely over the client-server API (no UI involved): two DMs, the
  * "Weekend Hike Planning" group chat with replies and reactions, and an "Adventure" guild (space) with a `#general`
- * room. `tacit` accepts all invitations, so everything is there when the client first syncs.
+ * room. `tacit` accepts all invitations, so everything is there when the client first syncs. Returns the hike room id.
  */
-internal fun seedDemoConversations(users: DemoUsers) {
+internal fun seedDemoConversations(users: DemoUsers): String {
     val (tacit, tacit2, mira, ollie, pip) = users
     val miraDm = mira.createChat(listOf(tacit.userId), direct = true)
     val ollieDm = ollie.createChat(listOf(tacit.userId), direct = true)
@@ -117,4 +117,5 @@ internal fun seedDemoConversations(users: DemoUsers) {
     tacit2.join(general)
     tacit.sendText(general, "Welcome to the Adventure guild!")
     tacit2.sendText(general, "Glad to be here 🏕️")
+    return hike
 }

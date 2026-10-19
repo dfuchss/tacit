@@ -39,6 +39,7 @@ import de.connect2x.trixnity.messenger.viewmodel.room.timeline.TimelineViewModel
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.RedactedTimelineElementViewModel
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.TimelineElementViewModel
 import de.connect2x.trixnity.messenger.viewmodel.util.throttleFirst
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
@@ -106,6 +107,17 @@ class TacitTimelineView : TimelineView {
         key(timelineViewModel) {
             val i18n = DI.get<TacitI18nView>()
             var scrollTo by remember { mutableStateOf<String?>(null) }
+            // A scroll that follows a press on a reply quote is a jump to the quoted message: that
+            // row lights up briefly so the eye finds it (see LocalTacitJumpHighlightKey).
+            val replyJumpSignal = remember { TacitReplyJumpSignal() }
+            var jumpHighlightKey by remember { mutableStateOf<String?>(null) }
+            var jumpHighlightToken by remember { mutableStateOf(0) }
+            LaunchedEffect(jumpHighlightToken) {
+                if (jumpHighlightKey != null) {
+                    delay(1_600)
+                    jumpHighlightKey = null
+                }
+            }
             LaunchedEffect(timelineViewModel) {
                 timelineViewModel.scrollTo.drop(1).collect { scrollTo = it }
             }
@@ -184,6 +196,11 @@ class TacitTimelineView : TimelineView {
                             index == 0 -> listState.animateScrollToItem(0)
                             // Any other element is merely revealed, without jumping to the end.
                             index > 0 -> listState.safeScrollIntoView(if (showTypingIndicator.value) index + 1 else index)
+                        }
+                        val followsReplyPress = replyJumpSignal.consumeRecentPress()
+                        if (index > 0 && followsReplyPress) {
+                            jumpHighlightKey = scrollToKey
+                            jumpHighlightToken++
                         }
                         // The view model waits for this acknowledgement and warns ("could not
                         // scroll to ..., because UI did not set finishedScrollTo") when it never
@@ -275,64 +292,69 @@ class TacitTimelineView : TimelineView {
                                     showTypingIndicator.value,
                                     renderedTimelineViewElements.value,
                                 ) { mutableStateOf(0) }
-                                LazyColumn(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .rovingFocusContainer()
-                                        .semantics {
-                                            collectionInfo = CollectionInfo(1, renderedTimelineViewElements.value.size)
-                                            liveRegion = LiveRegionMode.Polite
-                                        },
-                                    contentPadding = PaddingValues(
-                                        top = 10.dp,
-                                        bottom = 10.dp,
-                                        start = timelineStartPadding,
-                                        end = timelineEndPadding,
-                                    ),
-                                    state = listState,
-                                    reverseLayout = true,
-                                    verticalArrangement = Arrangement.Bottom,
+                                CompositionLocalProvider(
+                                    LocalTacitReplyJumpSignal provides replyJumpSignal,
+                                    LocalTacitJumpHighlightKey provides jumpHighlightKey,
                                 ) {
-                                    if (showTypingIndicator.value) {
-                                        item(key = "typing", contentType = "typing") {
-                                            TypingIndicator(timelineViewModel)
-                                            if (focusedElement == 0) focusedElement++
-                                        }
-                                    }
-                                    itemsIndexed(
-                                        items = renderedTimelineViewElements.value,
-                                        key = { _, timelineViewElement -> timelineViewElement.key },
-                                        contentType = { _, timelineViewElement ->
-                                            when (timelineViewElement) {
-                                                is TimelineViewElement.Date -> "date"
-                                                is TimelineViewElement.Element -> "element"
+                                    LazyColumn(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .rovingFocusContainer()
+                                            .semantics {
+                                                collectionInfo = CollectionInfo(1, renderedTimelineViewElements.value.size)
+                                                liveRegion = LiveRegionMode.Polite
+                                            },
+                                        contentPadding = PaddingValues(
+                                            top = 10.dp,
+                                            bottom = 10.dp,
+                                            start = timelineStartPadding,
+                                            end = timelineEndPadding,
+                                        ),
+                                        state = listState,
+                                        reverseLayout = true,
+                                        verticalArrangement = Arrangement.Bottom,
+                                    ) {
+                                        if (showTypingIndicator.value) {
+                                            item(key = "typing", contentType = "typing") {
+                                                TypingIndicator(timelineViewModel)
+                                                if (focusedElement == 0) focusedElement++
                                             }
-                                        },
-                                    ) { index, timelineViewElement ->
-                                        Box(
-                                            Modifier
-                                                .rovingFocusItem(
-                                                    isFocused = focusedElement == index,
-                                                    onFocus = { focusedElement = index },
-                                                )
-                                                .animateItem()
-                                                .animateContentSize()
-                                        ) {
-                                            when (timelineViewElement) {
-                                                is TimelineViewElement.Date -> {
-                                                    DateStickyHeader(
-                                                        date = timelineViewElement.formattedDate,
-                                                        focusable = true,
-                                                    )
+                                        }
+                                        itemsIndexed(
+                                            items = renderedTimelineViewElements.value,
+                                            key = { _, timelineViewElement -> timelineViewElement.key },
+                                            contentType = { _, timelineViewElement ->
+                                                when (timelineViewElement) {
+                                                    is TimelineViewElement.Date -> "date"
+                                                    is TimelineViewElement.Element -> "element"
                                                 }
-
-                                                is TimelineViewElement.Element -> {
-                                                    val viewModel = timelineViewElement.viewModel
-                                                    if (viewModel.element.value is TimelineElementViewModel.Empty && index == focusedElement) {
-                                                        focusedElement++
+                                            },
+                                        ) { index, timelineViewElement ->
+                                            Box(
+                                                Modifier
+                                                    .rovingFocusItem(
+                                                        isFocused = focusedElement == index,
+                                                        onFocus = { focusedElement = index },
+                                                    )
+                                                    .animateItem()
+                                                    .animateContentSize()
+                                            ) {
+                                                when (timelineViewElement) {
+                                                    is TimelineViewElement.Date -> {
+                                                        DateStickyHeader(
+                                                            date = timelineViewElement.formattedDate,
+                                                            focusable = true,
+                                                        )
                                                     }
 
-                                                    TimelineElementHolder(viewModel, index)
+                                                    is TimelineViewElement.Element -> {
+                                                        val viewModel = timelineViewElement.viewModel
+                                                        if (viewModel.element.value is TimelineElementViewModel.Empty && index == focusedElement) {
+                                                            focusedElement++
+                                                        }
+
+                                                        TimelineElementHolder(viewModel, index)
+                                                    }
                                                 }
                                             }
                                         }

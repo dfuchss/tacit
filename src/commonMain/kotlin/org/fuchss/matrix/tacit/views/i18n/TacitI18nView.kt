@@ -70,6 +70,12 @@ open class TacitI18nView(
         DE - "$displayName (Du)"
     }
 
+    /** Prefix of the composer's reply bar; the quoted sender's name follows it. */
+    open fun tacitReplyingTo() = translate {
+        EN - "Replying to "
+        DE - "Antwort an "
+    }
+
     open fun tacitToggleMembersPane() = translate {
         EN - "Toggle members pane"
         DE - "Mitgliederleiste umschalten"

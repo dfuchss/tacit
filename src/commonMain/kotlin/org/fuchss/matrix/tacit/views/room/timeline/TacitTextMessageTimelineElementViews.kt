@@ -2,6 +2,7 @@ package org.fuchss.matrix.tacit.views.room.timeline
 
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.SmartToy
@@ -28,6 +29,7 @@ import de.connect2x.trixnity.messenger.compose.view.richtext.RichTextDisplay
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.TimelineElementView
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.message.*
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.message.bubble.MessageBubble
+import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.message.bubble.ReferencedMessagePill
 import de.connect2x.trixnity.messenger.compose.view.theme.components
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedSelectionContainer
 import de.connect2x.trixnity.messenger.compose.view.theme.messengerColors
@@ -80,6 +82,35 @@ internal abstract class TacitDelegatingTextTimelineElementView<T : RoomMessageTi
         index: Int,
     ) {
         TacitTextBasedRoomMessageTimelineElementView(holder, element, isPreview = true, index = index)
+    }
+
+    @Composable
+    override fun createReplyInTimeline(
+        holder: TimelineElementHolderViewModel,
+        element: T,
+        modifier: Modifier,
+        interactionSource: MutableInteractionSource,
+    ) = TacitReply(holder, element, modifier, interactionSource, TacitReplyLinesInTimeline)
+
+    @Composable
+    override fun createReplyInSendMessage(
+        holder: TimelineElementHolderViewModel,
+        element: T,
+        modifier: Modifier,
+        interactionSource: MutableInteractionSource,
+    ) = TacitReply(holder, element, modifier, interactionSource, TacitReplyLinesInComposer)
+
+    @Composable
+    private fun TacitReply(
+        holder: TimelineElementHolderViewModel,
+        element: T,
+        modifier: Modifier,
+        interactionSource: MutableInteractionSource,
+        maxLines: Int,
+    ) {
+        ReferencedMessagePill(holder, element, modifier, interactionSource) {
+            TacitTextReply(element, maxLines)
+        }
     }
 }
 
