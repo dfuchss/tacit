@@ -32,6 +32,7 @@ import org.fuchss.matrix.tacit.tacitText
 import org.fuchss.matrix.tacit.ui.TacitShapes
 import org.fuchss.matrix.tacit.viewmodel.room.timeline.findSlashCommandMatch
 import org.fuchss.matrix.tacit.viewmodel.room.timeline.slashCommandSuggestions
+import org.fuchss.matrix.tacit.viewmodel.i18n.TacitI18n
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 
 private data class EmojiShortcodeMatch(
@@ -100,7 +101,7 @@ class TacitInputAreaView : InputAreaView {
             showSlashSuggestions -> slashSuggestions.map {
                 ComposerSuggestion(
                     title = "/${it.command}",
-                    subtitle = it.description,
+                    subtitle = DI.get<TacitI18n>().tacitSlashCommandDescription(it.id),
                 )
             }
 

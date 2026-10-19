@@ -2,6 +2,7 @@ package org.fuchss.matrix.tacit
 
 import de.connect2x.trixnity.messenger.MatrixMessengerConfiguration
 import de.connect2x.trixnity.messenger.compose.view.i18n.I18nView
+import de.connect2x.trixnity.messenger.i18n.I18n
 import de.connect2x.trixnity.messenger.compose.view.room.RoomView
 import de.connect2x.trixnity.messenger.compose.view.room.settings.ChangeRoomAvatarView
 import de.connect2x.trixnity.messenger.compose.view.room.settings.RoomSettingsView
@@ -33,6 +34,7 @@ import de.connect2x.trixnity.messenger.viewmodel.roomlist.RoomListElementViewMod
 import de.connect2x.trixnity.messenger.viewmodel.roomlist.RoomListViewModelFactory
 import de.connect2x.trixnity.messenger.viewmodel.settings.AppearanceSettingsViewModelFactory
 import de.connect2x.trixnity.messenger.viewmodel.settings.UserSettingsViewModelFactory
+import org.fuchss.matrix.tacit.viewmodel.i18n.TacitI18n
 import org.fuchss.matrix.tacit.viewmodel.room.list.TacitRoomListElementViewModelFactory
 import org.fuchss.matrix.tacit.viewmodel.room.list.TacitRoomListViewModelFactory
 import org.fuchss.matrix.tacit.viewmodel.room.settings.TacitChangeRoomAvatarViewModelFactory
@@ -60,6 +62,8 @@ fun tammyTacitModule() = module {
 
     single<RoomListView> { TacitRoomListView() }
     single<RoomListContainerView> { TacitRoomListContainerView() }
+    single<TacitI18n> { TacitI18n(get(), get(), get(), get()) }
+    single<I18n> { get<TacitI18n>() }
     single<TacitI18nView> { TacitI18nView(get(), get(), get(), get()) }
     single<I18nView> { get<TacitI18nView>() }
     single<RoomListViewModelFactory> { TacitRoomListViewModelFactory }

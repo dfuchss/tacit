@@ -558,13 +558,13 @@ private fun TacitFlatMessageHoverActions(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (canReact) {
-                    TacitQuickActionButton(label = "🙂") {
+                    TacitQuickActionButton(label = "🙂", description = i18n.tacitAddReactionAction()) {
                         quickReactionsOpen.value = true
                         allReactionsOpen.value = false
                     }
                 }
                 if (canReply) {
-                    TacitQuickActionButton(label = "↩") {
+                    TacitQuickActionButton(label = "↩", description = i18n.tacitReplyAction()) {
                         timelineElementHolder.reply()
                         quickReactionsOpen.value = false
                         allReactionsOpen.value = false
@@ -572,7 +572,7 @@ private fun TacitFlatMessageHoverActions(
                     }
                 }
                 TacitQuickActionButton(
-                    label = "More",
+                    label = i18n.tacitMoreActions(),
                     icon = Icons.Default.MoreVert
                 ) { showActionMenu.value = true }
             }

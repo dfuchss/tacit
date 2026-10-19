@@ -18,6 +18,7 @@ import de.connect2x.trixnity.messenger.viewmodel.util.ErrorType
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.flow.SharingStarted.Companion.WhileSubscribed
 import kotlinx.coroutines.launch
+import org.fuchss.matrix.tacit.viewmodel.i18n.TacitI18n
 import org.fuchss.matrix.tacit.viewmodel.room.list.entry.GuildEntry
 import org.fuchss.matrix.tacit.viewmodel.room.list.entry.SpaceChannelEntry
 import org.fuchss.matrix.tacit.viewmodel.room.list.entry.SpaceChannelStatus
@@ -762,6 +763,7 @@ private class TacitRoomListViewModelImpl(
 
     private val actions = TacitRoomListActions(
         scope = coroutineScope,
+        i18n = get<TacitI18n>(),
         reportError = { message -> reportError(message) },
         onGuildSelected = ::selectGuild,
         onRoomSelected = delegate::selectRoom,

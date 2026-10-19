@@ -19,6 +19,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.flow.SharingStarted.Companion.WhileSubscribed
 import kotlinx.coroutines.launch
+import org.fuchss.matrix.tacit.viewmodel.i18n.TacitI18n
 import org.koin.core.component.get
 import org.fuchss.matrix.tacit.viewmodel.room.timeline.entry.ChannelMemberEntry
 import org.fuchss.matrix.tacit.viewmodel.util.findExistingDirectMessageRoom
@@ -54,6 +55,7 @@ private class TacitTimelineViewModelImpl(
     private val roomId: RoomId,
 ) : TacitTimelineViewModel, TimelineViewModel by delegate, MatrixClientViewModelContext by viewModelContext {
 
+    private val tacitI18n = get<TacitI18n>()
     private val avatarCache = mutableMapOf<String, ByteArray?>()
     private val _scrollToEndRequests = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     private val caughtUp = MutableStateFlow(false)
@@ -147,12 +149,7 @@ private class TacitTimelineViewModelImpl(
 
     override val typingIndicatorText: StateFlow<String?> = typingMembers
         .map { typing ->
-            when (typing.size) {
-                0 -> null
-                1 -> "${typing[0].displayName} is typing..."
-                2 -> "${typing[0].displayName} and ${typing[1].displayName} are typing..."
-                else -> "${typing[0].displayName}, ${typing[1].displayName} +${typing.size - 2} are typing..."
-            }
+            tacitI18n.tacitTypingIndicator(typing.map { it.displayName })
         }
         .stateIn(coroutineScope, WhileSubscribed(), null)
 

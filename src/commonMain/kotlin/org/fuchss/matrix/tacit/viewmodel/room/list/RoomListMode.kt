@@ -14,8 +14,3 @@ internal val RoomListMode.selectedGuildOrNull: GuildEntry?
     }
 
 internal fun RoomListMode.isDirectMessages(): Boolean = this is RoomListMode.DirectMessages
-
-internal fun RoomListMode.roomsSectionTitle(): String = when (this) {
-    is RoomListMode.DirectMessages -> "CHATS & ROOMS"
-    is RoomListMode.GuildChannels -> "ROOMS"
-}

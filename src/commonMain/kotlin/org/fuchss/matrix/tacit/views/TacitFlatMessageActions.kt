@@ -245,6 +245,8 @@ private fun TacitQuickReactionPickerButton(
 internal fun TacitQuickActionButton(
     label: String? = null,
     icon: ImageVector? = null,
+    /** Spoken/click label; defaults to [label], which is not meaningful for emoji-only buttons. */
+    description: String? = label,
     onClick: () -> Unit,
 ) {
     Box(
@@ -252,13 +254,13 @@ internal fun TacitQuickActionButton(
             .clip(TacitShapes.compact)
             .background(tacitSurface, TacitShapes.compact)
             .border(1.dp, tacitBorder, TacitShapes.compact)
-            .tacitInteractive(onClickLabel = label, onClick = onClick)
+            .tacitInteractive(onClickLabel = description, onClick = onClick)
             // unchanged: keeps the button at its current visual size
             .padding(horizontal = 7.dp, vertical = 3.dp),
         contentAlignment = Alignment.Center,
     ) {
         if (icon != null) {
-            Icon(icon, contentDescription = label, tint = tacitText)
+            Icon(icon, contentDescription = description, tint = tacitText)
         } else {
             Text(label ?: "?", color = tacitText)
         }

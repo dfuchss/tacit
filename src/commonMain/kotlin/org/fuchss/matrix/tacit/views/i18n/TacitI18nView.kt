@@ -800,4 +800,31 @@ open class TacitI18nView(
         EN - "Marking all rooms as read failed"
         DE - "Markieren aller Räume als gelesen fehlgeschlagen"
     }
+
+    open fun tacitRoomsSectionTitle(isDirectMessages: Boolean) = when {
+        isDirectMessages -> translate {
+            EN - "CHATS & ROOMS"
+            DE - "CHATS & RÄUME"
+        }
+
+        else -> translate {
+            EN - "ROOMS"
+            DE - "RÄUME"
+        }
+    }
+
+    open fun tacitAddReactionAction() = translate {
+        EN - "Add reaction"
+        DE - "Reaktion hinzufügen"
+    }
+
+    open fun tacitReplyAction() = translate {
+        EN - "Reply"
+        DE - "Antworten"
+    }
+
+    open fun tacitMoreActions() = translate {
+        EN - "More"
+        DE - "Mehr"
+    }
 }

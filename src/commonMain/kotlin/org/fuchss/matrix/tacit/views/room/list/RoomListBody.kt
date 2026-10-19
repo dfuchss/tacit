@@ -140,7 +140,7 @@ internal fun RoomListBody(
                             },
                         )
                         Spacer(Modifier.height(8.dp))
-                        RoomListSectionLabel(mode.roomsSectionTitle())
+                        RoomListSectionLabel(i18n.tacitRoomsSectionTitle(mode.isDirectMessages()))
                     }
 
                     LazyColumn(
@@ -197,7 +197,7 @@ internal fun RoomListBody(
 
                         if (mode is RoomListMode.GuildChannels && filteredVisibleRooms.isNotEmpty()) {
                             item {
-                                RoomListSectionLabel(mode.roomsSectionTitle())
+                                RoomListSectionLabel(i18n.tacitRoomsSectionTitle(mode.isDirectMessages()))
                             }
                         }
 
