@@ -19,6 +19,17 @@ private val stagingLog = Logger("org.fuchss.matrix.tacit.update.TacitUpdateStagi
  * the install; the install is only read (to compare the bundle identifier).
  */
 object TacitUpdateStaging {
+    private const val EXTRACTED = "extracted"
+
+    /**
+     * Where the staged app lives inside [stagingDir]: `Tacit.app` on macOS (copied out of the DMG), otherwise
+     * `extracted/Tacit` (from the zip). The single source of truth for staging and for finding a kept update.
+     */
+    fun stagedRoot(os: TacitOs, stagingDir: Path): Path = when (os) {
+        TacitOs.MACOS -> stagingDir.resolve("Tacit.app")
+        TacitOs.WINDOWS, TacitOs.LINUX -> stagingDir.resolve(EXTRACTED).resolve("Tacit")
+    }
+
     /** Resolves [entryName] below [target] and refuses entries that would escape it (zip slip). */
     fun safeResolve(target: Path, entryName: String): Path {
         val root = target.toAbsolutePath().normalize()
@@ -44,10 +55,10 @@ object TacitUpdateStaging {
 
     /** Extracts the platform zip and returns the staged `Tacit` folder. */
     fun stageZip(os: TacitOs, zip: Path, stagingDir: Path): Path {
-        val extracted = stagingDir.resolve("extracted")
+        val extracted = stagingDir.resolve(EXTRACTED)
         if (extracted.exists()) deleteRecursively(extracted)
         extractZip(zip, extracted)
-        val app = extracted.resolve("Tacit")
+        val app = stagedRoot(os, stagingDir)
         val launcher = when (os) {
             TacitOs.WINDOWS -> app.resolve("Tacit.exe")
             else -> app.resolve("bin").resolve("Tacit")
@@ -80,7 +91,7 @@ object TacitUpdateStaging {
     /** Copies `Tacit.app` out of the DMG and returns the staged bundle. */
     fun stageDmg(dmg: Path, stagingDir: Path, installedApp: Path?): Path {
         val mountPoint = stagingDir.resolve("mnt")
-        val staged = stagingDir.resolve("Tacit.app")
+        val staged = stagedRoot(TacitOs.MACOS, stagingDir)
         if (staged.exists()) deleteRecursively(staged)
         Files.createDirectories(mountPoint)
         run(
