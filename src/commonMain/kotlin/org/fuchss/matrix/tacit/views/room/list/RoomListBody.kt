@@ -1,5 +1,7 @@
 package org.fuchss.matrix.tacit.views.room.list
 
+import org.fuchss.matrix.tacit.ui.TacitAlpha
+import org.fuchss.matrix.tacit.ui.TacitSizes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -482,8 +484,8 @@ private fun CategoryHeaderActionButton(
             .size(22.dp)
             .clip(RoundedCornerShape(6.dp))
             .background(if (enabled) MaterialTheme.tacit.surfaceAlt else MaterialTheme.tacit.surface)
-            .border(1.dp, MaterialTheme.tacit.border, RoundedCornerShape(6.dp))
-            .alpha(if (enabled) 1f else 0.45f)
+            .border(TacitSizes.borderWidth, MaterialTheme.tacit.border, RoundedCornerShape(6.dp))
+            .alpha(if (enabled) 1f else TacitAlpha.disabled)
             .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {

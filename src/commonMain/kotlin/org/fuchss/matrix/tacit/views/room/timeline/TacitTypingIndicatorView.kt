@@ -1,5 +1,7 @@
 package org.fuchss.matrix.tacit.views.room.timeline
 
+import org.fuchss.matrix.tacit.ui.TacitAlpha
+import org.fuchss.matrix.tacit.ui.TacitSizes
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -46,7 +48,7 @@ class TacitTypingIndicatorView : TypingIndicatorView {
                         .padding(start = sidePadding, end = sidePadding, top = 2.dp, bottom = 6.dp)
                         .clip(TacitShapes.card)
                         .background(MaterialTheme.tacit.surface.copy(alpha = 0.72f))
-                        .border(1.dp, MaterialTheme.tacit.border.copy(alpha = 0.45f), TacitShapes.card)
+                        .border(TacitSizes.borderWidth, MaterialTheme.tacit.border.copy(alpha = TacitAlpha.borderSubtle), TacitShapes.card)
                         .padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp),

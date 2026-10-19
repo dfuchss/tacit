@@ -1,5 +1,6 @@
 package org.fuchss.matrix.tacit.views
 
+import org.fuchss.matrix.tacit.ui.TacitSizes
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -230,7 +231,7 @@ private fun TacitQuickReactionPickerButton(
             .size(34.dp)
             .clip(TacitShapes.compact)
             .background(MaterialTheme.tacit.surface, TacitShapes.compact)
-            .border(1.dp, MaterialTheme.tacit.border, TacitShapes.compact)
+            .border(TacitSizes.borderWidth, MaterialTheme.tacit.border, TacitShapes.compact)
             .tacitInteractive(onClickLabel = emoji, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
@@ -250,7 +251,7 @@ internal fun TacitQuickActionButton(
         modifier = Modifier
             .clip(TacitShapes.compact)
             .background(MaterialTheme.tacit.surface, TacitShapes.compact)
-            .border(1.dp, MaterialTheme.tacit.border, TacitShapes.compact)
+            .border(TacitSizes.borderWidth, MaterialTheme.tacit.border, TacitShapes.compact)
             .tacitInteractive(onClickLabel = description, onClick = onClick)
             // unchanged: keeps the button at its current visual size
             .padding(horizontal = 7.dp, vertical = 3.dp),

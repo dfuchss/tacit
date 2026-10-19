@@ -1,5 +1,6 @@
 package org.fuchss.matrix.tacit
 
+import org.fuchss.matrix.tacit.ui.TacitAlpha
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -44,6 +45,9 @@ internal data class TacitTokens(
     val errorBorder: Color,
     val errorText: Color,
 ) {
+    /** Pure white content (text, icons, indicators) drawn on accent-tinted fills; independent of the hue. */
+    val onAccentFixed: Color get() = Color.White
+
     fun accent(alpha: Float): Color = accent.copy(alpha = alpha)
 
     fun onAccent(color: Color = accent): Color = color.contrastByLuminance(brightColor = text, darkColor = background)
@@ -64,7 +68,7 @@ internal data class TacitTokens(
                 textMuted = baseTextMuted.deriveFromHue(hue),
                 warning = baseWarning,
                 warningBg = baseWarning.copy(alpha = 0.20f),
-                warningBorder = baseWarning.copy(alpha = 0.65f),
+                warningBorder = baseWarning.copy(alpha = TacitAlpha.borderEmphasis),
                 warningText = baseWarning.contrastByLuminance(brightColor = text, darkColor = background),
                 error = baseError,
                 errorBg = baseError.copy(alpha = 0.20f),

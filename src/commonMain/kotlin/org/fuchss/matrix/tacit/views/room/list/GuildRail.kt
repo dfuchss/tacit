@@ -1,5 +1,7 @@
 package org.fuchss.matrix.tacit.views.room.list
 
+import org.fuchss.matrix.tacit.ui.TacitAlpha
+import org.fuchss.matrix.tacit.ui.TacitSizes
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.LocalIndication
@@ -92,14 +94,14 @@ internal fun GuildRail(
     Column(
         modifier = Modifier
             .fillMaxHeight()
-            .width(84.dp)
+            .width(TacitSizes.guildRailWidth)
             .clip(TacitShapes.rail)
             .background(
                 Brush.verticalGradient(
                     listOf(MaterialTheme.tacit.background, MaterialTheme.tacit.surface, MaterialTheme.tacit.background)
                 )
             )
-            .border(1.dp, MaterialTheme.tacit.border, TacitShapes.rail)
+            .border(TacitSizes.borderWidth, MaterialTheme.tacit.border, TacitShapes.rail)
             .padding(vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -246,7 +248,7 @@ private fun GuildCreateButton(onClick: () -> Unit) {
                 .size(guildPillSize)
                 .clip(CircleShape)
                 .background(if (hovered) MaterialTheme.tacit.surfaceAlt else MaterialTheme.tacit.surface)
-                .border(1.dp, MaterialTheme.tacit.border, CircleShape)
+                .border(TacitSizes.borderWidth, MaterialTheme.tacit.border, CircleShape)
                 .hoverable(hoverSource)
                 .clickable(
                     interactionSource = interactionSource,
@@ -261,7 +263,7 @@ private fun GuildCreateButton(onClick: () -> Unit) {
             Icon(
                 Icons.Default.Add,
                 contentDescription = label,
-                tint = if (hovered) Color.White else MaterialTheme.tacit.accent
+                tint = if (hovered) MaterialTheme.tacit.onAccentFixed else MaterialTheme.tacit.accent
             )
         }
     }
@@ -304,7 +306,7 @@ private fun GuildPill(
                 .width(4.dp)
                 .height(if (selected) 34.dp else 10.dp)
                 .clip(TacitShapes.pill)
-                .background(if (selected) Color.White else Color.Transparent)
+                .background(if (selected) MaterialTheme.tacit.onAccentFixed else Color.Transparent)
         )
 
         Box(
@@ -318,14 +320,14 @@ private fun GuildPill(
                     .clip(pillShape)
                     .background(
                         when {
-                            selected -> MaterialTheme.tacit.accent(0.25f)
+                            selected -> MaterialTheme.tacit.accent(TacitAlpha.accentFill)
                             hovered -> MaterialTheme.tacit.surfaceAlt
                             else -> MaterialTheme.tacit.surface
                         }
                     )
                     .border(
                         width = 1.dp,
-                        color = if (selected) MaterialTheme.tacit.accent.copy(alpha = 0.65f) else MaterialTheme.tacit.border.copy(alpha = 0.75f),
+                        color = if (selected) MaterialTheme.tacit.accent.copy(alpha = TacitAlpha.borderEmphasis) else MaterialTheme.tacit.border.copy(alpha = 0.75f),
                         shape = pillShape,
                     )
                     .hoverable(hoverSource)
@@ -369,7 +371,7 @@ private fun GuildPill(
                 } else {
                     Text(
                         text = symbol ?: label.orEmpty(),
-                        color = Color.White,
+                        color = MaterialTheme.tacit.onAccentFixed,
                         style = if (symbol != null) MaterialTheme.typography.titleMedium else MaterialTheme.typography.labelMedium,
                         fontWeight = if (symbol != null) FontWeight.ExtraBold else FontWeight.SemiBold,
                     )

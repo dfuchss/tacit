@@ -1,5 +1,7 @@
 package org.fuchss.matrix.tacit.views.room.timeline
 
+import org.fuchss.matrix.tacit.ui.TacitAlpha
+import org.fuchss.matrix.tacit.ui.TacitSizes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.animateColorAsState
@@ -420,7 +422,7 @@ private fun SystemEventGroupHeader(group: TacitSystemEventGroup, expanded: Boole
     val background by animateColorAsState(MaterialTheme.tacit.surfaceAlt.copy(alpha = if (isHovered || expanded) 0.85f else 0.45f))
     val border by animateColorAsState(
         when {
-            isFocused -> MaterialTheme.tacit.accent.copy(alpha = 0.8f)
+            isFocused -> MaterialTheme.tacit.accent.copy(alpha = TacitAlpha.focusRing)
             isHovered -> MaterialTheme.tacit.border
             else -> MaterialTheme.tacit.border.copy(alpha = 0.5f)
         }
@@ -434,7 +436,7 @@ private fun SystemEventGroupHeader(group: TacitSystemEventGroup, expanded: Boole
                 .testTag(TacitSystemEventGroupTestTag)
                 .clip(TacitShapes.pill)
                 .background(background, TacitShapes.pill)
-                .border(1.dp, border, TacitShapes.pill)
+                .border(TacitSizes.borderWidth, border, TacitShapes.pill)
                 .hoverable(interactionSource)
                 .clickable(
                     interactionSource = interactionSource,

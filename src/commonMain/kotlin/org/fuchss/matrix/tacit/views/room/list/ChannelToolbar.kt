@@ -1,5 +1,7 @@
 package org.fuchss.matrix.tacit.views.room.list
 
+import org.fuchss.matrix.tacit.ui.TacitAlpha
+import org.fuchss.matrix.tacit.ui.TacitSizes
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -177,7 +179,7 @@ private fun RowScope.ToolbarSearchField(
             .defaultMinSize(minWidth = 150.dp)
             .clip(TacitShapes.control)
             .background(if (searchHovered) MaterialTheme.tacit.surfaceAlt else MaterialTheme.tacit.surface)
-            .border(1.dp, MaterialTheme.tacit.border, TacitShapes.control)
+            .border(TacitSizes.borderWidth, MaterialTheme.tacit.border, TacitShapes.control)
             .hoverable(searchHoverSource)
             .padding(horizontal = 8.dp, vertical = searchVerticalPadding),
         contentAlignment = Alignment.CenterStart,
@@ -259,7 +261,7 @@ private fun ToolbarIconButton(
     val background = when {
         !enabled -> MaterialTheme.tacit.surface
         primary && hovered -> MaterialTheme.tacit.accent
-        primary -> MaterialTheme.tacit.accent(0.25f)
+        primary -> MaterialTheme.tacit.accent(TacitAlpha.accentFill)
         hovered -> MaterialTheme.tacit.surfaceAlt
         else -> MaterialTheme.tacit.surface
     }
@@ -278,7 +280,7 @@ private fun ToolbarIconButton(
             .size(36.dp)
             .clip(TacitShapes.control)
             .background(background)
-            .border(1.dp, borderColor, TacitShapes.control)
+            .border(TacitSizes.borderWidth, borderColor, TacitShapes.control)
             .hoverable(hoverSource, enabled = enabled)
             .clickable(
                 interactionSource = interactionSource,

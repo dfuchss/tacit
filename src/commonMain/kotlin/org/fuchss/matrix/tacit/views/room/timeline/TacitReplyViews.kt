@@ -1,5 +1,7 @@
 package org.fuchss.matrix.tacit.views.room.timeline
 
+import org.fuchss.matrix.tacit.ui.TacitAlpha
+import org.fuchss.matrix.tacit.ui.TacitSizes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.fadeIn
@@ -121,7 +123,7 @@ private fun replySenderColor(sender: UserInfoElement?): Color =
 internal fun Modifier.tacitQuoteCard(background: Color, border: Color, bar: Color): Modifier =
     clip(TacitShapes.compact)
         .background(background, TacitShapes.compact)
-        .border(1.dp, border, TacitShapes.compact)
+        .border(TacitSizes.borderWidth, border, TacitShapes.compact)
         .replyBar(bar)
 
 /** Inner padding of a [tacitQuoteCard]; the start clears the bar. */
@@ -157,7 +159,7 @@ internal class TacitReferencedMessagePillView : ReferencedMessagePillView {
     ) {
         if (LocalTacitReplyInComposer.current) {
             Box(modifier) {
-                CompositionLocalProvider(LocalContentColor provides MaterialTheme.tacit.text.copy(alpha = 0.82f)) { content() }
+                CompositionLocalProvider(LocalContentColor provides MaterialTheme.tacit.text.copy(alpha = TacitAlpha.quotedText)) { content() }
             }
             return
         }
@@ -169,7 +171,7 @@ internal class TacitReferencedMessagePillView : ReferencedMessagePillView {
         val backgroundColor by animateColorAsState(senderColor.copy(alpha = if (isHovered) 0.18f else TacitQuoteTintAlpha))
         val borderColor by animateColorAsState(
             when {
-                isFocused -> MaterialTheme.tacit.accent.copy(alpha = 0.8f)
+                isFocused -> MaterialTheme.tacit.accent.copy(alpha = TacitAlpha.focusRing)
                 isHovered -> senderColor.copy(alpha = 0.42f)
                 else -> senderColor.copy(alpha = TacitQuoteBorderAlpha)
             }
@@ -223,7 +225,7 @@ internal class TacitReferencedMessagePillView : ReferencedMessagePillView {
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            CompositionLocalProvider(LocalContentColor provides MaterialTheme.tacit.text.copy(alpha = 0.82f)) { content() }
+            CompositionLocalProvider(LocalContentColor provides MaterialTheme.tacit.text.copy(alpha = TacitAlpha.quotedText)) { content() }
         }
     }
 }

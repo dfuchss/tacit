@@ -1,5 +1,6 @@
 package org.fuchss.matrix.tacit.views.room
 
+import org.fuchss.matrix.tacit.ui.TacitSizes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -122,7 +123,7 @@ private fun MemberRow(
             ThemedUserAvatar(
                 initials = member.displayName.memberInitials(),
                 image = member.avatarImage,
-                size = 28.dp,
+                size = TacitSizes.avatarCompact,
             )
 
             Column(modifier = Modifier.weight(1f)) {

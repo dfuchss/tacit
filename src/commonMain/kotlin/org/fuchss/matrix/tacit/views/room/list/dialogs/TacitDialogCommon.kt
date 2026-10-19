@@ -1,5 +1,7 @@
 package org.fuchss.matrix.tacit.views.room.list.dialogs
 
+import org.fuchss.matrix.tacit.ui.TacitAlpha
+import org.fuchss.matrix.tacit.ui.TacitSizes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -35,7 +37,7 @@ internal fun TacitDialogHeroCard(
                     listOf(MaterialTheme.tacit.surface, MaterialTheme.tacit.surfaceAlt, MaterialTheme.tacit.surface)
                 )
             )
-            .border(1.dp, MaterialTheme.tacit.border.copy(alpha = 0.8f), TacitShapes.section)
+            .border(TacitSizes.borderWidth, MaterialTheme.tacit.border.copy(alpha = 0.8f), TacitShapes.section)
             .padding(horizontal = 14.dp, vertical = 12.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -65,7 +67,7 @@ internal fun TacitDialogSearchResultsContainer(
             .fillMaxWidth()
             .clip(TacitShapes.card)
             .background(MaterialTheme.tacit.surface)
-            .border(1.dp, MaterialTheme.tacit.border, TacitShapes.card)
+            .border(TacitSizes.borderWidth, MaterialTheme.tacit.border, TacitShapes.card)
             .padding(horizontal = 6.dp, vertical = 6.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
         content = content,
@@ -86,7 +88,7 @@ internal fun TacitUserDirectoryRow(
             .padding(0.dp),
         shape = TacitShapes.compact,
         backgroundColor = MaterialTheme.tacit.surface,
-        borderColor = if (selected) MaterialTheme.tacit.accent.copy(alpha = 0.65f) else MaterialTheme.tacit.border.copy(alpha = 0.55f),
+        borderColor = if (selected) MaterialTheme.tacit.accent.copy(alpha = TacitAlpha.borderEmphasis) else MaterialTheme.tacit.border.copy(alpha = 0.55f),
         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 7.dp),
     ) {
         Row(

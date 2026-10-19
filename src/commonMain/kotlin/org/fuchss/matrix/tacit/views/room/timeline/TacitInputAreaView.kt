@@ -1,5 +1,7 @@
 package org.fuchss.matrix.tacit.views.room.timeline
 
+import org.fuchss.matrix.tacit.ui.TacitAlpha
+import org.fuchss.matrix.tacit.ui.TacitSizes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -264,7 +266,7 @@ private fun AutocompleteSuggestions(
             .padding(horizontal = 12.dp, vertical = 6.dp)
             .clip(TacitShapes.card)
             .background(MaterialTheme.tacit.surfaceAlt)
-            .border(1.dp, MaterialTheme.tacit.border, TacitShapes.card)
+            .border(TacitSizes.borderWidth, MaterialTheme.tacit.border, TacitShapes.card)
             .padding(horizontal = 6.dp, vertical = 6.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
@@ -273,7 +275,7 @@ private fun AutocompleteSuggestions(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(
-                        if (index == selectedIndex) MaterialTheme.tacit.accent(0.22f)
+                        if (index == selectedIndex) MaterialTheme.tacit.accent(TacitAlpha.accentSoft)
                         else Color.Transparent,
                         TacitShapes.compact,
                     )

@@ -1,5 +1,6 @@
 package org.fuchss.matrix.tacit.views.common
 
+import org.fuchss.matrix.tacit.ui.TacitSizes
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -70,7 +71,7 @@ internal fun TacitColorPicker(
         Box(
             modifier = Modifier
                 .size(32.dp)
-                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
+                .border(TacitSizes.borderWidth, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
                 .background(currentColor, RoundedCornerShape(8.dp))
         )
         Spacer(Modifier.width(10.dp))

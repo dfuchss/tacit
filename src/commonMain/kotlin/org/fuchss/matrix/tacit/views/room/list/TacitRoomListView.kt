@@ -1,5 +1,6 @@
 package org.fuchss.matrix.tacit.views.room.list
 
+import org.fuchss.matrix.tacit.ui.TacitSizes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -440,7 +441,7 @@ private fun OfflineWarningBanner(
             .fillMaxWidth()
             .clip(TacitShapes.compact)
             .background(MaterialTheme.tacit.warningBg)
-            .border(1.dp, MaterialTheme.tacit.warningBorder, TacitShapes.compact)
+            .border(TacitSizes.borderWidth, MaterialTheme.tacit.warningBorder, TacitShapes.compact)
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {

@@ -1,5 +1,7 @@
 package org.fuchss.matrix.tacit.views.room
 
+import org.fuchss.matrix.tacit.ui.TacitAlpha
+import org.fuchss.matrix.tacit.ui.TacitSizes
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -376,7 +378,7 @@ private fun GuildSettingsContent(
         columnModifier = Modifier
             .clip(TacitShapes.card)
             .background(MaterialTheme.tacit.surfaceAlt.copy(alpha = 0.25f), TacitShapes.card)
-            .border(1.dp, MaterialTheme.tacit.border.copy(alpha = 0.45f), TacitShapes.card),
+            .border(TacitSizes.borderWidth, MaterialTheme.tacit.border.copy(alpha = TacitAlpha.borderSubtle), TacitShapes.card),
     ) {
         CommonRoomSections(
             roomSettingsViewModel = roomSettingsViewModel,
@@ -442,7 +444,7 @@ private fun GuildSettings(
                     .padding(0.dp),
                 shape = TacitShapes.control,
                 backgroundColor = warningContainer.copy(alpha = 0.35f),
-                borderColor = warningAccent.copy(alpha = 0.65f),
+                borderColor = warningAccent.copy(alpha = TacitAlpha.borderEmphasis),
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 9.dp),
             ) {
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -459,7 +461,7 @@ private fun GuildSettings(
                     )
                 }
             }
-            HorizontalDivider(color = warningAccent.copy(alpha = 0.45f))
+            HorizontalDivider(color = warningAccent.copy(alpha = TacitAlpha.borderSubtle))
             if (error != null) {
                 ErrorView(error)
             }

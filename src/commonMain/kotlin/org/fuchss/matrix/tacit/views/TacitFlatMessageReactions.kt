@@ -1,5 +1,6 @@
 package org.fuchss.matrix.tacit.views
 
+import org.fuchss.matrix.tacit.ui.TacitAlpha
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -65,7 +66,7 @@ private fun TacitReactionChip(
                 )
                 .border(
                     1.dp,
-                    if (selected) MaterialTheme.tacit.accent else MaterialTheme.tacit.border.copy(alpha = 0.65f).compositeOver(MaterialTheme.tacit.surfaceAlt),
+                    if (selected) MaterialTheme.tacit.accent else MaterialTheme.tacit.border.copy(alpha = TacitAlpha.borderEmphasis).compositeOver(MaterialTheme.tacit.surfaceAlt),
                     TacitShapes.compact,
                 )
                 .clickable(onClick = onClick)

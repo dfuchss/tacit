@@ -1,5 +1,6 @@
 package org.fuchss.matrix.tacit.views.room.list.dialogs.browse
 
+import org.fuchss.matrix.tacit.ui.TacitSizes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -148,7 +149,7 @@ private fun StatusChip(
         modifier = Modifier
             .clip(TacitShapes.pill)
             .background(MaterialTheme.tacit.surfaceAlt)
-            .border(1.dp, MaterialTheme.tacit.border.copy(alpha = 0.55f), TacitShapes.pill)
+            .border(TacitSizes.borderWidth, MaterialTheme.tacit.border.copy(alpha = 0.55f), TacitShapes.pill)
             .padding(horizontal = 8.dp, vertical = 3.dp),
         contentAlignment = Alignment.Center,
     ) {

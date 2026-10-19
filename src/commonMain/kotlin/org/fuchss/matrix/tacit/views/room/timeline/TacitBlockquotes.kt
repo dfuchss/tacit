@@ -1,5 +1,6 @@
 package org.fuchss.matrix.tacit.views.room.timeline
 
+import org.fuchss.matrix.tacit.ui.TacitAlpha
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -142,7 +143,7 @@ private fun TacitBlockquote(content: @Composable () -> Unit) {
             )
             .tacitQuoteCardPadding(),
     ) {
-        val quotedStyle = if (style.color.isSpecified) style.copy(color = style.color.copy(alpha = style.color.alpha * 0.82f)) else style
+        val quotedStyle = if (style.color.isSpecified) style.copy(color = style.color.copy(alpha = style.color.alpha * TacitAlpha.quotedText)) else style
         CompositionLocalProvider(LocalTextStyle provides quotedStyle) { content() }
     }
 }

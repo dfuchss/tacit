@@ -1,5 +1,6 @@
 package org.fuchss.matrix.tacit.views
 
+import org.fuchss.matrix.tacit.ui.TacitSizes
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -223,7 +224,7 @@ private fun TacitFlatMessageContainer(
                         else Modifier
                     )
                     .then(if (wasJumpTarget) Modifier.background(jumpTint, TacitShapes.card) else Modifier)
-                    .border(1.dp, if (isJumpTarget) MaterialTheme.tacit.accent.copy(alpha = 0.7f) else rowBorderColor, TacitShapes.card)
+                    .border(TacitSizes.borderWidth, if (isJumpTarget) MaterialTheme.tacit.accent.copy(alpha = 0.7f) else rowBorderColor, TacitShapes.card)
                     .hoverable(hoverInteractionSource)
                     .pointerInput(holder) {
                         detectTapGestures(onLongPress = { showActionMenu.value = true })
@@ -398,7 +399,7 @@ private fun TacitFlatMessageContainer(
 /** Feathered accent rings just outside the card; draw-only, so nothing in the layout moves. */
 private fun DrawScope.drawMentionGlow(glowColor: Color) {
     val ringWidth = 2.dp.toPx()
-    val cardRadius = 16.dp.toPx() // TacitShapes.card
+    val cardRadius = TacitShapes.cardRadius.toPx()
     for (ring in 1..4) {
         val spread = ring * ringWidth - ringWidth / 2
         drawRoundRect(
@@ -537,7 +538,7 @@ private fun TacitFlatMessageHoverActions(
                 modifier = Modifier
                     .clip(TacitShapes.control)
                     .background(MaterialTheme.tacit.surface, TacitShapes.control)
-                    .border(1.dp, MaterialTheme.tacit.border, TacitShapes.control)
+                    .border(TacitSizes.borderWidth, MaterialTheme.tacit.border, TacitShapes.control)
                     .padding(horizontal = 6.dp, vertical = 5.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically,

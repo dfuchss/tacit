@@ -1,5 +1,6 @@
 package org.fuchss.matrix.tacit.views.room
 
+import org.fuchss.matrix.tacit.ui.TacitSizes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -108,7 +109,7 @@ private fun MembersPaneToggleButton(
             .size(34.dp)
             .clip(TacitShapes.control)
             .background(background)
-            .border(1.dp, border, TacitShapes.control)
+            .border(TacitSizes.borderWidth, border, TacitShapes.control)
             .hoverable(hoverSource)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,

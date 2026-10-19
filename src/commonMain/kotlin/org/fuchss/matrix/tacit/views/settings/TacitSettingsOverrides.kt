@@ -1,5 +1,6 @@
 package org.fuchss.matrix.tacit.views.settings
 
+import org.fuchss.matrix.tacit.ui.TacitSizes
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -125,7 +126,7 @@ private fun DevelopmentSettings(viewModel: TacitUserSettingsViewModel) {
         } else null,
         enabled = !running,
         onClick = viewModel::markAllAsRead,
-        modifier = Modifier.heightIn(min = 72.dp),
+        modifier = Modifier.heightIn(min = TacitSizes.settingsRowMinHeight),
     )
 }
 
@@ -166,19 +167,19 @@ private fun TacitUpdateSettings(i18n: TacitI18nView, controller: TacitUpdateCont
         } else null,
         enabled = !busy,
         onClick = controller::checkNow,
-        modifier = Modifier.heightIn(min = 72.dp),
+        modifier = Modifier.heightIn(min = TacitSizes.settingsRowMinHeight),
     )
     when (state) {
         is TacitUpdateState.ReadyToRestart -> ThemedListItemButton(
             headlineContent = { Text(i18n.tacitUpdateRestartToUpdate()) },
             onClick = controller::restartToUpdate,
-            modifier = Modifier.heightIn(min = 72.dp),
+            modifier = Modifier.heightIn(min = TacitSizes.settingsRowMinHeight),
         )
 
         is TacitUpdateState.ManualOnly -> ThemedListItemButton(
             headlineContent = { Text(i18n.tacitUpdateOpenReleasePage()) },
             onClick = { uriHandler.openUri(controller.releaseUrl) },
-            modifier = Modifier.heightIn(min = 72.dp),
+            modifier = Modifier.heightIn(min = TacitSizes.settingsRowMinHeight),
         )
 
         else -> Unit
@@ -229,13 +230,13 @@ class TacitAppInfoView : AppInfoView {
                     leadingContent = { Icon(Icons.Outlined.Code, "") },
                     headlineContent = { Text(i18n.tacitProjectRepository()) },
                     onClick = { uriHandler.openUri("https://gitlab.com/dfuchss/tacit") },
-                    modifier = Modifier.heightIn(min = 72.dp),
+                    modifier = Modifier.heightIn(min = TacitSizes.settingsRowMinHeight),
                 )
                 ThemedListItemButton(
                     leadingContent = { Icon(Icons.AutoMirrored.Outlined.CallSplit, "") },
                     headlineContent = { Text(i18n.tacitUpstreamTammy()) },
                     onClick = { uriHandler.openUri("https://gitlab.com/connect2x/tammy") },
-                    modifier = Modifier.heightIn(min = 72.dp),
+                    modifier = Modifier.heightIn(min = TacitSizes.settingsRowMinHeight),
                 )
                 ThemedListItemButton(
                     leadingContent = { Icon(Icons.Outlined.AccountTree, "") },
@@ -243,7 +244,7 @@ class TacitAppInfoView : AppInfoView {
                     onClick = {
                         uriHandler.openUri("https://gitlab.com/connect2x/trixnity-messenger/trixnity-messenger")
                     },
-                    modifier = Modifier.heightIn(min = 72.dp),
+                    modifier = Modifier.heightIn(min = TacitSizes.settingsRowMinHeight),
                 )
                 LicensesLink(appInfoViewModel)
                 Spacer(Modifier.weight(1f))

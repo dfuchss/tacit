@@ -4,6 +4,8 @@ import androidx.compose.ui.graphics.Color
 import de.connect2x.trixnity.messenger.compose.view.common.contrastByLuminance
 import de.connect2x.trixnity.messenger.compose.view.common.deriveFromHue
 import de.connect2x.trixnity.messenger.compose.view.common.hue
+import org.fuchss.matrix.tacit.ui.TacitAlpha
+import org.fuchss.matrix.tacit.ui.TacitShapes
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -82,6 +84,20 @@ class TacitTokensTest {
             assertEquals(tokens.border, scheme.outline)
             assertEquals(tokens.errorBg, scheme.errorContainer)
         }
+    }
+
+    @Test
+    fun namedTokensKeepTheirFormerLiteralValues() {
+        assertEquals(0.82f, TacitAlpha.quotedText)
+        assertEquals(0.8f, TacitAlpha.focusRing)
+        assertEquals(0.65f, TacitAlpha.borderEmphasis)
+        assertEquals(0.45f, TacitAlpha.borderSubtle)
+        assertEquals(0.45f, TacitAlpha.disabled)
+        assertEquals(0.35f, TacitAlpha.accentSoftStrong)
+        assertEquals(0.25f, TacitAlpha.accentFill)
+        assertEquals(0.22f, TacitAlpha.accentSoft)
+        assertEquals(16f, TacitShapes.cardRadius.value)
+        assertEquals(Color.White, TacitTokens.Default.onAccentFixed)
     }
 
     private fun assertColorClose(expected: Color, actual: Color) {

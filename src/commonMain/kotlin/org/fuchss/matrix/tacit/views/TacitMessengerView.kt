@@ -1,5 +1,6 @@
 package org.fuchss.matrix.tacit.views
 
+import org.fuchss.matrix.tacit.ui.TacitSizes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -53,7 +54,7 @@ import org.fuchss.matrix.tacit.ui.TacitSpacing
  */
 private val roomListChrome: Dp =
     (TacitSpacing.appPadding * 2) + // TacitRoomListView outer padding
-        84.dp + // GuildRail
+        TacitSizes.guildRailWidth + // GuildRail
         TacitSpacing.paneGap +
         (TacitSpacing.paneFramePadding * 2) + // TacitPaneSurface
         16.dp + // RoomListBody horizontal padding

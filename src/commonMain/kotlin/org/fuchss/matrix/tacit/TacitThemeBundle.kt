@@ -1,5 +1,7 @@
 package org.fuchss.matrix.tacit
 
+import org.fuchss.matrix.tacit.ui.TacitAlpha
+import org.fuchss.matrix.tacit.ui.TacitSizes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.ColorScheme
@@ -17,28 +19,28 @@ internal object TacitThemeBundle {
         val commonBanner = base.commonBanner.copy(
             color = tokens.surfaceAlt,
             contentColor = tokens.text,
-            border = BorderStroke(1.dp, tokens.border),
-            focusedBorder = BorderStroke(1.dp, tokens.border),
+            border = BorderStroke(TacitSizes.borderWidth, tokens.border),
+            focusedBorder = BorderStroke(TacitSizes.borderWidth, tokens.border),
         )
         val warningBanner = base.warningBanner.copy(
             color = tokens.warningBg,
             contentColor = tokens.warningText,
-            border = BorderStroke(1.dp, tokens.warningBorder),
-            focusedBorder = BorderStroke(1.dp, tokens.warningBorder),
+            border = BorderStroke(TacitSizes.borderWidth, tokens.warningBorder),
+            focusedBorder = BorderStroke(TacitSizes.borderWidth, tokens.warningBorder),
         )
         val errorBanner = base.errorBanner.copy(
             color = tokens.errorBg,
             contentColor = tokens.errorText,
-            border = BorderStroke(1.dp, tokens.errorBorder),
-            focusedBorder = BorderStroke(1.dp, tokens.errorBorder),
+            border = BorderStroke(TacitSizes.borderWidth, tokens.errorBorder),
+            focusedBorder = BorderStroke(TacitSizes.borderWidth, tokens.errorBorder),
         )
         val dropdownMenu = base.dropdownMenu.copy(
             shape = TacitShapes.card,
             color = tokens.surfaceAlt,
             tonalElevation = 2.dp,
             shadowElevation = 8.dp,
-            border = BorderStroke(1.dp, tokens.border),
-            focusedBorder = BorderStroke(1.dp, tokens.accent),
+            border = BorderStroke(TacitSizes.borderWidth, tokens.border),
+            focusedBorder = BorderStroke(TacitSizes.borderWidth, tokens.accent),
             contentPadding = PaddingValues(vertical = 4.dp),
         )
         val dropdownMenuItem = base.dropdownMenuItem.copy(
@@ -62,8 +64,8 @@ internal object TacitThemeBundle {
         val tokens = TacitTokens.fromAccent(accentColor)
         // `primary` & co. use the raw accent; the soft containers use the hue-derived token accent.
         val onAccent = tokens.onAccent(accentColor)
-        val accentSoft = tokens.accent(0.22f)
-        val accentSoftStrong = tokens.accent(0.35f)
+        val accentSoft = tokens.accent(TacitAlpha.accentSoft)
+        val accentSoftStrong = tokens.accent(TacitAlpha.accentSoftStrong)
         return darkColorScheme(
             primary = accentColor,
             onPrimary = onAccent,
@@ -93,7 +95,7 @@ internal object TacitThemeBundle {
             inversePrimary = accentColor,
             surfaceTint = accentColor,
             outlineVariant = tokens.border,
-            scrim = tokens.background.copy(alpha = 0.65f),
+            scrim = tokens.background.copy(alpha = TacitAlpha.borderEmphasis),
             surfaceDim = tokens.background,
             surfaceBright = tokens.surfaceAlt,
             surfaceContainerLowest = tokens.background,

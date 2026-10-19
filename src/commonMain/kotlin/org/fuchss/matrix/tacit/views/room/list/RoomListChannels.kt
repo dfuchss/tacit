@@ -1,5 +1,7 @@
 package org.fuchss.matrix.tacit.views.room.list
 
+import org.fuchss.matrix.tacit.ui.TacitAlpha
+import org.fuchss.matrix.tacit.ui.TacitSizes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
@@ -75,7 +77,7 @@ internal fun ChannelRow(
     val interactionSource = remember { MutableInteractionSource() }
     val highlighted = hovered || rowFocused
     val showReadToggle = highlighted && !showInviteActions
-    val itemSelectedBackground = MaterialTheme.tacit.accent(0.35f)
+    val itemSelectedBackground = MaterialTheme.tacit.accent(TacitAlpha.accentSoftStrong)
     val itemHoverBackground = MaterialTheme.tacit.surfaceAlt
     val itemUnreadBackground = MaterialTheme.tacit.surfaceAlt
     val badgeBackground = MaterialTheme.tacit.accent
@@ -153,14 +155,14 @@ internal fun ChannelRow(
                             ThemedUserAvatar(
                                 initials = roomImageInitials ?: dmInitials(channelTitle),
                                 image = roomImage,
-                                size = 28.dp,
+                                size = TacitSizes.avatarCompact,
                             )
                         }
                     } else {
                         ThemedUserAvatar(
                             initials = roomImageInitials ?: dmInitials(channelTitle),
                             image = roomImage,
-                            size = 28.dp,
+                            size = TacitSizes.avatarCompact,
                         )
                     }
                 }
@@ -255,7 +257,7 @@ private fun ChannelRowText(
         Text(
             text = channelTitle,
             style = MaterialTheme.typography.bodyMedium,
-            color = if (selected) Color.White else MaterialTheme.tacit.text,
+            color = if (selected) MaterialTheme.tacit.onAccentFixed else MaterialTheme.tacit.text,
             maxLines = titleMaxLines,
             overflow = TextOverflow.Ellipsis,
             fontWeight = if (isUnread && !selected) FontWeight.SemiBold else FontWeight.Normal,
@@ -337,8 +339,8 @@ private fun InviteActionButton(
                 contentColor = MaterialTheme.tacit.text,
                 disabledContentColor = MaterialTheme.tacit.textMuted,
             ),
-            enabledBorder = BorderStroke(1.dp, MaterialTheme.tacit.border),
-            disabledBorder = BorderStroke(1.dp, MaterialTheme.tacit.border),
+            enabledBorder = BorderStroke(TacitSizes.borderWidth, MaterialTheme.tacit.border),
+            disabledBorder = BorderStroke(TacitSizes.borderWidth, MaterialTheme.tacit.border),
             contentPadding = contentPadding,
             textStyle = MaterialTheme.typography.labelMedium,
             focusedBorder = focusedBorder,
@@ -398,7 +400,7 @@ private fun TrailingRoomIndicator(
                 modifier = Modifier
                     .size(8.dp)
                     .clip(CircleShape)
-                    .background(if (selected) MaterialTheme.tacit.text else Color.White)
+                    .background(if (selected) MaterialTheme.tacit.text else MaterialTheme.tacit.onAccentFixed)
             )
         } else {
             Spacer(Modifier.width(1.dp))
@@ -425,7 +427,7 @@ private fun ReadToggleButton(
             .size(24.dp)
             .clip(TacitShapes.compact)
             .background(background)
-            .border(1.dp, borderColor, TacitShapes.compact)
+            .border(TacitSizes.borderWidth, borderColor, TacitShapes.compact)
             .hoverable(hoverSource)
             // Own focus target, so the toggle is reachable by keyboard instead of being buried in
             // the row-wide clickable.
@@ -513,7 +515,7 @@ private fun DmStatTile(
     Column(
         modifier = modifier
             .clip(TacitShapes.control)
-            .background(if (selected) MaterialTheme.tacit.accent(0.25f) else MaterialTheme.tacit.surface)
+            .background(if (selected) MaterialTheme.tacit.accent(TacitAlpha.accentFill) else MaterialTheme.tacit.surface)
             .border(
                 width = 1.dp,
                 color = if (selected) MaterialTheme.tacit.accent else MaterialTheme.tacit.border,
