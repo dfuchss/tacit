@@ -24,6 +24,7 @@ import org.fuchss.matrix.tacit.tacitText
 import org.fuchss.matrix.tacit.tacitTextMuted
 import org.fuchss.matrix.tacit.ui.TacitShapes
 import org.fuchss.matrix.tacit.viewmodel.room.timeline.TacitTimelineViewModel
+import org.fuchss.matrix.tacit.views.tacitMessageRowSidePadding
 
 class TacitTypingIndicatorView : TypingIndicatorView {
     @Composable
@@ -39,45 +40,49 @@ class TacitTypingIndicatorView : TypingIndicatorView {
             enter = fadeIn(animationSpec = tween(150)) + expandVertically(expandFrom = Alignment.Bottom),
             exit = fadeOut(animationSpec = tween(150)) + shrinkVertically(shrinkTowards = Alignment.Bottom),
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 10.dp, end = 18.dp, top = 2.dp, bottom = 6.dp)
-                    .clip(TacitShapes.card)
-                    .background(tacitSurface.copy(alpha = 0.72f))
-                    .border(1.dp, tacitBorder.copy(alpha = 0.45f), TacitShapes.card)
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                if (typingMembers.isNotEmpty()) {
-                    typingMembers.take(3).forEach { member ->
-                        ThemedUserAvatar(
-                            initials = member.displayName.typingInitials(),
-                            image = member.avatarImage,
-                            size = 20.dp,
+            BoxWithConstraints(Modifier.fillMaxWidth()) {
+                // Same horizontal inset as the message cards, so the indicator lines up with them.
+                val sidePadding = tacitMessageRowSidePadding(maxWidth)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = sidePadding, end = sidePadding, top = 2.dp, bottom = 6.dp)
+                        .clip(TacitShapes.card)
+                        .background(tacitSurface.copy(alpha = 0.72f))
+                        .border(1.dp, tacitBorder.copy(alpha = 0.45f), TacitShapes.card)
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    if (typingMembers.isNotEmpty()) {
+                        typingMembers.take(3).forEach { member ->
+                            ThemedUserAvatar(
+                                initials = member.displayName.typingInitials(),
+                                image = member.avatarImage,
+                                size = 20.dp,
+                            )
+                        }
+                        if (typingMembers.size > 3) {
+                            Text(
+                                text = "+${typingMembers.size - 3}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = tacitTextMuted,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                        Spacer(
+                            modifier = Modifier
+                                .size(4.dp)
+                                .clip(CircleShape)
+                                .background(tacitTextMuted.copy(alpha = 0.7f))
                         )
                     }
-                    if (typingMembers.size > 3) {
-                        Text(
-                            text = "+${typingMembers.size - 3}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = tacitTextMuted,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                    }
-                    Spacer(
-                        modifier = Modifier
-                            .size(4.dp)
-                            .clip(CircleShape)
-                            .background(tacitTextMuted.copy(alpha = 0.7f))
+                    Text(
+                        text = typingText.orEmpty(),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = tacitText,
                     )
                 }
-                Text(
-                    text = typingText.orEmpty(),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = tacitText,
-                )
             }
         }
     }

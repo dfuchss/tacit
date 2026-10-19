@@ -73,6 +73,9 @@ import org.fuchss.matrix.tacit.views.room.timeline.LocalTacitJumpHighlightKey
 /** Width of the avatar gutter: avatar (30.dp) + the spacer that separates it from the text column. */
 private val AvatarGutterWidth = 40.dp
 
+/** Horizontal inset of a message row's card; other full-width timeline rows use it to line up with messages. */
+internal fun tacitMessageRowSidePadding(maxWidth: Dp): Dp = if (maxWidth < 400.dp) 10.dp else 20.dp
+
 class TacitFlatMessageView : MessageBubbleView {
     @Composable
     override fun create(
@@ -141,7 +144,7 @@ private fun TacitFlatMessageContainer(
             .zIndex(if (isRowActive) 100f else 0f)
             .graphicsLayer { clip = false }
     ) {
-        val rowSidePadding = if (maxWidth < 400.dp) 10.dp else 20.dp
+        val rowSidePadding = tacitMessageRowSidePadding(maxWidth)
         val density = LocalDensity.current
         // The card treatment is faint at rest and fully shown on hover/active, instead of a permanent
         // per-message frame. `Modifier.background`/`Modifier.border` are draw-only, so changing their
