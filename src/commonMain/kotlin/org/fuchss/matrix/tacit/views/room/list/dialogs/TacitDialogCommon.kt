@@ -6,7 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -126,4 +126,42 @@ internal fun TacitUserDirectoryRow(
             }
         }
     }
+}
+
+/** Shows why the dialog's last submit failed; the dialog stays open so the input is not lost. */
+@Composable
+internal fun TacitDialogSubmitError(message: String?) {
+    if (message == null) return
+    Text(
+        text = message,
+        color = MaterialTheme.colorScheme.error,
+        style = MaterialTheme.typography.bodySmall,
+    )
+}
+
+/**
+ * Tracks a dialog's submit so the dialog can stay open while the action runs, close only on success (via the
+ * action's `onSuccess` callback), and keep showing the failure reported through the view model's error.
+ */
+@Stable
+internal class TacitDialogSubmission {
+    var error by mutableStateOf<String?>(null)
+        private set
+    private var submitted by mutableStateOf(false)
+
+    fun submit() {
+        submitted = true
+        error = null
+    }
+
+    fun onError(message: String?) {
+        if (submitted && message != null) error = message
+    }
+}
+
+@Composable
+internal fun rememberTacitDialogSubmission(error: String?): TacitDialogSubmission {
+    val submission = remember { TacitDialogSubmission() }
+    LaunchedEffect(error) { submission.onError(error) }
+    return submission
 }

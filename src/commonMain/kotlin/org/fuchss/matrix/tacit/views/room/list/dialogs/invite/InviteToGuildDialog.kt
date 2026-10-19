@@ -19,6 +19,7 @@ import org.fuchss.matrix.tacit.viewmodel.util.UserDirectoryEntry
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 import org.fuchss.matrix.tacit.views.room.list.dialogs.TacitDialogHeroCard
 import org.fuchss.matrix.tacit.views.room.list.dialogs.TacitDialogSearchResultsContainer
+import org.fuchss.matrix.tacit.views.room.list.dialogs.TacitDialogSubmitError
 import org.fuchss.matrix.tacit.views.room.list.dialogs.TacitUserDirectoryRow
 
 @Composable
@@ -30,6 +31,7 @@ internal fun InviteToGuildDialog(
     searchUsers: suspend (query: String) -> Result<List<UserDirectoryEntry>>,
     onDismiss: () -> Unit,
     onInviteMember: (userId: String, reason: String) -> Unit,
+    submitError: String? = null,
 ) {
     val i18n = DI.get<TacitI18nView>()
     var userId by remember { mutableStateOf("") }
@@ -122,6 +124,7 @@ internal fun InviteToGuildDialog(
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }
+                TacitDialogSubmitError(submitError)
             }
         }
         ModalDialogFooter {

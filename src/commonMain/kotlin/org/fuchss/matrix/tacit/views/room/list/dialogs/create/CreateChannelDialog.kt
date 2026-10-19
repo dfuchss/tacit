@@ -15,6 +15,7 @@ import de.connect2x.trixnity.messenger.compose.view.theme.components
 import de.connect2x.trixnity.messenger.compose.view.theme.components.*
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 import org.fuchss.matrix.tacit.views.room.list.dialogs.TacitDialogHeroCard
+import org.fuchss.matrix.tacit.views.room.list.dialogs.TacitDialogSubmitError
 
 @Composable
 internal fun CreateChannelDialog(
@@ -23,6 +24,7 @@ internal fun CreateChannelDialog(
     canCreateChannel: Boolean,
     onDismiss: () -> Unit,
     onCreateChannel: (name: String, topic: String) -> Unit,
+    submitError: String? = null,
 ) {
     val i18n = DI.get<TacitI18nView>()
     var channelName by remember { mutableStateOf("") }
@@ -57,6 +59,7 @@ internal fun CreateChannelDialog(
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }
+                TacitDialogSubmitError(submitError)
             }
         }
         ModalDialogFooter {

@@ -210,6 +210,7 @@ class TacitRoomListView : RoomListView {
         CreateGuildDialogContainer(
             open = createGuildDialogOpen,
             inProgress = createGuildInProgress,
+            error = error,
             canCreateGuild = canUsePreferredCreationAccount,
             onCreateGuild = tacitRoomListViewModel::createGuild,
             onSetOpen = { createGuildDialogOpen = it },
@@ -218,6 +219,7 @@ class TacitRoomListView : RoomListView {
         CreateChannelDialogContainer(
             open = createChannelDialogOpen,
             inProgress = createChannelInProgress,
+            error = error,
             selectedGuild = selectedGuild,
             canCreateChannel = canUseSelectedGuildAccount,
             onCreateChannel = tacitRoomListViewModel::createChannel,
@@ -227,6 +229,7 @@ class TacitRoomListView : RoomListView {
         BrowseChannelsDialogContainer(
             open = browseChannelsDialogOpen,
             joiningRoomId = joiningChannelRoomId,
+            error = error,
             selectedGuild = selectedGuild,
             browseChannels = browseChannels,
             canJoinChannels = canUseSelectedGuildAccount,
@@ -237,6 +240,7 @@ class TacitRoomListView : RoomListView {
         InviteToGuildDialogContainer(
             open = inviteToGuildDialogOpen,
             inProgress = inviteToGuildInProgress,
+            error = error,
             selectedGuild = selectedGuild,
             canInviteMember = canUseSelectedGuildAccount,
             canSearchUsers = canUseSelectedGuildAccount,
@@ -248,6 +252,7 @@ class TacitRoomListView : RoomListView {
         CreateDirectMessageDialogContainer(
             open = createDirectMessageDialogOpen,
             inProgress = createDirectMessageInProgress,
+            error = error,
             canStartDirectMessage = canUsePreferredCreationAccount,
             canSearchUsers = canUsePreferredCreationAccount,
             searchUsers = tacitRoomListViewModel::searchUsersForDirectMessages,
@@ -258,6 +263,7 @@ class TacitRoomListView : RoomListView {
         CreateGroupChannelDialogContainer(
             open = createGroupChannelDialogOpen,
             inProgress = createGroupChannelInProgress,
+            error = error,
             canCreateGroupChannel = canUsePreferredCreationAccount,
             onCreateGroupChannel = tacitRoomListViewModel::createGroupChannel,
             onSetOpen = { createGroupChannelDialogOpen = it },
@@ -266,6 +272,7 @@ class TacitRoomListView : RoomListView {
         CreateCategoryDialogContainer(
             open = createCategoryDialogOpen,
             inProgress = createCategoryInProgress,
+            error = error,
             selectedGuild = selectedGuild,
             canCreateCategory = canUseSelectedGuildAccount,
             onCreateCategory = tacitRoomListViewModel::createCategory,
@@ -368,15 +375,17 @@ private fun RoomListContent(
                     is RoomListMode.GuildChannels -> {
                         GuildChannelToolbar(
                             i18n = i18n,
-                            roomListViewModel,
-                            canCreateNewRoomWithAccount,
-                            onCreateRoom,
-                            onOpenCreateCategory,
-                            onOpenBrowseChannels,
-                            onOpenInviteToGuild,
-                            selectedGuildAccountAvailable,
-                            onOpenGuildSettings,
-                            true
+                            roomListViewModel = roomListViewModel,
+                            canCreateRoom = canCreateNewRoomWithAccount,
+                            onCreateRoom = onCreateRoom,
+                            onCreateCategory = onOpenCreateCategory,
+                            onBrowseChannels = onOpenBrowseChannels,
+                            onInviteToGuild = onOpenInviteToGuild,
+                            canInviteToGuild = selectedGuildAccountAvailable,
+                            onOpenGuildSettings = onOpenGuildSettings,
+                            // Deliberately not gated on power levels: guild settings is also where members see the
+                            // member list and leave the guild; the editable fields inside gate themselves.
+                            canEditGuildSettings = true,
                         )
                     }
                 }

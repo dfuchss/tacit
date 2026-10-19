@@ -6,7 +6,6 @@ import de.connect2x.trixnity.core.model.UserId
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.launch
 import org.fuchss.matrix.tacit.viewmodel.room.list.entry.GuildEntry
 import org.fuchss.matrix.tacit.viewmodel.room.list.entry.SpaceChannelEntry
 import org.fuchss.matrix.tacit.viewmodel.util.*
@@ -46,226 +45,194 @@ internal class TacitRoomListActions(
     private val _guildInviteActionInProgress = MutableStateFlow(false)
     val guildInviteActionInProgress: StateFlow<Boolean> = _guildInviteActionInProgress
 
-    fun createGuild(name: String, topic: String, createDefaultChannel: Boolean) {
-        if (_createGuildInProgress.value) return
-        scope.launch {
-            _createGuildInProgress.value = true
-            try {
-                reportError(null)
-                val result = resolvePreferredCreationClient()
-                    ?.createGuild(
-                        guildName = name,
-                        guildTopic = topic,
-                        createDefaultChannel = createDefaultChannel,
-                    )
-                    ?: Result.failure(IllegalStateException("No active Matrix account available for guild creation."))
-                result.fold(
-                    onSuccess = { guild -> onGuildSelected(guild) },
-                    onFailure = { throwable ->
-                        reportError("Could not create guild: ${throwable.message ?: "Unknown error"}")
-                    },
+    fun createGuild(name: String, topic: String, createDefaultChannel: Boolean, onSuccess: () -> Unit) {
+        scope.launchExclusive(_createGuildInProgress) {
+            reportError(null)
+            val result = resolvePreferredCreationClient()
+                ?.createGuild(
+                    guildName = name,
+                    guildTopic = topic,
+                    createDefaultChannel = createDefaultChannel,
                 )
-            } finally {
-                _createGuildInProgress.value = false
-            }
+                ?: Result.failure(IllegalStateException("No active Matrix account available for guild creation."))
+            result.fold(
+                onSuccess = { guild ->
+                    onGuildSelected(guild)
+                    onSuccess()
+                },
+                onFailure = { throwable ->
+                    reportError("Could not create guild: ${throwable.message ?: "Unknown error"}")
+                },
+            )
         }
     }
 
-    fun createChannel(guild: GuildEntry, name: String, topic: String) {
-        if (_createChannelInProgress.value) return
-        scope.launch {
-            _createChannelInProgress.value = true
-            try {
-                reportError(null)
-                val result = resolveGuildClient(guild)?.let { client ->
-                    guild.createChannel(
-                        matrixClient = client,
-                        channelName = name,
-                        channelTopic = topic,
-                    )
-                } ?: Result.failure(IllegalStateException("Could not resolve active guild context."))
-                result.fold(
-                    onSuccess = { roomId -> onRoomSelected(roomId) },
-                    onFailure = { throwable ->
-                        reportError("Could not create room: ${throwable.message ?: "Unknown error"}")
-                    },
+    fun createChannel(guild: GuildEntry, name: String, topic: String, onSuccess: () -> Unit) {
+        scope.launchExclusive(_createChannelInProgress) {
+            reportError(null)
+            val result = resolveGuildClient(guild)?.let { client ->
+                guild.createChannel(
+                    matrixClient = client,
+                    channelName = name,
+                    channelTopic = topic,
                 )
-            } finally {
-                _createChannelInProgress.value = false
-            }
+            } ?: Result.failure(IllegalStateException("Could not resolve active guild context."))
+            result.fold(
+                onSuccess = { roomId ->
+                    onRoomSelected(roomId)
+                    onSuccess()
+                },
+                onFailure = { throwable ->
+                    reportError("Could not create room: ${throwable.message ?: "Unknown error"}")
+                },
+            )
         }
     }
 
-    fun joinChannel(guild: GuildEntry, channel: SpaceChannelEntry) {
-        if (_joiningChannelRoomId.value != null || !channel.isJoinable || channel.isJoined) return
-        scope.launch {
-            _joiningChannelRoomId.value = channel.roomId
-            try {
-                reportError(null)
-                val result = resolveGuildClient(guild)?.joinRoom(
-                    roomId = channel.roomId,
-                    viaServers = channel.via,
-                ) ?: Result.failure(IllegalStateException("No account available for this guild."))
-                result.fold(
-                    onSuccess = { roomId -> onRoomSelected(roomId) },
-                    onFailure = { throwable ->
-                        reportError("Could not join room: ${throwable.message ?: "Unknown error"}")
-                    },
-                )
-            } finally {
-                _joiningChannelRoomId.value = null
-            }
+    fun joinChannel(guild: GuildEntry, channel: SpaceChannelEntry, onSuccess: () -> Unit) {
+        if (!channel.isJoinable || channel.isJoined) return
+        scope.launchExclusive(_joiningChannelRoomId, idle = null, busy = channel.roomId) {
+            reportError(null)
+            val result = resolveGuildClient(guild)?.joinRoom(
+                roomId = channel.roomId,
+                viaServers = channel.via,
+            ) ?: Result.failure(IllegalStateException("No account available for this guild."))
+            result.fold(
+                onSuccess = { roomId ->
+                    onRoomSelected(roomId)
+                    onSuccess()
+                },
+                onFailure = { throwable ->
+                    reportError("Could not join room: ${throwable.message ?: "Unknown error"}")
+                },
+            )
         }
     }
 
-    fun inviteUserToGuild(guild: GuildEntry, userId: String, reason: String) {
-        if (_inviteToGuildInProgress.value) return
-        scope.launch {
-            _inviteToGuildInProgress.value = true
-            try {
-                reportError(null)
-                val result = resolveGuildClient(guild)?.let { client ->
-                    guild.inviteMember(
-                        matrixClient = client,
-                        userId = userId,
-                        reason = reason,
-                    )
-                } ?: Result.failure(IllegalStateException("Could not resolve active guild context."))
-                result.onFailure { throwable ->
+    fun inviteUserToGuild(guild: GuildEntry, userId: String, reason: String, onSuccess: () -> Unit) {
+        scope.launchExclusive(_inviteToGuildInProgress) {
+            reportError(null)
+            val result = resolveGuildClient(guild)?.let { client ->
+                guild.inviteMember(
+                    matrixClient = client,
+                    userId = userId,
+                    reason = reason,
+                )
+            } ?: Result.failure(IllegalStateException("Could not resolve active guild context."))
+            result.fold(
+                onSuccess = { onSuccess() },
+                onFailure = { throwable ->
                     reportError("Could not send invite: ${throwable.message ?: "Unknown error"}")
-                }
-            } finally {
-                _inviteToGuildInProgress.value = false
-            }
+                },
+            )
         }
     }
 
-    fun startDirectMessage(userId: String) {
-        if (_createDirectMessageInProgress.value) return
-        scope.launch {
-            _createDirectMessageInProgress.value = true
-            try {
-                reportError(null)
-                val result = when {
-                    !UserId.isValid(userId) -> Result.failure(IllegalArgumentException("No valid userId provided: '$userId'"))
-                    else -> resolvePreferredCreationClient()?.let { client ->
-                        UserId(userId).findOrCreateDM(client)
-                    } ?: Result.failure(IllegalStateException("No active Matrix account available."))
-                }
-                result.fold(
-                    onSuccess = { roomId -> onRoomSelected(roomId) },
-                    onFailure = { throwable ->
-                        reportError("Could not start direct message: ${throwable.message ?: "Unknown error"}")
-                    },
+    fun startDirectMessage(userId: String, onSuccess: () -> Unit) {
+        scope.launchExclusive(_createDirectMessageInProgress) {
+            reportError(null)
+            val result = when {
+                !UserId.isValid(userId) -> Result.failure(IllegalArgumentException("No valid userId provided: '$userId'"))
+                else -> resolvePreferredCreationClient()?.let { client ->
+                    UserId(userId).findOrCreateDM(client)
+                } ?: Result.failure(IllegalStateException("No active Matrix account available."))
+            }
+            result.fold(
+                onSuccess = { roomId ->
+                    onRoomSelected(roomId)
+                    onSuccess()
+                },
+                onFailure = { throwable ->
+                    reportError("Could not start direct message: ${throwable.message ?: "Unknown error"}")
+                },
+            )
+        }
+    }
+
+    fun createGroupChannel(name: String, topic: String, onSuccess: () -> Unit) {
+        scope.launchExclusive(_createGroupChannelInProgress) {
+            reportError(null)
+            val result = resolvePreferredCreationClient()?.createGroupChannel(
+                roomName = name,
+                roomTopic = topic,
+            ) ?: Result.failure(IllegalStateException("No active Matrix account available."))
+            result.fold(
+                onSuccess = { roomId ->
+                    onRoomSelected(roomId)
+                    onSuccess()
+                },
+                onFailure = { throwable ->
+                    reportError("Could not create group chat: ${throwable.message ?: "Unknown error"}")
+                },
+            )
+        }
+    }
+
+    fun createCategory(guild: GuildEntry, name: String, onSuccess: () -> Unit) {
+        scope.launchExclusive(_createCategoryInProgress) {
+            reportError(null)
+            val result = resolveGuildClient(guild)?.let { client ->
+                guild.createCategory(
+                    matrixClient = client,
+                    categoryName = name,
                 )
-            } finally {
-                _createDirectMessageInProgress.value = false
-            }
-        }
-    }
-
-    fun createGroupChannel(name: String, topic: String) {
-        if (_createGroupChannelInProgress.value) return
-        scope.launch {
-            _createGroupChannelInProgress.value = true
-            try {
-                reportError(null)
-                val result = resolvePreferredCreationClient()?.createGroupChannel(
-                    roomName = name,
-                    roomTopic = topic,
-                ) ?: Result.failure(IllegalStateException("No active Matrix account available."))
-                result.fold(
-                    onSuccess = { roomId -> onRoomSelected(roomId) },
-                    onFailure = { throwable ->
-                        reportError("Could not create group chat: ${throwable.message ?: "Unknown error"}")
-                    },
-                )
-            } finally {
-                _createGroupChannelInProgress.value = false
-            }
-        }
-    }
-
-    fun createCategory(guild: GuildEntry, name: String) {
-        if (_createCategoryInProgress.value) return
-        scope.launch {
-            _createCategoryInProgress.value = true
-            try {
-                reportError(null)
-                val result = resolveGuildClient(guild)?.let { client ->
-                    guild.createCategory(
-                        matrixClient = client,
-                        categoryName = name,
-                    )
-                } ?: Result.failure(IllegalStateException("Could not resolve active guild context."))
-                result.onFailure { throwable ->
+            } ?: Result.failure(IllegalStateException("Could not resolve active guild context."))
+            result.fold(
+                onSuccess = { onSuccess() },
+                onFailure = { throwable ->
                     reportError("Could not create category: ${throwable.message ?: "Unknown error"}")
-                }
-            } finally {
-                _createCategoryInProgress.value = false
-            }
+                },
+            )
         }
     }
 
-    fun moveRoomToCategory(guild: GuildEntry, roomId: RoomId, targetCategoryRoomId: RoomId) {
-        if (_reorderCategoriesInProgress.value) return
-        scope.launch {
-            _reorderCategoriesInProgress.value = true
-            try {
-                reportError(null)
-                val result = resolveGuildClient(guild)?.let { client ->
-                    moveRoomToCategory(
-                        matrixClient = client,
-                        roomId = roomId,
-                        targetCategoryRoomId = targetCategoryRoomId,
-                    )
-                } ?: Result.failure(IllegalStateException("Could not resolve active guild context."))
-                result.onFailure { throwable ->
-                    reportError("Could not move room to category: ${throwable.message ?: "Unknown error"}")
-                }
-            } finally {
-                _reorderCategoriesInProgress.value = false
+    fun moveRoomToCategory(
+        guild: GuildEntry,
+        roomId: RoomId,
+        targetCategoryRoomId: RoomId,
+        currentCategoryRoomIds: Set<RoomId>,
+    ) {
+        scope.launchExclusive(_reorderCategoriesInProgress) {
+            reportError(null)
+            val result = resolveGuildClient(guild)?.let { client ->
+                moveRoomToCategory(
+                    matrixClient = client,
+                    roomId = roomId,
+                    targetCategoryRoomId = targetCategoryRoomId,
+                    currentCategoryRoomIds = currentCategoryRoomIds,
+                )
+            } ?: Result.failure(IllegalStateException("Could not resolve active guild context."))
+            result.onFailure { throwable ->
+                reportError("Could not move room to category: ${throwable.message ?: "Unknown error"}")
             }
         }
     }
 
     fun acceptGuildInvite(guild: GuildEntry) {
-        if (_guildInviteActionInProgress.value) return
-        scope.launch {
-            _guildInviteActionInProgress.value = true
-            try {
-                reportError(null)
-                val result = resolveGuildClient(guild)?.acceptRoomInvite(roomId = guild.roomId)
-                    ?: Result.failure(IllegalStateException("No account available for this guild invite."))
-                result.fold(
-                    onSuccess = { roomId -> onRoomSelected(roomId) },
-                    onFailure = { throwable ->
-                        reportError("Could not accept invite: ${throwable.message ?: "Unknown error"}")
-                    },
-                )
-            } finally {
-                _guildInviteActionInProgress.value = false
-            }
+        scope.launchExclusive(_guildInviteActionInProgress) {
+            reportError(null)
+            val result = resolveGuildClient(guild)?.acceptRoomInvite(roomId = guild.roomId)
+                ?: Result.failure(IllegalStateException("No account available for this guild invite."))
+            result.fold(
+                onSuccess = { roomId -> onRoomSelected(roomId) },
+                onFailure = { throwable ->
+                    reportError("Could not accept invite: ${throwable.message ?: "Unknown error"}")
+                },
+            )
         }
     }
 
     fun declineGuildInvite(guild: GuildEntry) {
-        if (_guildInviteActionInProgress.value) return
-        scope.launch {
-            _guildInviteActionInProgress.value = true
-            try {
-                reportError(null)
-                val result = resolveGuildClient(guild)?.declineRoomInvite(roomId = guild.roomId)
-                    ?: Result.failure(IllegalStateException("No account available for this guild invite."))
-                result.fold(
-                    onSuccess = { onGuildSelected(null) },
-                    onFailure = { throwable ->
-                        reportError("Could not decline invite: ${throwable.message ?: "Unknown error"}")
-                    },
-                )
-            } finally {
-                _guildInviteActionInProgress.value = false
-            }
+        scope.launchExclusive(_guildInviteActionInProgress) {
+            reportError(null)
+            val result = resolveGuildClient(guild)?.declineRoomInvite(roomId = guild.roomId)
+                ?: Result.failure(IllegalStateException("No account available for this guild invite."))
+            result.fold(
+                onSuccess = { onGuildSelected(null) },
+                onFailure = { throwable ->
+                    reportError("Could not decline invite: ${throwable.message ?: "Unknown error"}")
+                },
+            )
         }
     }
 }

@@ -27,6 +27,7 @@ import org.fuchss.matrix.tacit.viewmodel.room.list.entry.SpaceChannelEntry
 import org.fuchss.matrix.tacit.viewmodel.room.list.entry.SpaceChannelStatus
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 import org.fuchss.matrix.tacit.views.room.list.dialogs.TacitDialogHeroCard
+import org.fuchss.matrix.tacit.views.room.list.dialogs.TacitDialogSubmitError
 
 @Composable
 internal fun BrowseChannelsDialog(
@@ -36,6 +37,7 @@ internal fun BrowseChannelsDialog(
     joiningRoomId: RoomId?,
     onDismiss: () -> Unit,
     onJoinChannel: (SpaceChannelEntry) -> Unit,
+    submitError: String? = null,
 ) {
     val i18n = DI.get<TacitI18nView>()
     ThemedModalDialog(onDismissRequest = onDismiss) {
@@ -48,6 +50,7 @@ internal fun BrowseChannelsDialog(
                     eyebrow = guildName,
                     title = i18n.tacitDiscoverAndJoinRooms(),
                 )
+                TacitDialogSubmitError(submitError)
                 if (!canJoinChannels) {
                     Text(
                         i18n.tacitNoAccountForGuild(),

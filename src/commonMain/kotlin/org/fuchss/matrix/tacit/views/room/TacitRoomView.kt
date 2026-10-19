@@ -80,6 +80,15 @@ class TacitRoomView : RoomView {
                     roomViewModel.openRoomSettings()
                 }
             }
+            // The guild/category settings layout is tied to the room it was opened for. Once another room is shown,
+            // drop the flag so that a later plain "room settings" on that space gets the normal layout again.
+            // Keyed on activeRoomId only: the flag is set just before selectRoom(), while the old room is still active.
+            LaunchedEffect(activeRoomId) {
+                val suppressedRoomId = TacitRoomNavigationState.suppressBackButtonForRoomId
+                if (activeRoomId != null && suppressedRoomId != null && suppressedRoomId != activeRoomId) {
+                    TacitRoomNavigationState.suppressBackButtonForRoomId = null
+                }
+            }
             LaunchedEffect(activeRoomId, pendingCloseRoomAfterSettings, isExtrasShown) {
                 if (
                     pendingCloseRoomAfterSettings != null &&

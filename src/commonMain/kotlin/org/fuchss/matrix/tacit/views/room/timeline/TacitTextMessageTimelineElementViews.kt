@@ -175,8 +175,9 @@ private fun TacitMessageTextContent(
     }
 
     Column(Modifier.padding(start = 10.dp, end = 10.dp, top = 10.dp)) {
-        if (element is RoomMessageTimelineElementViewModel.TextBased.Emote) {
-            Text("${sender?.name}", fontStyle = FontStyle.Italic)
+        val emoteSenderName = sender?.name
+        if (element is RoomMessageTimelineElementViewModel.TextBased.Emote && emoteSenderName != null) {
+            Text(emoteSenderName, fontStyle = FontStyle.Italic)
             Spacer(Modifier.size(5.dp))
         }
 

@@ -19,6 +19,7 @@ import org.fuchss.matrix.tacit.viewmodel.util.UserDirectoryEntry
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 import org.fuchss.matrix.tacit.views.room.list.dialogs.TacitDialogHeroCard
 import org.fuchss.matrix.tacit.views.room.list.dialogs.TacitDialogSearchResultsContainer
+import org.fuchss.matrix.tacit.views.room.list.dialogs.TacitDialogSubmitError
 import org.fuchss.matrix.tacit.views.room.list.dialogs.TacitUserDirectoryRow
 
 @Composable
@@ -31,6 +32,7 @@ internal fun CreateDirectMessageDialog(
     presetDisplayName: String? = null,
     onDismiss: () -> Unit,
     onStartDirectMessage: (userId: String) -> Unit,
+    submitError: String? = null,
 ) {
     val i18n = DI.get<TacitI18nView>()
     val hasPresetUser = !presetUserId.isNullOrBlank()
@@ -122,6 +124,7 @@ internal fun CreateDirectMessageDialog(
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }
+                TacitDialogSubmitError(submitError)
             }
         }
         ModalDialogFooter {

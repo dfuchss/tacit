@@ -5,7 +5,6 @@ import de.connect2x.trixnity.client.room
 import de.connect2x.trixnity.core.model.RoomId
 import de.connect2x.trixnity.core.model.UserId
 import de.connect2x.trixnity.core.model.events.m.room.CreateEventContent.RoomType
-import de.connect2x.trixnity.core.model.events.m.room.Membership
 import de.connect2x.trixnity.core.model.events.m.space.ChildEventContent
 import de.connect2x.trixnity.core.model.events.m.space.ParentEventContent
 import de.connect2x.trixnity.crypto.key.UserTrustLevel
@@ -17,8 +16,7 @@ import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.OpenMent
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.flow.SharingStarted.Companion.WhileSubscribed
-import kotlinx.coroutines.launch
-import org.fuchss.matrix.tacit.viewmodel.room.list.entry.GuildEntry
+import org.fuchss.matrix.tacit.viewmodel.util.launchExclusive
 import org.fuchss.matrix.tacit.viewmodel.util.moveRoomToCategory
 
 internal object TacitRoomSettingsViewModelFactory : RoomSettingsViewModelFactory {
@@ -185,6 +183,11 @@ private class TacitRoomSettingsViewModelImpl(
         }
         .stateIn(coroutineScope, WhileSubscribed(), emptyList())
 
+    private val moveToCategoryError = MutableStateFlow<String?>(null)
+    override val error: StateFlow<String?> = combine(delegate.error, moveToCategoryError) { delegateError, localError ->
+        localError ?: delegateError
+    }.stateIn(coroutineScope, WhileSubscribed(), delegate.error.value)
+
     private val _moveToCategoryInProgress = MutableStateFlow(false)
     override val moveToCategoryInProgress: StateFlow<Boolean> = _moveToCategoryInProgress
 
@@ -217,27 +220,22 @@ private class TacitRoomSettingsViewModelImpl(
     }
 
     override fun moveRoomToCategory(targetCategoryRoomId: RoomId?) {
-        if (_moveToCategoryInProgress.value) return
         if (currentCategoryRoomId.value == targetCategoryRoomId) return
+        if (guildRoomId.value == null) return
+        val currentCategoryRoomIds = categoryChildrenByRoomId.value
+            .filterValues { childRoomIds -> selectedRoomId in childRoomIds }
+            .keys
 
-        val guildId = guildRoomId.value ?: return
-        GuildEntry(
-            roomId = guildId,
-            userId = matrixClient.userId,
-            displayName = null,
-            avatarUri = null,
-            membership = Membership.JOIN,
-        )
-
-        coroutineScope.launch {
-            _moveToCategoryInProgress.value = true
+        coroutineScope.launchExclusive(_moveToCategoryInProgress) {
+            moveToCategoryError.value = null
             moveRoomToCategory(
                 matrixClient = matrixClient,
                 roomId = selectedRoomId,
                 targetCategoryRoomId = targetCategoryRoomId,
-                currentCategoryRoomId = currentCategoryRoomId.value,
-            )
-            _moveToCategoryInProgress.value = false
+                currentCategoryRoomIds = currentCategoryRoomIds,
+            ).onFailure { throwable ->
+                moveToCategoryError.value = "Could not move room to category: ${throwable.message ?: "Unknown error"}"
+            }
         }
     }
 }

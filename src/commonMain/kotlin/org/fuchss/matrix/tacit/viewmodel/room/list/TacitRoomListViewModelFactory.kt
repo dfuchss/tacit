@@ -51,15 +51,15 @@ internal interface TacitRoomListViewModel : RoomListViewModel {
 
     fun selectGuild(guild: GuildEntry?)
     fun reportError(message: String?, errorType: ErrorType = ErrorType.JUST_DISMISS)
-    fun createGuild(name: String, topic: String, createDefaultChannel: Boolean)
-    fun createChannel(guild: GuildEntry, name: String, topic: String)
-    fun joinChannel(guild: GuildEntry, channel: SpaceChannelEntry)
+    fun createGuild(name: String, topic: String, createDefaultChannel: Boolean, onSuccess: () -> Unit)
+    fun createChannel(guild: GuildEntry, name: String, topic: String, onSuccess: () -> Unit)
+    fun joinChannel(guild: GuildEntry, channel: SpaceChannelEntry, onSuccess: () -> Unit)
     suspend fun searchUsersForGuild(guild: GuildEntry, query: String): Result<List<UserDirectoryEntry>>
-    fun inviteUserToGuild(guild: GuildEntry, userId: String, reason: String)
+    fun inviteUserToGuild(guild: GuildEntry, userId: String, reason: String, onSuccess: () -> Unit)
     suspend fun searchUsersForDirectMessages(query: String): Result<List<UserDirectoryEntry>>
-    fun startDirectMessage(userId: String)
-    fun createGroupChannel(name: String, topic: String)
-    fun createCategory(guild: GuildEntry, name: String)
+    fun startDirectMessage(userId: String, onSuccess: () -> Unit)
+    fun createGroupChannel(name: String, topic: String, onSuccess: () -> Unit)
+    fun createCategory(guild: GuildEntry, name: String, onSuccess: () -> Unit)
     fun reorderCategories(guild: GuildEntry, orderedCategoryRoomIds: List<RoomId>)
     fun moveRoomToCategory(guild: GuildEntry, roomId: RoomId, targetCategoryRoomId: RoomId)
     fun acceptGuildInvite(guild: GuildEntry)
@@ -779,14 +779,14 @@ private class TacitRoomListViewModelImpl(
     override val reorderCategoriesInProgress: StateFlow<Boolean> = actions.reorderCategoriesInProgress
     override val guildInviteActionInProgress: StateFlow<Boolean> = actions.guildInviteActionInProgress
 
-    override fun createGuild(name: String, topic: String, createDefaultChannel: Boolean) =
-        actions.createGuild(name, topic, createDefaultChannel)
+    override fun createGuild(name: String, topic: String, createDefaultChannel: Boolean, onSuccess: () -> Unit) =
+        actions.createGuild(name, topic, createDefaultChannel, onSuccess)
 
-    override fun createChannel(guild: GuildEntry, name: String, topic: String) =
-        actions.createChannel(guild, name, topic)
+    override fun createChannel(guild: GuildEntry, name: String, topic: String, onSuccess: () -> Unit) =
+        actions.createChannel(guild, name, topic, onSuccess)
 
-    override fun joinChannel(guild: GuildEntry, channel: SpaceChannelEntry) =
-        actions.joinChannel(guild, channel)
+    override fun joinChannel(guild: GuildEntry, channel: SpaceChannelEntry, onSuccess: () -> Unit) =
+        actions.joinChannel(guild, channel, onSuccess)
 
     override suspend fun searchUsersForGuild(guild: GuildEntry, query: String): Result<List<UserDirectoryEntry>> {
         val client = resolveGuildClient(guild)
@@ -794,8 +794,8 @@ private class TacitRoomListViewModelImpl(
         return client.searchUserDirectory(query)
     }
 
-    override fun inviteUserToGuild(guild: GuildEntry, userId: String, reason: String) =
-        actions.inviteUserToGuild(guild, userId, reason)
+    override fun inviteUserToGuild(guild: GuildEntry, userId: String, reason: String, onSuccess: () -> Unit) =
+        actions.inviteUserToGuild(guild, userId, reason, onSuccess)
 
     override suspend fun searchUsersForDirectMessages(query: String): Result<List<UserDirectoryEntry>> {
         val client = resolvePreferredCreationClient()
@@ -803,13 +803,14 @@ private class TacitRoomListViewModelImpl(
         return client.searchUserDirectory(query)
     }
 
-    override fun startDirectMessage(userId: String) = actions.startDirectMessage(userId)
+    override fun startDirectMessage(userId: String, onSuccess: () -> Unit) =
+        actions.startDirectMessage(userId, onSuccess)
 
-    override fun createGroupChannel(name: String, topic: String) =
-        actions.createGroupChannel(name, topic)
+    override fun createGroupChannel(name: String, topic: String, onSuccess: () -> Unit) =
+        actions.createGroupChannel(name, topic, onSuccess)
 
-    override fun createCategory(guild: GuildEntry, name: String) =
-        actions.createCategory(guild, name)
+    override fun createCategory(guild: GuildEntry, name: String, onSuccess: () -> Unit) =
+        actions.createCategory(guild, name, onSuccess)
 
     override fun reorderCategories(guild: GuildEntry, orderedCategoryRoomIds: List<RoomId>) {
         val guildKey = guild.key()
@@ -824,8 +825,15 @@ private class TacitRoomListViewModelImpl(
         }
     }
 
-    override fun moveRoomToCategory(guild: GuildEntry, roomId: RoomId, targetCategoryRoomId: RoomId) =
-        actions.moveRoomToCategory(guild, roomId, targetCategoryRoomId)
+    override fun moveRoomToCategory(guild: GuildEntry, roomId: RoomId, targetCategoryRoomId: RoomId) {
+        // Drag-and-drop only targets categories of the selected guild, whose category children are tracked here.
+        if (guild.roomId != selectedGuild.value?.roomId) return
+        val currentCategoryRoomIds = guildCategoryChildren.value
+            .filterValues { childRoomIds -> roomId in childRoomIds }
+            .keys
+        if (currentCategoryRoomIds == setOf(targetCategoryRoomId)) return
+        actions.moveRoomToCategory(guild, roomId, targetCategoryRoomId, currentCategoryRoomIds)
+    }
 
     override fun acceptGuildInvite(guild: GuildEntry) = actions.acceptGuildInvite(guild)
 

@@ -3,6 +3,7 @@ package org.fuchss.matrix.tacit.viewmodel.util
 import de.connect2x.trixnity.client.MatrixClient
 import de.connect2x.trixnity.client.flattenValues
 import de.connect2x.trixnity.client.room
+import de.connect2x.trixnity.client.store.Room
 import de.connect2x.trixnity.client.user
 import de.connect2x.trixnity.clientserverapi.model.room.CreateRoom
 import de.connect2x.trixnity.core.model.RoomId
@@ -183,11 +184,13 @@ internal suspend fun moveRoomToCategory(
     matrixClient: MatrixClient,
     roomId: RoomId,
     targetCategoryRoomId: RoomId?,
-    currentCategoryRoomId: RoomId? = null,
+    // Every category that currently lists the room as a child. All of them except the target are unlinked, so the
+    // room never ends up in two categories (and a room already listed twice is repaired by the move).
+    currentCategoryRoomIds: Set<RoomId>,
 ): Result<Unit> {
     val guildVia = setOf(matrixClient.userId.domain)
 
-    if (currentCategoryRoomId != null && currentCategoryRoomId != targetCategoryRoomId) {
+    for (currentCategoryRoomId in currentCategoryRoomIds - setOfNotNull(targetCategoryRoomId)) {
         withOperationTimeout("Unlink room from previous category") {
             matrixClient.api.room.sendStateEvent(
                 roomId = currentCategoryRoomId,
@@ -302,49 +305,42 @@ internal suspend fun UserId.findOrCreateDM(
 internal suspend fun UserId.findExistingDirectMessageRoom(
     matrixClient: MatrixClient
 ): RoomId? {
-    val roomSnapshots = buildList {
-        repeat(2) {
-            val snapshot = withTimeoutOrNull(8.seconds.inWholeMilliseconds) {
-                matrixClient.room.getAll().flattenValues().first()
-            }
-            if (snapshot != null) add(snapshot)
-        }
-    }
-    if (roomSnapshots.isEmpty()) {
-        return null
-    }
+    // One retry in case the room store is not ready yet on the first attempt.
+    val rooms = withTimeoutOrNull(8.seconds.inWholeMilliseconds) {
+        matrixClient.room.getAll().flattenValues().first()
+    } ?: withTimeoutOrNull(8.seconds.inWholeMilliseconds) {
+        matrixClient.room.getAll().flattenValues().first()
+    } ?: return null
 
-    for (rooms in roomSnapshots) {
-        val candidateRooms = rooms.filter { room ->
-            room.membership == Membership.JOIN && room.createEventContent?.type != RoomType.Space
+    // Only direct rooms (m.direct) can match, so members are loaded for those alone instead of for every joined room.
+    for (room in rooms.directMessageCandidates()) {
+        runCatching {
+            withTimeout(8.seconds.inWholeMilliseconds) {
+                matrixClient.user.loadMembers(room.roomId, false)
+            }
         }
-
-        for (room in candidateRooms) {
-            runCatching {
-                withTimeout(8.seconds.inWholeMilliseconds) {
-                    matrixClient.user.loadMembers(room.roomId, false)
-                }
+        val members = withTimeoutOrNull(8.seconds.inWholeMilliseconds) {
+            matrixClient.user.getAll(room.roomId)
+                .flattenValues()
+                .first()
+        } ?: continue
+        val activeMemberIds = members
+            .filter {
+                it.event.content.membership == Membership.JOIN || it.event.content.membership == Membership.INVITE
             }
-            val members = withTimeoutOrNull(8.seconds.inWholeMilliseconds) {
-                matrixClient.user.getAll(room.roomId)
-                    .flattenValues()
-                    .first()
-            } ?: continue
-            val activeMemberIds = members
-                .filter {
-                    it.event.content.membership == Membership.JOIN || it.event.content.membership == Membership.INVITE
-                }
-                .map { it.userId }
-                .toSet()
-            val hasTarget = activeMemberIds.contains(this)
-            val hasSelf = activeMemberIds.contains(matrixClient.userId)
-            if (room.isDirect && hasTarget && hasSelf) {
-                return room.roomId
-            }
+            .map { it.userId }
+            .toSet()
+        if (activeMemberIds.contains(this) && activeMemberIds.contains(matrixClient.userId)) {
+            return room.roomId
         }
     }
 
     return null
+}
+
+/** Joined, non-space rooms flagged as direct: the only rooms that can be an existing DM with someone. */
+internal fun Iterable<Room>.directMessageCandidates(): List<Room> = filter { room ->
+    room.isDirect && room.membership == Membership.JOIN && room.createEventContent?.type != RoomType.Space
 }
 
 private suspend fun createDirectMessageRoom(
