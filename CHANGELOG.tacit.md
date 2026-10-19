@@ -14,6 +14,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- On macOS, notifications and the Dock badge no longer stay after the message was read right away
+
 ## 26.9.2-tacit.5
 
 Based on Tammy 26.9.2.

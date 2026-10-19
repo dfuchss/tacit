@@ -1,6 +1,7 @@
 package org.fuchss.matrix.tacit
 
 import de.connect2x.trixnity.messenger.MatrixMessengerConfiguration
+import de.connect2x.trixnity.messenger.Worker
 import de.connect2x.trixnity.messenger.multi.MatrixMultiMessengerConfiguration
 import de.connect2x.trixnity.messenger.compose.view.i18n.I18nView
 import de.connect2x.trixnity.messenger.i18n.I18n
@@ -35,6 +36,7 @@ import de.connect2x.trixnity.messenger.viewmodel.roomlist.RoomListElementViewMod
 import de.connect2x.trixnity.messenger.viewmodel.roomlist.RoomListViewModelFactory
 import de.connect2x.trixnity.messenger.viewmodel.settings.AppearanceSettingsViewModelFactory
 import de.connect2x.trixnity.messenger.viewmodel.settings.UserSettingsViewModelFactory
+import org.fuchss.matrix.tacit.notification.TacitAppleNotificationCleaner
 import org.fuchss.matrix.tacit.viewmodel.i18n.TacitI18n
 import org.fuchss.matrix.tacit.viewmodel.room.list.TacitRoomListElementViewModelFactory
 import org.fuchss.matrix.tacit.viewmodel.room.list.TacitRoomListViewModelFactory
@@ -128,6 +130,7 @@ fun tacitViewModelModule() = module {
     single<AppearanceSettingsViewModelFactory> { TacitAppearanceSettingsViewModelFactory }
     single<UserSettingsViewModelFactory> { TacitUserSettingsViewModelFactory }
     single { TacitMarkAllAsRead(get(), get(), get()) }
+    single { TacitAppleNotificationCleaner(get(), get()) }.bind<Worker>()
     single<RoomSettingsViewModelFactory> { TacitRoomSettingsViewModelFactory }
     single<ChangeRoomAvatarViewModelFactory> { TacitChangeRoomAvatarViewModelFactory }
 }
