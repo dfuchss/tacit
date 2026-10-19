@@ -8,6 +8,7 @@ import java.util.zip.ZipOutputStream
 import kotlin.io.path.exists
 import kotlin.io.path.isExecutable
 import kotlin.io.path.readText
+import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -15,8 +16,16 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class TacitUpdateStagingTest {
+    private val tempDirs = mutableListOf<java.nio.file.Path>()
+
+    @AfterTest
+    fun cleanUpTempDirs() {
+        tempDirs.forEach { it.toFile().deleteRecursively() }
+        tempDirs.clear()
+    }
+
     private fun zip(entries: Map<String, String>): Path {
-        val file = Files.createTempFile("tacit-update", ".zip")
+        val file = Files.createTempFile("tacit-update", ".zip").also(tempDirs::add)
         ZipOutputStream(Files.newOutputStream(file)).use { out ->
             entries.forEach { (name, content) ->
                 out.putNextEntry(ZipEntry(name))
@@ -29,7 +38,7 @@ class TacitUpdateStagingTest {
 
     @Test
     fun safeResolveRejectsEntriesOutsideTheTarget() {
-        val target = Files.createTempDirectory("tacit-staging")
+        val target = Files.createTempDirectory("tacit-staging").also(tempDirs::add)
         assertEquals(target.resolve("Tacit/bin/Tacit"), TacitUpdateStaging.safeResolve(target, "Tacit/bin/Tacit"))
         assertFailsWith<IOException> { TacitUpdateStaging.safeResolve(target, "../evil") }
         assertFailsWith<IOException> { TacitUpdateStaging.safeResolve(target, "Tacit/../../evil") }
@@ -40,7 +49,7 @@ class TacitUpdateStagingTest {
 
     @Test
     fun extractZipRefusesZipSlip() {
-        val root = Files.createTempDirectory("tacit-staging")
+        val root = Files.createTempDirectory("tacit-staging").also(tempDirs::add)
         val target = root.resolve("target")
         val archive = zip(mapOf("Tacit/ok.txt" to "ok", "../escaped.txt" to "evil"))
         assertFailsWith<IOException> { TacitUpdateStaging.extractZip(archive, target) }
@@ -49,7 +58,7 @@ class TacitUpdateStagingTest {
 
     @Test
     fun stagesALinuxZipAndRestoresExecutableBits() {
-        val staging = Files.createTempDirectory("tacit-staging")
+        val staging = Files.createTempDirectory("tacit-staging").also(tempDirs::add)
         val archive = zip(
             mapOf(
                 "Tacit/bin/Tacit" to "#!/bin/sh\n",
@@ -70,7 +79,7 @@ class TacitUpdateStagingTest {
 
     @Test
     fun rejectsAZipWithoutTheLauncher() {
-        val staging = Files.createTempDirectory("tacit-staging")
+        val staging = Files.createTempDirectory("tacit-staging").also(tempDirs::add)
         val archive = zip(mapOf("Tacit/app/Tacit.cfg" to "cfg"))
         assertFailsWith<IOException> { TacitUpdateStaging.stageZip(TacitOs.WINDOWS, archive, staging) }
     }

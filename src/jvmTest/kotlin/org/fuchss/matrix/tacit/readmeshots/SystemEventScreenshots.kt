@@ -44,7 +44,9 @@ import java.io.File
 import java.nio.file.Files
 import java.util.Locale
 import kotlin.coroutines.EmptyCoroutineContext
+import kotlin.test.AfterTest
 import kotlin.test.Test
+import org.junit.AssumptionViolatedException
 
 /**
  * Dev-only capture of the collapsed system-event group in a fresh DM (the same scenario as the README's
@@ -57,13 +59,22 @@ import kotlin.test.Test
  */
 @OptIn(ExperimentalTestApi::class)
 class SystemEventScreenshots {
+    private val tempDirs = mutableListOf<java.nio.file.Path>()
+
+    @AfterTest
+    fun cleanUpTempDirs() {
+        tempDirs.forEach { it.toFile().deleteRecursively() }
+        tempDirs.clear()
+    }
+
     @Test
     fun `capture system event group screenshots`() {
-        val outputDir = System.getenv("TACIT_SYSEVENT_SCREENSHOTS_DIR")?.let(::File) ?: return
+        val outputDir = System.getenv("TACIT_SYSEVENT_SCREENSHOTS_DIR")?.let(::File)
+            ?: throw AssumptionViolatedException("TACIT_SYSEVENT_SCREENSHOTS_DIR is not set")
         val prefix = System.getenv("TACIT_SYSEVENT_SCREENSHOTS_PREFIX") ?: ""
         outputDir.mkdirs()
         Locale.setDefault(Locale.ENGLISH)
-        val dataDir = Files.createTempDirectory("tacit-sysevent-screenshots")
+        val dataDir = Files.createTempDirectory("tacit-sysevent-screenshots").also(tempDirs::add)
         configureScreenshotLogging(dataDir.toOkioPath())
         val escapeKeyPressed = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
 

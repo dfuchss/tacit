@@ -36,7 +36,9 @@ import java.io.File
 import java.nio.file.Files
 import java.util.Locale
 import kotlin.coroutines.EmptyCoroutineContext
+import kotlin.test.AfterTest
 import kotlin.test.Test
+import org.junit.AssumptionViolatedException
 
 /**
  * Dev-only capture of formatted blockquotes (`<blockquote>`, markdown `> …`) next to reply quotes, in a room of its
@@ -47,13 +49,22 @@ import kotlin.test.Test
  */
 @OptIn(ExperimentalTestApi::class)
 class QuoteScreenshots {
+    private val tempDirs = mutableListOf<java.nio.file.Path>()
+
+    @AfterTest
+    fun cleanUpTempDirs() {
+        tempDirs.forEach { it.toFile().deleteRecursively() }
+        tempDirs.clear()
+    }
+
     @Test
     fun `capture blockquote screenshots`() {
-        val outputDir = System.getenv("TACIT_QUOTE_SCREENSHOTS_DIR")?.let(::File) ?: return
+        val outputDir = System.getenv("TACIT_QUOTE_SCREENSHOTS_DIR")?.let(::File)
+            ?: throw AssumptionViolatedException("TACIT_QUOTE_SCREENSHOTS_DIR is not set")
         val prefix = System.getenv("TACIT_QUOTE_SCREENSHOTS_PREFIX") ?: ""
         outputDir.mkdirs()
         Locale.setDefault(Locale.ENGLISH)
-        val dataDir = Files.createTempDirectory("tacit-quote-screenshots")
+        val dataDir = Files.createTempDirectory("tacit-quote-screenshots").also(tempDirs::add)
         configureScreenshotLogging(dataDir.toOkioPath())
 
         tuwunelDocker().use { container ->

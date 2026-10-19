@@ -4,17 +4,28 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
 import kotlin.io.path.*
+import kotlin.test.AfterTest
+import org.junit.Assume.assumeTrue
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlin.test.fail
 
 /**
  * Runs the generated `sh` helper for real against a dummy install. The Linux flavor is used because its
  * relaunch (`bin/Tacit`) can be observed without starting anything; the swap logic is shared with macOS.
  */
 class TacitUpdateHelperTest {
+    private val tempDirs = mutableListOf<java.nio.file.Path>()
+
+    @AfterTest
+    fun cleanUpTempDirs() {
+        tempDirs.forEach { it.toFile().deleteRecursively() }
+        tempDirs.clear()
+    }
+
     private val isUnix = !System.getProperty("os.name").startsWith("Windows")
     private val isMac = System.getProperty("os.name").startsWith("Mac")
 
@@ -58,18 +69,21 @@ class TacitUpdateHelperTest {
     }
 
     private fun awaitFile(path: Path) {
-        repeat(50) {
+        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10)
+        while (System.nanoTime() < deadline) {
             if (path.exists() && path.readText().isNotBlank()) return
-            Thread.sleep(100)
+            Thread.sleep(50)
         }
+        fail("timed out waiting for $path")
     }
 
     @Test
     fun waitsForTheAppThenSwapsWithoutKeepingABackup() {
-        if (!isUnix) return
-        val fixture = Fixture(Files.createTempDirectory("tacit helper"))
+        assumeTrue("needs a Unix sh", isUnix)
+        val fixture = Fixture(Files.createTempDirectory("tacit helper").also(tempDirs::add))
         val (app, helper) = runHelper(fixture, appSeconds = 2)
 
+        // Genuinely timing-based: give the helper time to (wrongly) swap while the app is still alive.
         Thread.sleep(800)
         assertTrue(app.isAlive)
         assertTrue(helper.isAlive, "the helper must still be waiting")
@@ -88,8 +102,8 @@ class TacitUpdateHelperTest {
     @Test
     fun restoresTheBackupWhenTheMoveFails() {
         // An immutable staged folder makes the second rename fail; chflags is macOS only.
-        if (!isMac) return
-        val fixture = Fixture(Files.createTempDirectory("tacit helper"))
+        assumeTrue("chflags is macOS only", isMac)
+        val fixture = Fixture(Files.createTempDirectory("tacit helper").also(tempDirs::add))
         ProcessBuilder("chflags", "uchg", fixture.staged.toString()).start().waitFor()
         try {
             val (_, helper) = runHelper(fixture, appSeconds = 1)

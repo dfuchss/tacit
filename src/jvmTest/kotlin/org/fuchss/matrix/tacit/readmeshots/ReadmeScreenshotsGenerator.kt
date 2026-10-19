@@ -62,6 +62,7 @@ import okio.Path.Companion.toOkioPath
 import java.io.File
 import java.nio.file.Files
 import java.util.Locale
+import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.fail
 import kotlin.coroutines.EmptyCoroutineContext
@@ -81,6 +82,14 @@ import kotlin.coroutines.EmptyCoroutineContext
  */
 @OptIn(ExperimentalTestApi::class)
 class ReadmeScreenshotsGenerator {
+    private val tempDirs = mutableListOf<java.nio.file.Path>()
+
+    @AfterTest
+    fun cleanUpTempDirs() {
+        tempDirs.forEach { it.toFile().deleteRecursively() }
+        tempDirs.clear()
+    }
+
 
     private companion object {
         /** The fictional next release shown on the update card. */
@@ -102,7 +111,7 @@ class ReadmeScreenshotsGenerator {
     @Test
     fun `generate README screenshots`() {
         Locale.setDefault(Locale.ENGLISH)
-        val dataDir = Files.createTempDirectory("tacit-readme-screenshots")
+        val dataDir = Files.createTempDirectory("tacit-readme-screenshots").also(tempDirs::add)
         configureScreenshotLogging(dataDir.toOkioPath())
         outputDir.mkdirs()
 
