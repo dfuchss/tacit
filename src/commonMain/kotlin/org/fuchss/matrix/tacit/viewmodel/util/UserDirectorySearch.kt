@@ -74,27 +74,42 @@ internal fun userSearchStates(
 }
 
 /**
- * Debounced user-directory search of one dialog (inviting to a guild, starting a DM). Failures are localised; without
- * an account to search with, the search stays idle.
+ * Debounced user-directory search of one dialog (inviting to a guild, starting a DM), run with an account of type [A]
+ * through [searchWith]. Failures are localised; without an account to search with, the search stays idle.
+ *
+ * Picking a hit puts its user ID into the dialog's field, which hands that ID back to [search]. That is not a new
+ * query: re-running it would flash [UserSearchState.Searching] and collapse the hit list a debounce later, moving the
+ * dialog's submit button away under the pointer - so a query naming one of the shown hits keeps the current results.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-internal class UserDirectorySearch(scope: CoroutineScope, private val i18n: TacitI18n) {
-    private data class Request(val query: String, val client: MatrixClient?)
+internal class UserDirectorySearch<A : Any>(
+    scope: CoroutineScope,
+    private val i18n: TacitI18n,
+    private val searchWith: suspend (account: A, query: String) -> Result<List<UserDirectoryEntry>>,
+) {
+    private data class Request<A>(val query: String, val account: A?)
 
-    private val request = MutableStateFlow(Request("", null))
+    private val request = MutableStateFlow(Request<A>("", null))
 
     val state: StateFlow<UserSearchState> = request
-        .flatMapLatest { (query, client) ->
+        .flatMapLatest { (query, account) ->
             userSearchStates(
                 query = query,
-                search = client?.let { { query -> it.searchUserDirectory(query) } },
+                search = account?.let { { query -> searchWith(it, query) } },
                 failureMessage = { i18n.tacitUserSearchFailed(i18n.tacitErrorMessage(it)) },
             )
         }
         .stateIn(scope, SharingStarted.Eagerly, UserSearchState.Idle)
 
-    /** Searches [query] with [client]; an empty query (or no client) resets the search. */
-    fun search(query: String, client: MatrixClient?) {
-        request.value = Request(query, client)
+    /** Searches [query] with [account]; an empty query (or no account) resets the search, a picked hit keeps it. */
+    fun search(query: String, account: A?) {
+        val current = state.value
+        val picksShownHit = current is UserSearchState.Results && current.users.any { it.userId == query.trim() }
+        if (picksShownHit && account == request.value.account) return
+        request.value = Request(query, account)
     }
 }
+
+/** The [UserDirectorySearch] of a dialog that searches the directory of a Matrix account. */
+internal fun matrixUserDirectorySearch(scope: CoroutineScope, i18n: TacitI18n): UserDirectorySearch<MatrixClient> =
+    UserDirectorySearch(scope, i18n) { client, query -> client.searchUserDirectory(query) }

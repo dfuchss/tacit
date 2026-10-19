@@ -5,7 +5,7 @@ import de.connect2x.trixnity.core.model.RoomId
 import de.connect2x.trixnity.core.model.UserId
 import de.connect2x.trixnity.messenger.viewmodel.ViewModelContext
 import org.fuchss.matrix.tacit.viewmodel.i18n.TacitI18n
-import org.fuchss.matrix.tacit.viewmodel.util.UserDirectorySearch
+import org.fuchss.matrix.tacit.viewmodel.util.matrixUserDirectorySearch
 import org.fuchss.matrix.tacit.viewmodel.util.findOrCreateDM
 
 /** "Start Direct Message": finds the user in the directory, then opens the existing DM or creates one. */
@@ -15,7 +15,7 @@ internal class TacitCreateDirectMessageViewModel(
     private val onRoomCreated: (RoomId) -> Unit,
 ) : TacitDialogViewModel(viewModelContext) {
 
-    val userSearch = UserDirectorySearch(coroutineScope, tacitI18n)
+    val userSearch = matrixUserDirectorySearch(coroutineScope, tacitI18n)
 
     fun searchUsers(query: String) = userSearch.search(query, creationClient())
 
