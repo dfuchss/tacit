@@ -50,6 +50,7 @@ import org.fuchss.matrix.tacit.viewmodel.room.timeline.TacitTimelineViewModelFac
 import org.fuchss.matrix.tacit.viewmodel.settings.TacitAppearanceSettingsViewModelFactory
 import org.fuchss.matrix.tacit.viewmodel.settings.TacitMarkAllAsRead
 import org.fuchss.matrix.tacit.viewmodel.settings.TacitUserSettingsViewModelFactory
+import org.fuchss.matrix.tacit.viewmodel.space.TacitSpaceHierarchy
 import org.fuchss.matrix.tacit.views.*
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 import org.fuchss.matrix.tacit.views.room.TacitRoomHeaderView
@@ -138,4 +139,5 @@ fun tacitViewModelModule() = module {
     single<ChangeRoomAvatarViewModelFactory> { TacitChangeRoomAvatarViewModelFactory }
     single<RoomViewModelFactory> { TacitRoomViewModelFactory }
     single { TacitSpaceSettingsRequests() }
+    single { TacitSpaceHierarchy() }
 }
