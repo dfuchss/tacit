@@ -1,5 +1,6 @@
 package org.fuchss.matrix.tacit.views.room
 
+import org.fuchss.matrix.tacit.views.common.TacitExtrasPaneHeader
 import org.fuchss.matrix.tacit.ui.TacitAlpha
 import org.fuchss.matrix.tacit.ui.TacitSizes
 import androidx.compose.foundation.*
@@ -94,7 +95,7 @@ private fun DmRoomSettings(
     val leaveWarningOpen = roomSettingsViewModel.leaveRoomWarningOpen.collectAsState().value
     val scrollState = rememberScrollState()
 
-    ExtrasPaneHeader(
+    TacitExtrasPaneHeader(
         i18n.tacitDirectMessageSettingsTitle(),
         error,
         onClose,
@@ -401,7 +402,7 @@ private fun GroupRoomSettings(
     val joinRule = roomSettingsViewModel.roomSettingsJoinRulesViewModel.joinRule.collectAsState().value
     val scroll = rememberScrollState()
 
-    ExtrasPaneHeader(
+    TacitExtrasPaneHeader(
         i18n.roomSettings(),
         error,
         { roomSettingsViewModel.close() },

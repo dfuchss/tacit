@@ -1,5 +1,6 @@
 package org.fuchss.matrix.tacit.views.settings
 
+import org.fuchss.matrix.tacit.views.common.TacitHeader
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -18,7 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import de.connect2x.trixnity.messenger.compose.view.*
-import de.connect2x.trixnity.messenger.compose.view.common.Header
 import de.connect2x.trixnity.messenger.compose.view.settings.AppearanceSettingsSize
 import de.connect2x.trixnity.messenger.compose.view.settings.AppearanceSettingsView
 import de.connect2x.trixnity.messenger.compose.view.settings.SettingsCard
@@ -55,7 +55,7 @@ class TacitAppearanceSettingsView : AppearanceSettingsView {
 
         Box(Modifier.fillMaxSize()) {
             Column {
-                Header(appearanceSettingsViewModel::back, i18n.appearanceTitle())
+                TacitHeader(appearanceSettingsViewModel::back, i18n.appearanceTitle())
                 Box {
                     Column(Modifier.padding(10.dp).verticalScroll(scroll)) {
                         SettingsCard(title = i18n.appearanceColorsTitle(), icon = Icons.Filled.Colorize) {

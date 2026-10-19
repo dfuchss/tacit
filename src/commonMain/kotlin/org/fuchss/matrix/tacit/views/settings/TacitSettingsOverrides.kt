@@ -1,5 +1,6 @@
 package org.fuchss.matrix.tacit.views.settings
 
+import org.fuchss.matrix.tacit.views.common.TacitHeader
 import org.fuchss.matrix.tacit.ui.TacitSizes
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -24,7 +25,6 @@ import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.unit.dp
 import de.connect2x.trixnity.messenger.MatrixMessengerConfiguration
 import de.connect2x.trixnity.messenger.compose.view.DI
-import de.connect2x.trixnity.messenger.compose.view.common.Header
 import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.getOrNull
 import de.connect2x.trixnity.messenger.compose.view.settings.*
@@ -65,7 +65,7 @@ class TacitUserSettingsView : UserSettingsView {
         val i18n = DI.get<TacitI18nView>()
         Box(Modifier.fillMaxSize()) {
             Column {
-                Header(userSettingsViewModel::closeUserSettings, i18n.commonSettings().capitalize(Locale.current))
+                TacitHeader(userSettingsViewModel::closeUserSettings, i18n.commonSettings().capitalize(Locale.current))
                 Column(Modifier.verticalScroll(rememberScrollState())) {
                     AccountsInfoButton(userSettingsViewModel)
                     NotificationsSettingsButton(userSettingsViewModel)
@@ -203,7 +203,7 @@ class TacitAppInfoView : AppInfoView {
         val showLicenses = appInfoViewModel.showLicenses.collectAsState().value
         Box(Modifier.fillMaxSize()) {
             Column {
-                Header(
+                TacitHeader(
                     appInfoViewModel::close,
                     i18n.accountAboutTheApp(DI.get<MatrixMessengerConfiguration>().appName)
                         .capitalize(Locale.current),

@@ -29,3 +29,15 @@ internal fun WithoutTooltips(content: @Composable () -> Unit) {
     val noTooltips = remember(components) { NoTooltipComponents(components) }
     MaterialThemeComponents(noTooltips, content)
 }
+
+private class FixedComponents(private val styles: ComponentStyles) : ThemeComponents {
+    @Composable
+    override fun create(): ComponentStyles = styles
+}
+
+/** Brings back the regular tooltips, captured as [styles] outside a [WithoutTooltips] subtree, for [content]. */
+@Composable
+internal fun WithTooltips(styles: ComponentStyles, content: @Composable () -> Unit) {
+    val regular = remember(styles) { FixedComponents(styles) }
+    MaterialThemeComponents(regular, content)
+}
