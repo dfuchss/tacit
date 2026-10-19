@@ -6,6 +6,8 @@ import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
+import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -41,7 +43,6 @@ import de.connect2x.trixnity.messenger.compose.view.buttonPointerModifier
 import de.connect2x.trixnity.messenger.compose.view.common.Tooltip
 import de.connect2x.trixnity.messenger.compose.view.files.decodeToImageBitmapOrNull
 import de.connect2x.trixnity.messenger.compose.view.get
-import de.connect2x.trixnity.messenger.compose.view.pointerMoveFilter
 import org.fuchss.matrix.tacit.*
 import org.fuchss.matrix.tacit.generated.resources.Res
 import org.fuchss.matrix.tacit.generated.resources.tacit
@@ -233,7 +234,8 @@ private fun GuildDropHint() {
 @Composable
 private fun GuildCreateButton(onClick: () -> Unit) {
     val i18n = DI.get<TacitI18nView>()
-    var hovered by remember { mutableStateOf(false) }
+    val hoverSource = remember { MutableInteractionSource() }
+    val hovered by hoverSource.collectIsHoveredAsState()
     val interactionSource = remember { MutableInteractionSource() }
     val label = i18n.tacitCreateGuildDescriptionIcon()
 
@@ -245,16 +247,7 @@ private fun GuildCreateButton(onClick: () -> Unit) {
                 .clip(CircleShape)
                 .background(if (hovered) MaterialTheme.tacit.surfaceAlt else MaterialTheme.tacit.surface)
                 .border(1.dp, MaterialTheme.tacit.border, CircleShape)
-                .pointerMoveFilter(
-                    onEnter = {
-                        hovered = true
-                        true
-                    },
-                    onExit = {
-                        hovered = false
-                        true
-                    },
-                )
+                .hoverable(hoverSource)
                 .clickable(
                     interactionSource = interactionSource,
                     indication = LocalIndication.current,
@@ -288,7 +281,8 @@ private fun GuildPill(
     showDragAffordance: Boolean = false,
 ) {
     val i18n = DI.get<TacitI18nView>()
-    var hovered by remember { mutableStateOf(false) }
+    val hoverSource = remember { MutableInteractionSource() }
+    val hovered by hoverSource.collectIsHoveredAsState()
     // When the pill itself is not clickable, the caller owns the click (and therefore the focus);
     // reuse its interaction source so the focus ring is drawn around the pill, not around the row.
     val ownInteractionSource = remember { MutableInteractionSource() }
@@ -334,16 +328,7 @@ private fun GuildPill(
                         color = if (selected) MaterialTheme.tacit.accent.copy(alpha = 0.65f) else MaterialTheme.tacit.border.copy(alpha = 0.75f),
                         shape = pillShape,
                     )
-                    .pointerMoveFilter(
-                        onEnter = {
-                            hovered = true
-                            true
-                        },
-                        onExit = {
-                            hovered = false
-                            true
-                        },
-                    )
+                    .hoverable(hoverSource)
                     .then(
                         if (onClick != null) {
                             Modifier.clickable(

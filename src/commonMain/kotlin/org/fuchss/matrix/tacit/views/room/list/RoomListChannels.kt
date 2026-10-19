@@ -5,6 +5,8 @@ import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
+import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -33,7 +35,6 @@ import de.connect2x.trixnity.core.model.events.m.Presence
 import de.connect2x.trixnity.messenger.compose.view.DI
 import de.connect2x.trixnity.messenger.compose.view.common.Tooltip
 import de.connect2x.trixnity.messenger.compose.view.get
-import de.connect2x.trixnity.messenger.compose.view.pointerMoveFilter
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ButtonStyle
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedButton
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedUserAvatar
@@ -66,7 +67,8 @@ internal fun ChannelRow(
     val presence = room.presence.collectAsState().value
     val lastMessage = room.lastMessage.collectAsState().value
     val time = room.time.collectAsState().value
-    var hovered by remember { mutableStateOf(false) }
+    val hoverSource = remember { MutableInteractionSource() }
+    val hovered by hoverSource.collectIsHoveredAsState()
     // `hasFocus` covers the row itself and every focusable inside it (e.g. the read toggle), so the
     // toggle stays composed once the keyboard focus has moved into it.
     var rowFocused by remember { mutableStateOf(false) }
@@ -106,16 +108,7 @@ internal fun ChannelRow(
                 },
                 TacitShapes.card,
             )
-            .pointerMoveFilter(
-                onEnter = {
-                    hovered = true
-                    true
-                },
-                onExit = {
-                    hovered = false
-                    true
-                },
-            )
+            .hoverable(hoverSource)
             .onFocusChanged { rowFocused = it.hasFocus }
             .clickable(
                 interactionSource = interactionSource,
@@ -419,7 +412,8 @@ private fun ReadToggleButton(
     onToggle: () -> Unit,
     contentDescription: String,
 ) {
-    var hovered by remember { mutableStateOf(false) }
+    val hoverSource = remember { MutableInteractionSource() }
+    val hovered by hoverSource.collectIsHoveredAsState()
     val interactionSource = remember { MutableInteractionSource() }
     val background = if (hovered) MaterialTheme.tacit.surfaceAlt else MaterialTheme.tacit.surface
     val borderColor = MaterialTheme.tacit.border
@@ -432,16 +426,7 @@ private fun ReadToggleButton(
             .clip(TacitShapes.compact)
             .background(background)
             .border(1.dp, borderColor, TacitShapes.compact)
-            .pointerMoveFilter(
-                onEnter = {
-                    hovered = true
-                    true
-                },
-                onExit = {
-                    hovered = false
-                    true
-                },
-            )
+            .hoverable(hoverSource)
             // Own focus target, so the toggle is reachable by keyboard instead of being buried in
             // the row-wide clickable.
             .clickable(

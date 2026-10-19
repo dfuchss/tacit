@@ -4,6 +4,8 @@ import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
+import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.BasicTextField
@@ -21,7 +23,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import de.connect2x.trixnity.messenger.compose.view.collectAsTextFieldValueState
-import de.connect2x.trixnity.messenger.compose.view.pointerMoveFilter
 import de.connect2x.trixnity.messenger.viewmodel.roomlist.RoomListViewModel
 import org.fuchss.matrix.tacit.*
 import org.fuchss.matrix.tacit.ui.TacitShapes
@@ -168,7 +169,8 @@ private fun RowScope.ToolbarSearchField(
     clearSearchLabel: String,
     onClear: () -> Unit,
 ) {
-    var searchHovered by remember { mutableStateOf(false) }
+    val searchHoverSource = remember { MutableInteractionSource() }
+    val searchHovered by searchHoverSource.collectIsHoveredAsState()
     Box(
         modifier = Modifier
             .weight(1f)
@@ -176,16 +178,7 @@ private fun RowScope.ToolbarSearchField(
             .clip(TacitShapes.control)
             .background(if (searchHovered) MaterialTheme.tacit.surfaceAlt else MaterialTheme.tacit.surface)
             .border(1.dp, MaterialTheme.tacit.border, TacitShapes.control)
-            .pointerMoveFilter(
-                onEnter = {
-                    searchHovered = true
-                    true
-                },
-                onExit = {
-                    searchHovered = false
-                    true
-                },
-            )
+            .hoverable(searchHoverSource)
             .padding(horizontal = 8.dp, vertical = searchVerticalPadding),
         contentAlignment = Alignment.CenterStart,
     ) {
@@ -260,7 +253,8 @@ private fun ToolbarIconButton(
     enabled: Boolean,
     primary: Boolean = false,
 ) {
-    var hovered by remember { mutableStateOf(false) }
+    val hoverSource = remember { MutableInteractionSource() }
+    val hovered by hoverSource.collectIsHoveredAsState()
     val interactionSource = remember { MutableInteractionSource() }
     val background = when {
         !enabled -> MaterialTheme.tacit.surface
@@ -285,16 +279,7 @@ private fun ToolbarIconButton(
             .clip(TacitShapes.control)
             .background(background)
             .border(1.dp, borderColor, TacitShapes.control)
-            .pointerMoveFilter(
-                onEnter = {
-                    if (enabled) hovered = true
-                    true
-                },
-                onExit = {
-                    hovered = false
-                    true
-                },
-            )
+            .hoverable(hoverSource, enabled = enabled)
             .clickable(
                 interactionSource = interactionSource,
                 indication = LocalIndication.current,

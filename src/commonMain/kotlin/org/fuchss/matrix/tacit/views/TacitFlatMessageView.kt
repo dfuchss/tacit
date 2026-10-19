@@ -7,6 +7,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
@@ -53,7 +54,6 @@ import androidx.compose.ui.window.Popup
 import androidx.compose.ui.zIndex
 import de.connect2x.trixnity.messenger.compose.view.DI
 import de.connect2x.trixnity.messenger.compose.view.get
-import de.connect2x.trixnity.messenger.compose.view.pointerMoveFilter
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.RedactionWarning
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.TimelineElementViewSelector
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.message.bubble.MessageBubbleContent
@@ -117,19 +117,20 @@ private fun TacitFlatMessageContainer(
     val element = holder.element.collectAsState().value
     val sender = holder.sender.collectAsState().value
 
-    val hoverMessage = remember { mutableStateOf(false) }
-    val hoverQuickActions = remember { mutableStateOf(false) }
+    val hoverInteractionSource = remember { MutableInteractionSource() }
+    val quickActionsInteractionSource = remember { MutableInteractionSource() }
+    val hoverMessage by hoverInteractionSource.collectIsHoveredAsState()
+    val hoverQuickActions by quickActionsInteractionSource.collectIsHoveredAsState()
     val quickReactionsOpen = remember { mutableStateOf(false) }
     val allReactionsOpen = remember { mutableStateOf(false) }
     val showActionMenu = remember { mutableStateOf(false) }
     // The row is "active" while it is hovered or while one of its menus is open. Everything that
     // used to be painted permanently (card background, border, quick actions) is bound to this.
-    val isRowActive = hoverMessage.value ||
-            hoverQuickActions.value ||
+    val isRowActive = hoverMessage ||
+            hoverQuickActions ||
             showActionMenu.value ||
             quickReactionsOpen.value ||
             allReactionsOpen.value
-    val hoverInteractionSource = remember { MutableInteractionSource() }
 
     val timelineElementHolder = uiState.timelineElementHolder
     val isOwnMessage = holder.isByMe
@@ -224,16 +225,6 @@ private fun TacitFlatMessageContainer(
                     .then(if (wasJumpTarget) Modifier.background(jumpTint, TacitShapes.card) else Modifier)
                     .border(1.dp, if (isJumpTarget) MaterialTheme.tacit.accent.copy(alpha = 0.7f) else rowBorderColor, TacitShapes.card)
                     .hoverable(hoverInteractionSource)
-                    .pointerMoveFilter(
-                        onEnter = {
-                            hoverMessage.value = true
-                            true
-                        },
-                        onExit = {
-                            hoverMessage.value = false
-                            true
-                        },
-                    )
                     .pointerInput(holder) {
                         detectTapGestures(onLongPress = { showActionMenu.value = true })
                     }
@@ -286,7 +277,7 @@ private fun TacitFlatMessageContainer(
                         density = density,
                         isOwnMessage = isOwnMessage,
                         canReact = canReact,
-                        hoverQuickActions = hoverQuickActions,
+                        quickActionsInteractionSource = quickActionsInteractionSource,
                         quickReactionsOpen = quickReactionsOpen,
                         allReactionsOpen = allReactionsOpen,
                         showActionMenu = showActionMenu,
@@ -467,7 +458,7 @@ private fun TacitFlatMessageHoverActions(
     density: Density,
     isOwnMessage: Boolean,
     canReact: Boolean,
-    hoverQuickActions: MutableState<Boolean>,
+    quickActionsInteractionSource: MutableInteractionSource,
     quickReactionsOpen: MutableState<Boolean>,
     allReactionsOpen: MutableState<Boolean>,
     showActionMenu: MutableState<Boolean>,
@@ -540,16 +531,7 @@ private fun TacitFlatMessageHoverActions(
         Box(
             modifier = Modifier
                 .graphicsLayer { clip = false }
-                .pointerMoveFilter(
-                    onEnter = {
-                        hoverQuickActions.value = true
-                        true
-                    },
-                    onExit = {
-                        hoverQuickActions.value = false
-                        true
-                    },
-                )
+                .hoverable(quickActionsInteractionSource)
         ) {
             Row(
                 modifier = Modifier

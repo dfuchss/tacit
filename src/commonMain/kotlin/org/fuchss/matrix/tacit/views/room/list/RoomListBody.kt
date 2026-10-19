@@ -3,6 +3,9 @@ package org.fuchss.matrix.tacit.views.room.list
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -27,7 +30,6 @@ import de.connect2x.trixnity.core.model.RoomId
 import de.connect2x.trixnity.core.model.events.m.Presence
 import de.connect2x.trixnity.messenger.compose.view.DI
 import de.connect2x.trixnity.messenger.compose.view.get
-import de.connect2x.trixnity.messenger.compose.view.pointerMoveFilter
 import de.connect2x.trixnity.messenger.compose.view.theme.components
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedButton
 import de.connect2x.trixnity.messenger.viewmodel.roomlist.RoomListViewModel
@@ -419,23 +421,15 @@ private fun CategorySectionHeader(
     onMoveDown: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
-    var hovered by remember { mutableStateOf(false) }
+    val hoverSource = remember { MutableInteractionSource() }
+    val hovered by hoverSource.collectIsHoveredAsState()
     val actionsVisibleAlpha = if (hovered) 1f else 0f
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 10.dp, vertical = 8.dp)
-            .pointerMoveFilter(
-                onEnter = {
-                    hovered = true
-                    true
-                },
-                onExit = {
-                    hovered = false
-                    true
-                },
-            )
+            .hoverable(hoverSource)
             .heightIn(min = 22.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

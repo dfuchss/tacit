@@ -3,6 +3,9 @@ package org.fuchss.matrix.tacit.views.room
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,7 +24,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import de.connect2x.trixnity.messenger.compose.view.DI
 import de.connect2x.trixnity.messenger.compose.view.get
-import de.connect2x.trixnity.messenger.compose.view.pointerMoveFilter
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.RoomHeaderView
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.RoomHeaderViewImpl
 import de.connect2x.trixnity.messenger.compose.view.theme.components
@@ -88,7 +90,8 @@ private fun MembersPaneToggleButton(
     modifier: Modifier = Modifier,
 ) {
     val i18n = DI.get<TacitI18nView>()
-    var hovered by remember { mutableStateOf(false) }
+    val hoverSource = remember { MutableInteractionSource() }
+    val hovered by hoverSource.collectIsHoveredAsState()
     val background = when {
         active -> MaterialTheme.tacit.accent(0.2f)
         hovered -> MaterialTheme.tacit.surfaceAlt
@@ -106,16 +109,7 @@ private fun MembersPaneToggleButton(
             .clip(TacitShapes.control)
             .background(background)
             .border(1.dp, border, TacitShapes.control)
-            .pointerMoveFilter(
-                onEnter = {
-                    hovered = true
-                    true
-                },
-                onExit = {
-                    hovered = false
-                    true
-                },
-            )
+            .hoverable(hoverSource)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
