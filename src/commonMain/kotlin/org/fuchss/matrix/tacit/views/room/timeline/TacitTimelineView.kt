@@ -416,10 +416,12 @@ class TacitTimelineView : TimelineView {
                                             ) {
                                                 when (timelineViewElement) {
                                                     is TimelineViewElement.Date -> {
-                                                        DateStickyHeader(
-                                                            date = timelineViewElement.formattedDate,
-                                                            focusable = true,
-                                                        )
+                                                        WithoutTooltips {
+                                                            DateStickyHeader(
+                                                                date = timelineViewElement.formattedDate,
+                                                                focusable = true,
+                                                            )
+                                                        }
                                                     }
 
                                                     is TimelineViewElement.Element -> {
@@ -544,7 +546,7 @@ private fun FloatingDateHeader(
         Box(Modifier.fillMaxWidth().background(backdropColor)) {
             // Keep the pill centred over the message column, which is inset by the scrollbar gutter.
             Box(Modifier.padding(end = additionalEndPadding.dp)) {
-                DateStickyHeader(date = date, focusable = false)
+                WithoutTooltips { DateStickyHeader(date = date, focusable = false) }
             }
         }
         Spacer(

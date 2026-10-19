@@ -311,7 +311,8 @@ private fun QuietSystemEvent(holder: TimelineElementHolderViewModel, index: Int)
         colorScheme.copy(tertiary = tacitSurfaceAlt.copy(alpha = 0.7f), onTertiary = tacitTextMuted)
     }
     MaterialTheme(colorScheme = quietScheme) {
-        TimelineElementHolderSwitch(holder, index)
+        // The pill's tooltip only repeats its text.
+        WithoutTooltips { TimelineElementHolderSwitch(holder, index) }
     }
 }
 
