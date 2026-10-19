@@ -13,11 +13,16 @@ on:
         required: true
         type: string
 
+permissions:
+  contents: read
+
 env:
   TAG: ${{ inputs.tag || github.ref_name }}
 
 jobs:
   build:
+    permissions:
+      contents: read
     uses: ./.github/workflows/build.yml
     with:
       tag: ${{ inputs.tag || github.ref_name }}

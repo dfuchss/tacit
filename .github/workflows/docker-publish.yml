@@ -15,8 +15,14 @@ on:
     tags:
       - 'v*-tacit.*'
 
+permissions:
+  contents: read
+
 jobs:
   push:
+    permissions:
+      contents: read
+      packages: write
     uses: dfuchss/actions/.github/workflows/docker.yml@main
     with:
       image-name: tacit

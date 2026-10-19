@@ -19,11 +19,37 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 env:
   TAMMY_BUILD_FLAVOR: PROD
 
 jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      # The README screenshot generator (needs Docker) is excluded from jvmTest in build.gradle.kts.
+      - name: Run JVM tests
+        # GitHub sets CI=true, which switches the c2x conventions into release mode (needs CI_COMMIT_* variables).
+        run: |
+          unset CI
+          ./gradlew -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" jvmTest --stacktrace
+
   build:
+    needs: test
     name: Build ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -61,13 +87,16 @@ jobs:
         shell: bash
         env:
           INPUT_TAG: ${{ inputs.tag }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          MATRIX_TASKS: ${{ matrix.tasks }}
         # c2x conventions derive the app version from GitLab CI variables
         run: |
           export CI_COMMIT_TIMESTAMP="$(TZ=UTC git log -1 --date=format-local:%Y-%m-%dT%H:%M:%SZ --format=%cd)"
           # A release passes its tag explicitly (workflow_dispatch runs on a branch ref); tag pushes use the ref.
           if [ -n "$INPUT_TAG" ]; then export CI_COMMIT_TAG="$INPUT_TAG"
-          elif [ "${{ github.ref_type }}" = tag ]; then export CI_COMMIT_TAG="${{ github.ref_name }}"; fi
-          ./gradlew -Dorg.gradle.jvmargs="-Xmx6g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8 --add-opens=java.base/java.io=ALL-UNNAMED" ${{ matrix.tasks }} --stacktrace
+          elif [ "$REF_TYPE" = tag ]; then export CI_COMMIT_TAG="$REF_NAME"; fi
+          ./gradlew -Dorg.gradle.jvmargs="-Xmx6g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8 --add-opens=java.base/java.io=ALL-UNNAMED" $MATRIX_TASKS --stacktrace
 
       - uses: actions/upload-artifact@v7
         with:
