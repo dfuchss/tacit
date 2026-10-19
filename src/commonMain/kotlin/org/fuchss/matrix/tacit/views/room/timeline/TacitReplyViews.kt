@@ -39,6 +39,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import de.connect2x.trixnity.messenger.compose.view.DI
 import de.connect2x.trixnity.messenger.compose.view.common.Tooltip
@@ -108,9 +109,27 @@ private val ReplyBarInset = 6.dp
 private val ReplyBarWidth = 3.dp
 private val ReplyContentStart = ReplyBarInset + ReplyBarWidth + 8.dp
 
+/** Resting tint and border of a quote card, as alphas of its colour. */
+internal const val TacitQuoteTintAlpha = 0.10f
+internal const val TacitQuoteBorderAlpha = 0.16f
+
 @Composable
 private fun replySenderColor(sender: UserInfoElement?): Color =
     sender?.let { MaterialTheme.messengerColors.getUserColor(it.userId, tacitSurfaceAlt) } ?: tacitTextMuted
+
+/**
+ * Tacit's quote card, shared by reply quotes, the composer's reply bar and formatted blockquotes: a compact
+ * rounded card tinted with [background], a hairline [border] and the inset rounded bar in [bar].
+ */
+internal fun Modifier.tacitQuoteCard(background: Color, border: Color, bar: Color): Modifier =
+    clip(TacitShapes.compact)
+        .background(background, TacitShapes.compact)
+        .border(1.dp, border, TacitShapes.compact)
+        .replyBar(bar)
+
+/** Inner padding of a [tacitQuoteCard]; the start clears the bar. */
+internal fun Modifier.tacitQuoteCardPadding(end: Dp = 10.dp): Modifier =
+    padding(start = ReplyContentStart, end = end, top = 8.dp, bottom = 8.dp)
 
 /** The rounded vertical bar in the quoted sender's colour, inset from the card's left edge. */
 private fun Modifier.replyBar(color: Color): Modifier = drawBehind {
@@ -150,12 +169,12 @@ internal class TacitReferencedMessagePillView : ReferencedMessagePillView {
         val senderColor = replySenderColor(sender)
         val isHovered by interactionSource.collectIsHoveredAsState()
         val isFocused by interactionSource.collectIsFocusedAsState()
-        val backgroundColor by animateColorAsState(senderColor.copy(alpha = if (isHovered) 0.18f else 0.10f))
+        val backgroundColor by animateColorAsState(senderColor.copy(alpha = if (isHovered) 0.18f else TacitQuoteTintAlpha))
         val borderColor by animateColorAsState(
             when {
                 isFocused -> accentColor.copy(alpha = 0.8f)
                 isHovered -> senderColor.copy(alpha = 0.42f)
-                else -> senderColor.copy(alpha = 0.16f)
+                else -> senderColor.copy(alpha = TacitQuoteBorderAlpha)
             }
         )
         val jumpSignal = LocalTacitReplyJumpSignal.current
@@ -177,10 +196,8 @@ internal class TacitReferencedMessagePillView : ReferencedMessagePillView {
                 .then(modifier)
                 .fillMaxWidth()
                 .hoverable(interactionSource)
-                .background(backgroundColor, TacitShapes.compact)
-                .border(1.dp, borderColor, TacitShapes.compact)
-                .replyBar(senderColor)
-                .padding(start = ReplyContentStart, end = 10.dp, top = 8.dp, bottom = 8.dp),
+                .tacitQuoteCard(backgroundColor, borderColor, senderColor)
+                .tacitQuoteCardPadding(),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Row(
@@ -271,11 +288,8 @@ private fun ColumnScope.TacitReplyToArea(inputAreaViewModel: InputAreaViewModel)
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(start = 10.dp, end = 10.dp, top = 10.dp)
-                .clip(TacitShapes.compact)
-                .background(senderColor.copy(alpha = 0.10f), TacitShapes.compact)
-                .border(1.dp, senderColor.copy(alpha = 0.22f), TacitShapes.compact)
-                .replyBar(senderColor)
-                .padding(start = ReplyContentStart, end = 4.dp, top = 8.dp, bottom = 8.dp),
+                .tacitQuoteCard(senderColor.copy(alpha = TacitQuoteTintAlpha), senderColor.copy(alpha = 0.22f), senderColor)
+                .tacitQuoteCardPadding(end = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {

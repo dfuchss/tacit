@@ -25,7 +25,6 @@ import de.connect2x.trixnity.messenger.compose.view.PlatformType
 import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.i18n.I18nView
 import de.connect2x.trixnity.messenger.compose.view.richtext.RichTextColors
-import de.connect2x.trixnity.messenger.compose.view.richtext.RichTextDisplay
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.TimelineElementView
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.message.*
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.message.bubble.MessageBubble
@@ -256,7 +255,7 @@ private fun TacitMessageBodyContent(
         CompositionLocalProvider(
             LocalTextStyle provides MaterialTheme.typography.bodyMedium.copy(color = LocalContentColor.current)
         ) {
-            RichTextDisplay(
+            TacitRichTextDisplay(
                 document = element.formattedBodyContent ?: HtmlNode.HtmlElement("#root", emptyMap(), emptyList()),
                 mentions = element.mentionsInFormattedBody,
                 modifier = modifier,
