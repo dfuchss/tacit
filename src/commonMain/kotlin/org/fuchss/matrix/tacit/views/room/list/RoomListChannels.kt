@@ -2,6 +2,7 @@ package org.fuchss.matrix.tacit.views.room.list
 
 import org.fuchss.matrix.tacit.ui.TacitAlpha
 import org.fuchss.matrix.tacit.ui.TacitSizes
+import org.fuchss.matrix.tacit.viewmodel.util.initialsOf
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
@@ -153,14 +154,14 @@ internal fun ChannelRow(
                             contentAlignment = Alignment.Center,
                         ) {
                             ThemedUserAvatar(
-                                initials = roomImageInitials ?: dmInitials(channelTitle),
+                                initials = roomImageInitials ?: initialsOf(channelTitle, singleWordLength = 1),
                                 image = roomImage,
                                 size = TacitSizes.avatarCompact,
                             )
                         }
                     } else {
                         ThemedUserAvatar(
-                            initials = roomImageInitials ?: dmInitials(channelTitle),
+                            initials = roomImageInitials ?: initialsOf(channelTitle, singleWordLength = 1),
                             image = roomImage,
                             size = TacitSizes.avatarCompact,
                         )

@@ -13,15 +13,6 @@ import org.fuchss.matrix.tacit.TacitTokens
 import org.fuchss.matrix.tacit.tacit
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 
-internal fun dmInitials(name: String): String {
-    val parts = name.split(Regex("\\s+")).filter { it.isNotBlank() }
-    return when {
-        parts.isEmpty() -> "?"
-        parts.size == 1 -> parts.first().take(1).uppercase()
-        else -> (parts[0].take(1) + parts[1].take(1)).uppercase()
-    }
-}
-
 internal fun dmPresenceColor(presence: Presence?, tokens: TacitTokens): Color = when (presence) {
     Presence.ONLINE -> tokens.accent
     else -> Color.Transparent

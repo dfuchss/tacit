@@ -2,6 +2,7 @@ package org.fuchss.matrix.tacit.views.room.timeline
 
 import org.fuchss.matrix.tacit.ui.TacitAlpha
 import org.fuchss.matrix.tacit.ui.TacitSizes
+import org.fuchss.matrix.tacit.viewmodel.util.initialsOf
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -56,7 +57,7 @@ class TacitTypingIndicatorView : TypingIndicatorView {
                     if (typingMembers.isNotEmpty()) {
                         typingMembers.take(3).forEach { member ->
                             ThemedUserAvatar(
-                                initials = member.displayName.typingInitials(),
+                                initials = initialsOf(member.displayName),
                                 image = member.avatarImage,
                                 size = 20.dp,
                             )
@@ -84,16 +85,5 @@ class TacitTypingIndicatorView : TypingIndicatorView {
                 }
             }
         }
-    }
-}
-
-private val whitespaceRegex = Regex("\\s+")
-
-private fun String.typingInitials(): String {
-    val parts = split(whitespaceRegex).filter { it.isNotBlank() }
-    return when {
-        parts.isEmpty() -> "?"
-        parts.size == 1 -> parts.first().take(2).uppercase()
-        else -> (parts[0].take(1) + parts[1].take(1)).uppercase()
     }
 }

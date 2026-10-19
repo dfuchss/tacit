@@ -1,5 +1,6 @@
 package org.fuchss.matrix.tacit.viewmodel.room.settings
 
+import org.fuchss.matrix.tacit.viewmodel.util.initialsOf
 import de.connect2x.trixnity.client.flattenValues
 import de.connect2x.trixnity.client.room
 import de.connect2x.trixnity.core.model.RoomId
@@ -207,7 +208,7 @@ private class TacitRoomSettingsViewModelImpl(
                             TacitDmVerificationEntry(
                                 userId = memberViewModel.memberUserId,
                                 displayName = displayName,
-                                initials = member?.initials ?: displayName.initialsFromName(),
+                                initials = member?.initials ?: initialsOf(displayName),
                                 image = member?.image,
                                 status = trustLevel.toDmVerificationStatus(),
                             )
@@ -255,13 +256,4 @@ private fun UserTrustLevel?.toDmVerificationStatus(): TacitDmVerificationStatus 
     is UserTrustLevel.Invalid -> TacitDmVerificationStatus.INVALID
     UserTrustLevel.Blocked -> TacitDmVerificationStatus.BLOCKED
     UserTrustLevel.Unknown, null -> TacitDmVerificationStatus.NEEDS_VERIFICATION
-}
-
-private fun String.initialsFromName(): String {
-    val parts = split(Regex("\\s+")).filter { it.isNotBlank() }
-    return when {
-        parts.isEmpty() -> "?"
-        parts.size == 1 -> parts.first().take(2).uppercase()
-        else -> (parts[0].take(1) + parts[1].take(1)).uppercase()
-    }
 }

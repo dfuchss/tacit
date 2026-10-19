@@ -1,6 +1,7 @@
 package org.fuchss.matrix.tacit.views.room
 
 import org.fuchss.matrix.tacit.ui.TacitSizes
+import org.fuchss.matrix.tacit.viewmodel.util.initialsOf
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -121,7 +122,7 @@ private fun MemberRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             ThemedUserAvatar(
-                initials = member.displayName.memberInitials(),
+                initials = initialsOf(member.displayName),
                 image = member.avatarImage,
                 size = TacitSizes.avatarCompact,
             )
@@ -143,14 +144,5 @@ private fun MemberRow(
                 )
             }
         }
-    }
-}
-
-private fun String.memberInitials(): String {
-    val pieces = trim().split(Regex("\\s+")).filter { it.isNotBlank() }
-    return when {
-        pieces.isEmpty() -> "?"
-        pieces.size == 1 -> pieces.first().take(2).uppercase()
-        else -> "${pieces[0].take(1)}${pieces[1].take(1)}".uppercase()
     }
 }

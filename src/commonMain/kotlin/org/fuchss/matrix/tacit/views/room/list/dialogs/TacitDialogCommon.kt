@@ -2,6 +2,7 @@ package org.fuchss.matrix.tacit.views.room.list.dialogs
 
 import org.fuchss.matrix.tacit.ui.TacitAlpha
 import org.fuchss.matrix.tacit.ui.TacitSizes
+import org.fuchss.matrix.tacit.viewmodel.util.initialsOf
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,7 +21,6 @@ import org.fuchss.matrix.tacit.*
 import org.fuchss.matrix.tacit.ui.TacitCardSurface
 import org.fuchss.matrix.tacit.ui.TacitShapes
 import org.fuchss.matrix.tacit.viewmodel.util.UserDirectoryEntry
-import org.fuchss.matrix.tacit.views.room.list.dmInitials
 
 @Composable
 internal fun TacitDialogHeroCard(
@@ -97,7 +97,7 @@ internal fun TacitUserDirectoryRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             ThemedUserAvatar(
-                initials = dmInitials(user.displayName),
+                initials = initialsOf(user.displayName, singleWordLength = 1),
                 image = null,
                 size = 24.dp,
             )
