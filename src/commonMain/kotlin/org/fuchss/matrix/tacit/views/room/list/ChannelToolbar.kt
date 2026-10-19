@@ -39,45 +39,27 @@ internal fun DmChannelToolbar(
     onCreateRoom: () -> Unit,
     onCreateGroupChannel: () -> Unit,
 ) {
-    var searchText by roomListViewModel.searchTerm.collectAsTextFieldValueState()
-    val toolbarVerticalPadding = 7.dp
-    val searchVerticalPadding = 7.dp
-    val actionSpacing = 8.dp
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = TacitSpacing.paneInsetPadding, vertical = toolbarVerticalPadding),
+    ChannelToolbarScaffold(
+        roomListViewModel = roomListViewModel,
+        i18n = i18n,
+        searchPlaceholder = i18n.tacitSearchFriendsPlaceholder(),
+        toolbarVerticalPadding = 7.dp,
+        searchVerticalPadding = 7.dp,
+        actionSpacing = 8.dp,
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            ToolbarSearchField(
-                searchText = searchText,
-                onSearchTextChange = { searchText = it },
-                placeholder = i18n.tacitSearchFriendsPlaceholder(),
-                searchVerticalPadding = searchVerticalPadding,
-                clearSearchLabel = i18n.tacitClearSearchDescription(),
-                onClear = { roomListViewModel.searchTerm.update("") },
-            )
-            ToolbarActionsRow(
-                actionSpacing = actionSpacing,
-            ) {
-                ToolbarIconButton(
-                    icon = Icons.Default.Add,
-                    contentDescription = i18n.tacitNewDmDescription(),
-                    onClick = onCreateRoom,
-                    enabled = canCreateRoom,
-                    primary = true,
-                )
-                ToolbarIconButton(
-                    icon = Icons.Default.GroupAdd,
-                    contentDescription = i18n.tacitNewGroupChatDescription(),
-                    onClick = onCreateGroupChannel,
-                    enabled = canCreateRoom,
-                )
-            }
-        }
+        ToolbarIconButton(
+            icon = Icons.Default.Add,
+            contentDescription = i18n.tacitNewDmDescription(),
+            onClick = onCreateRoom,
+            enabled = canCreateRoom,
+            primary = true,
+        )
+        ToolbarIconButton(
+            icon = Icons.Default.GroupAdd,
+            contentDescription = i18n.tacitNewGroupChatDescription(),
+            onClick = onCreateGroupChannel,
+            enabled = canCreateRoom,
+        )
     }
 }
 
@@ -94,10 +76,68 @@ internal fun GuildChannelToolbar(
     onOpenGuildSettings: (() -> Unit)?,
     canEditGuildSettings: Boolean,
 ) {
+    ChannelToolbarScaffold(
+        roomListViewModel = roomListViewModel,
+        i18n = i18n,
+        searchPlaceholder = i18n.tacitSearchRoomsPlaceholder(),
+        toolbarVerticalPadding = 4.dp,
+        searchVerticalPadding = 5.dp,
+        actionSpacing = 6.dp,
+    ) {
+        ToolbarIconButton(
+            icon = Icons.Default.Add,
+            contentDescription = i18n.tacitNewChannelDescription(),
+            onClick = onCreateRoom,
+            enabled = canCreateRoom,
+            primary = true,
+        )
+        if (onCreateCategory != null) {
+            ToolbarIconButton(
+                icon = Icons.Default.CreateNewFolder,
+                contentDescription = i18n.tacitNewCategoryDescription(),
+                onClick = onCreateCategory,
+                enabled = canCreateRoom,
+            )
+        }
+        if (onBrowseChannels != null) {
+            ToolbarIconButton(
+                icon = Icons.Default.Search,
+                contentDescription = i18n.tacitBrowseRoomsDescription(),
+                onClick = onBrowseChannels,
+                enabled = true,
+            )
+        }
+        if (onInviteToGuild != null) {
+            ToolbarIconButton(
+                icon = Icons.Default.PersonAdd,
+                contentDescription = i18n.tacitInviteMembersDescription(),
+                onClick = onInviteToGuild,
+                enabled = canInviteToGuild,
+            )
+        }
+        if (onOpenGuildSettings != null) {
+            ToolbarIconButton(
+                icon = Icons.Default.Settings,
+                contentDescription = i18n.tacitGuildSettingsDescription(),
+                onClick = onOpenGuildSettings,
+                enabled = canEditGuildSettings,
+            )
+        }
+    }
+}
+
+/** Search field plus action buttons shared by the DM and guild toolbars; only the spacing, placeholder and actions differ. */
+@Composable
+private fun ChannelToolbarScaffold(
+    roomListViewModel: RoomListViewModel,
+    i18n: TacitI18nView,
+    searchPlaceholder: String,
+    toolbarVerticalPadding: androidx.compose.ui.unit.Dp,
+    searchVerticalPadding: androidx.compose.ui.unit.Dp,
+    actionSpacing: androidx.compose.ui.unit.Dp,
+    actions: @Composable RowScope.() -> Unit,
+) {
     var searchText by roomListViewModel.searchTerm.collectAsTextFieldValueState()
-    val toolbarVerticalPadding = 4.dp
-    val searchVerticalPadding = 5.dp
-    val actionSpacing = 6.dp
 
     Column(
         modifier = Modifier
@@ -110,54 +150,15 @@ internal fun GuildChannelToolbar(
             ToolbarSearchField(
                 searchText = searchText,
                 onSearchTextChange = { searchText = it },
-                placeholder = i18n.tacitSearchRoomsPlaceholder(),
+                placeholder = searchPlaceholder,
                 searchVerticalPadding = searchVerticalPadding,
                 clearSearchLabel = i18n.tacitClearSearchDescription(),
                 onClear = { roomListViewModel.searchTerm.update("") },
             )
             ToolbarActionsRow(
                 actionSpacing = actionSpacing,
-            ) {
-                ToolbarIconButton(
-                    icon = Icons.Default.Add,
-                    contentDescription = i18n.tacitNewChannelDescription(),
-                    onClick = onCreateRoom,
-                    enabled = canCreateRoom,
-                    primary = true,
-                )
-                if (onCreateCategory != null) {
-                    ToolbarIconButton(
-                        icon = Icons.Default.CreateNewFolder,
-                        contentDescription = i18n.tacitNewCategoryDescription(),
-                        onClick = onCreateCategory,
-                        enabled = canCreateRoom,
-                    )
-                }
-                if (onBrowseChannels != null) {
-                    ToolbarIconButton(
-                        icon = Icons.Default.Search,
-                        contentDescription = i18n.tacitBrowseRoomsDescription(),
-                        onClick = onBrowseChannels,
-                        enabled = true,
-                    )
-                }
-                if (onInviteToGuild != null) {
-                    ToolbarIconButton(
-                        icon = Icons.Default.PersonAdd,
-                        contentDescription = i18n.tacitInviteMembersDescription(),
-                        onClick = onInviteToGuild,
-                        enabled = canInviteToGuild,
-                    )
-                }
-                if (onOpenGuildSettings != null) {
-                    ToolbarIconButton(
-                        icon = Icons.Default.Settings,
-                        contentDescription = i18n.tacitGuildSettingsDescription(),
-                        onClick = onOpenGuildSettings,
-                        enabled = canEditGuildSettings,
-                    )
-                }
-            }
+                content = actions,
+            )
         }
     }
 }
