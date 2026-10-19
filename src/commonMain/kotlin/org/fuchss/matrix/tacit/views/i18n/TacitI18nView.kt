@@ -315,6 +315,11 @@ open class TacitI18nView(
         DE - "Kategoriename"
     }
 
+    open fun tacitCreateCategoryHint() = translate {
+        EN - "A category stays hidden until it contains a channel. To add one, open the channel's settings and pick this category under \"Move to category\"."
+        DE - "Eine Kategorie bleibt ausgeblendet, bis sie einen Kanal enthält. Öffne dazu die Einstellungen eines Kanals und wähle diese Kategorie unter „In Kategorie verschieben“."
+    }
+
     open fun tacitRoomNameLabel() = translate {
         EN - "Room name"
         DE - "Raumname"

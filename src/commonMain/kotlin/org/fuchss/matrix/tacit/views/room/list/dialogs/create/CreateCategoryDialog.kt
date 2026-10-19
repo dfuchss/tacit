@@ -43,6 +43,11 @@ internal fun CreateCategoryDialog(
                     label = { Text(i18n.tacitCategoryNameLabel()) },
                     maxLines = 1,
                 )
+                Text(
+                    i18n.tacitCreateCategoryHint(),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
+                )
                 if (!canCreateCategory) {
                     Text(
                         i18n.tacitNoAccountForGuild(),
