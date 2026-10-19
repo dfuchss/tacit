@@ -18,7 +18,7 @@ import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.BaseTime
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.RedactedTimelineElementViewModel
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.TimelineElementHolderViewModel
 import kotlin.reflect.KClass
-import org.fuchss.matrix.tacit.tacitTextMuted
+import org.fuchss.matrix.tacit.tacit
 
 internal object TacitHiddenRedactedTimelineElementView : RedactedTimelineElementView {
     override val supports: KClass<RedactedTimelineElementViewModel> = RedactedTimelineElementViewModel::class
@@ -88,7 +88,7 @@ private fun DeletedReplyPreview(
             text = message,
             style = MaterialTheme.typography.bodySmall,
             fontStyle = FontStyle.Italic,
-            color = tacitTextMuted,
+            color = MaterialTheme.tacit.textMuted,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )

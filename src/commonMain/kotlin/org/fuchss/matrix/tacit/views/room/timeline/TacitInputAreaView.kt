@@ -25,10 +25,7 @@ import de.connect2x.trixnity.messenger.compose.view.room.timeline.*
 import de.connect2x.trixnity.messenger.compose.view.theme.components
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedSurface
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.InputAreaViewModel
-import org.fuchss.matrix.tacit.tacitAccent
-import org.fuchss.matrix.tacit.tacitBorder
-import org.fuchss.matrix.tacit.tacitSurfaceAlt
-import org.fuchss.matrix.tacit.tacitText
+import org.fuchss.matrix.tacit.tacit
 import org.fuchss.matrix.tacit.ui.TacitShapes
 import org.fuchss.matrix.tacit.viewmodel.room.timeline.findSlashCommandMatch
 import org.fuchss.matrix.tacit.viewmodel.room.timeline.slashCommandSuggestions
@@ -245,7 +242,7 @@ class TacitInputAreaView : InputAreaView {
                             Text(
                                 i18n.inputAreaCannotSendMessages(),
                                 modifier = Modifier.padding(10.dp).align(Alignment.Center),
-                                color = tacitText,
+                                color = MaterialTheme.tacit.text,
                             )
                         }
                     }
@@ -266,8 +263,8 @@ private fun AutocompleteSuggestions(
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 6.dp)
             .clip(TacitShapes.card)
-            .background(tacitSurfaceAlt)
-            .border(1.dp, tacitBorder, TacitShapes.card)
+            .background(MaterialTheme.tacit.surfaceAlt)
+            .border(1.dp, MaterialTheme.tacit.border, TacitShapes.card)
             .padding(horizontal = 6.dp, vertical = 6.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
@@ -276,7 +273,7 @@ private fun AutocompleteSuggestions(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(
-                        if (index == selectedIndex) tacitAccent(0.22f)
+                        if (index == selectedIndex) MaterialTheme.tacit.accent(0.22f)
                         else Color.Transparent,
                         TacitShapes.compact,
                     )
@@ -295,13 +292,13 @@ private fun AutocompleteSuggestions(
                     Text(
                         text = suggestion.title,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = tacitText,
+                        color = MaterialTheme.tacit.text,
                     )
                     suggestion.subtitle?.let { subtitle ->
                         Text(
                             text = subtitle,
                             style = MaterialTheme.typography.bodySmall,
-                            color = tacitText,
+                            color = MaterialTheme.tacit.text,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                         )

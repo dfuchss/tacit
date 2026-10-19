@@ -174,8 +174,8 @@ private fun RowScope.ToolbarSearchField(
             .weight(1f)
             .defaultMinSize(minWidth = 150.dp)
             .clip(TacitShapes.control)
-            .background(if (searchHovered) tacitSurfaceAlt else tacitSurface)
-            .border(1.dp, tacitBorder, TacitShapes.control)
+            .background(if (searchHovered) MaterialTheme.tacit.surfaceAlt else MaterialTheme.tacit.surface)
+            .border(1.dp, MaterialTheme.tacit.border, TacitShapes.control)
             .pointerMoveFilter(
                 onEnter = {
                     searchHovered = true
@@ -194,8 +194,8 @@ private fun RowScope.ToolbarSearchField(
             onValueChange = onSearchTextChange,
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
-            textStyle = MaterialTheme.typography.bodySmall.copy(color = tacitText),
-            cursorBrush = SolidColor(accentColor),
+            textStyle = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.tacit.text),
+            cursorBrush = SolidColor(MaterialTheme.tacit.accent),
             decorationBox = { innerTextField ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
@@ -205,7 +205,7 @@ private fun RowScope.ToolbarSearchField(
                         if (searchText.text.isBlank()) {
                             Text(
                                 placeholder,
-                                color = tacitTextMuted,
+                                color = MaterialTheme.tacit.textMuted,
                                 style = MaterialTheme.typography.bodySmall,
                             )
                         }
@@ -216,7 +216,7 @@ private fun RowScope.ToolbarSearchField(
                         Icon(
                             Icons.Default.Close,
                             contentDescription = clearSearchLabel,
-                            tint = tacitTextMuted,
+                            tint = MaterialTheme.tacit.textMuted,
                             modifier = Modifier
                                 .size(16.dp)
                                 .clickable(
@@ -263,20 +263,20 @@ private fun ToolbarIconButton(
     var hovered by remember { mutableStateOf(false) }
     val interactionSource = remember { MutableInteractionSource() }
     val background = when {
-        !enabled -> tacitSurface
-        primary && hovered -> accentColor
-        primary -> tacitAccent(0.25f)
-        hovered -> tacitSurfaceAlt
-        else -> tacitSurface
+        !enabled -> MaterialTheme.tacit.surface
+        primary && hovered -> MaterialTheme.tacit.accent
+        primary -> MaterialTheme.tacit.accent(0.25f)
+        hovered -> MaterialTheme.tacit.surfaceAlt
+        else -> MaterialTheme.tacit.surface
     }
     val borderColor = when {
-        !enabled -> tacitBorder
-        primary -> accentColor
-        else -> tacitBorder
+        !enabled -> MaterialTheme.tacit.border
+        primary -> MaterialTheme.tacit.accent
+        else -> MaterialTheme.tacit.border
     }
     val iconTint = when {
-        !enabled -> tacitTextMuted
-        else -> tacitText
+        !enabled -> MaterialTheme.tacit.textMuted
+        else -> MaterialTheme.tacit.text
     }
 
     Box(

@@ -61,7 +61,7 @@ internal fun BrowseChannelsDialog(
                     Text(
                         i18n.tacitNoDiscoverableRooms(),
                         style = MaterialTheme.typography.bodySmall,
-                        color = tacitTextMuted,
+                        color = MaterialTheme.tacit.textMuted,
                     )
                 } else {
                     LazyColumn(
@@ -76,8 +76,8 @@ internal fun BrowseChannelsDialog(
                                     .fillMaxWidth()
                                     .padding(0.dp),
                                 shape = TacitShapes.card,
-                                backgroundColor = tacitSurface,
-                                borderColor = tacitBorder.copy(alpha = 0.7f),
+                                backgroundColor = MaterialTheme.tacit.surface,
+                                borderColor = MaterialTheme.tacit.border.copy(alpha = 0.7f),
                                 contentPadding = PaddingValues(horizontal = 10.dp, vertical = 9.dp),
                             ) {
                                 Row(
@@ -87,21 +87,21 @@ internal fun BrowseChannelsDialog(
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
                                             text = channel.displayName,
-                                            color = tacitText,
+                                            color = MaterialTheme.tacit.text,
                                             style = MaterialTheme.typography.bodyMedium,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis,
                                         )
                                         Text(
                                             text = channel.status.toDisplayText(i18n),
-                                            color = tacitTextMuted,
+                                            color = MaterialTheme.tacit.textMuted,
                                             style = MaterialTheme.typography.bodySmall,
                                         )
                                     }
                                     if (channel.isJoined) {
-                                        StatusChip(i18n.tacitJoined(), accentColor)
+                                        StatusChip(i18n.tacitJoined(), MaterialTheme.tacit.accent)
                                     } else if (!channel.isJoinable) {
-                                        StatusChip(channel.status.toDisplayText(i18n).uppercase(), tacitTextMuted)
+                                        StatusChip(channel.status.toDisplayText(i18n).uppercase(), MaterialTheme.tacit.textMuted)
                                     } else {
                                         ThemedButton(
                                             style = MaterialTheme.components.primaryButton,
@@ -147,8 +147,8 @@ private fun StatusChip(
     Box(
         modifier = Modifier
             .clip(TacitShapes.pill)
-            .background(tacitSurfaceAlt)
-            .border(1.dp, tacitBorder.copy(alpha = 0.55f), TacitShapes.pill)
+            .background(MaterialTheme.tacit.surfaceAlt)
+            .border(1.dp, MaterialTheme.tacit.border.copy(alpha = 0.55f), TacitShapes.pill)
             .padding(horizontal = 8.dp, vertical = 3.dp),
         contentAlignment = Alignment.Center,
     ) {

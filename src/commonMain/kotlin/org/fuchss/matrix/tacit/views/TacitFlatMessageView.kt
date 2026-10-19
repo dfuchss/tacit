@@ -160,20 +160,21 @@ private fun TacitFlatMessageContainer(
         // own solid mention border is switched off in the theme (`mentionBorder`). The send states
         // keep priority, and so does upstream's rule that one's own messages are never highlighted.
         val hasMentionGlow = isMentioned && !isOwnMessage && !uiState.hasSendError && !uiState.isSending
+        val mentionGlowColor = MaterialTheme.tacit.accent
         val rowHighlightColor = when {
-            uiState.hasSendError -> tacitErrorBg
-            uiState.isSending -> tacitWarningBg
-            !isRowActive -> tacitSurfaceAlt.copy(alpha = 0.3f)
-            isOwnMessage -> tacitSurfaceAlt.copy(alpha = 0.88f)
-            else -> tacitSurfaceAlt.copy(alpha = 0.78f)
+            uiState.hasSendError -> MaterialTheme.tacit.errorBg
+            uiState.isSending -> MaterialTheme.tacit.warningBg
+            !isRowActive -> MaterialTheme.tacit.surfaceAlt.copy(alpha = 0.3f)
+            isOwnMessage -> MaterialTheme.tacit.surfaceAlt.copy(alpha = 0.88f)
+            else -> MaterialTheme.tacit.surfaceAlt.copy(alpha = 0.78f)
         }
         val rowBorderColor = when {
-            uiState.hasSendError -> tacitErrorBorder
-            uiState.isSending -> tacitWarningBorder
-            hasMentionGlow -> accentColor.copy(alpha = if (isRowActive) 0.55f else 0.35f)
-            !isRowActive -> tacitBorder.copy(alpha = 0.25f)
-            isOwnMessage -> accentColor.copy(alpha = 0.56f)
-            else -> tacitBorder.copy(alpha = 0.9f)
+            uiState.hasSendError -> MaterialTheme.tacit.errorBorder
+            uiState.isSending -> MaterialTheme.tacit.warningBorder
+            hasMentionGlow -> MaterialTheme.tacit.accent.copy(alpha = if (isRowActive) 0.55f else 0.35f)
+            !isRowActive -> MaterialTheme.tacit.border.copy(alpha = 0.25f)
+            isOwnMessage -> MaterialTheme.tacit.accent.copy(alpha = 0.56f)
+            else -> MaterialTheme.tacit.border.copy(alpha = 0.9f)
         }
         // Consecutive messages of the same sender are pulled together and lose the card's inner
         // breathing room; a sender change or a long pause (showBigGap) opens the group up again.
@@ -191,7 +192,7 @@ private fun TacitFlatMessageContainer(
         val jumpTint =
             if (wasJumpTarget) {
                 val tint by animateColorAsState(
-                    targetValue = if (isJumpTarget) accentColor.copy(alpha = 0.18f) else Color.Transparent,
+                    targetValue = if (isJumpTarget) MaterialTheme.tacit.accent.copy(alpha = 0.18f) else Color.Transparent,
                     animationSpec = tween(durationMillis = if (isJumpTarget) 150 else 700),
                 )
                 if (!isJumpTarget && tint.alpha == 0f) wasJumpTarget = false
@@ -213,15 +214,15 @@ private fun TacitFlatMessageContainer(
                     .padding(horizontal = rowSidePadding)
                     .fillMaxWidth()
                     .graphicsLayer { clip = false }
-                    .drawBehind { if (hasMentionGlow) drawMentionGlow() }
+                    .drawBehind { if (hasMentionGlow) drawMentionGlow(mentionGlowColor) }
                     .clip(TacitShapes.card)
                     .background(rowHighlightColor, TacitShapes.card)
                     .then(
-                        if (hasMentionGlow) Modifier.background(accentColor.copy(alpha = if (isRowActive) 0.12f else 0.09f), TacitShapes.card)
+                        if (hasMentionGlow) Modifier.background(MaterialTheme.tacit.accent.copy(alpha = if (isRowActive) 0.12f else 0.09f), TacitShapes.card)
                         else Modifier
                     )
                     .then(if (wasJumpTarget) Modifier.background(jumpTint, TacitShapes.card) else Modifier)
-                    .border(1.dp, if (isJumpTarget) accentColor.copy(alpha = 0.7f) else rowBorderColor, TacitShapes.card)
+                    .border(1.dp, if (isJumpTarget) MaterialTheme.tacit.accent.copy(alpha = 0.7f) else rowBorderColor, TacitShapes.card)
                     .hoverable(hoverInteractionSource)
                     .pointerMoveFilter(
                         onEnter = {
@@ -328,7 +329,7 @@ private fun TacitFlatMessageContainer(
                         // trailing info line (edited marker + time) and the send-error text. On a
                         // failed row the muted timeline grey would bury the error, so it is lifted
                         // to the error foreground there.
-                        val labelColor = if (uiState.hasSendError) tacitErrorText else tacitTextMuted
+                        val labelColor = if (uiState.hasSendError) MaterialTheme.tacit.errorText else MaterialTheme.tacit.textMuted
                         val timelineTypography = remember(baseTypography, labelColor) {
                             baseTypography.copy(
                                 labelSmall = baseTypography.labelSmall.copy(color = labelColor),
@@ -343,7 +344,7 @@ private fun TacitFlatMessageContainer(
                             // colour for it -- which left upstream's send-error warning icon
                             // (`Icon` tints with LocalContentColor) drawing in the Material
                             // default. Pin it so the icon is actually legible on the dark row.
-                            CompositionLocalProvider(LocalContentColor provides tacitText) {
+                            CompositionLocalProvider(LocalContentColor provides MaterialTheme.tacit.text) {
                                 MessageBubbleContent(
                                     holder = holder,
                                     // Always full width: upstream then puts the time/edited/read info on a
@@ -404,8 +405,7 @@ private fun TacitFlatMessageContainer(
 }
 
 /** Feathered accent rings just outside the card; draw-only, so nothing in the layout moves. */
-private fun DrawScope.drawMentionGlow() {
-    val glowColor = accentColor
+private fun DrawScope.drawMentionGlow(glowColor: Color) {
     val ringWidth = 2.dp.toPx()
     val cardRadius = 16.dp.toPx() // TacitShapes.card
     for (ring in 1..4) {
@@ -442,7 +442,7 @@ private fun TacitUploadProgress(percent: Float?, label: String?) {
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
-                color = tacitTextMuted,
+                color = MaterialTheme.tacit.textMuted,
                 maxLines = 1,
             )
         }
@@ -554,8 +554,8 @@ private fun TacitFlatMessageHoverActions(
             Row(
                 modifier = Modifier
                     .clip(TacitShapes.control)
-                    .background(tacitSurface, TacitShapes.control)
-                    .border(1.dp, tacitBorder, TacitShapes.control)
+                    .background(MaterialTheme.tacit.surface, TacitShapes.control)
+                    .border(1.dp, MaterialTheme.tacit.border, TacitShapes.control)
                     .padding(horizontal = 6.dp, vertical = 5.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically,

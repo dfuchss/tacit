@@ -3,23 +3,22 @@ package org.fuchss.matrix.tacit.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
-import org.fuchss.matrix.tacit.tacitBorder
-import org.fuchss.matrix.tacit.tacitSurface
-import org.fuchss.matrix.tacit.tacitSurfaceAlt
+import org.fuchss.matrix.tacit.tacit
 
 @Composable
 internal fun TacitPaneSurface(
     modifier: Modifier = Modifier,
     shape: Shape = TacitShapes.pane,
     innerShape: Shape = TacitShapes.paneInner,
-    backgroundColor: Color = tacitSurface,
-    borderColor: Color = tacitBorder,
+    backgroundColor: Color = MaterialTheme.tacit.surface,
+    borderColor: Color = MaterialTheme.tacit.border,
     contentPadding: PaddingValues = PaddingValues(0.dp),
     content: @Composable BoxScope.() -> Unit,
 ) {
@@ -45,8 +44,8 @@ internal fun TacitPaneSurface(
 internal fun TacitCardSurface(
     modifier: Modifier = Modifier,
     shape: Shape = TacitShapes.card,
-    backgroundColor: Color = tacitSurfaceAlt,
-    borderColor: Color = tacitBorder,
+    backgroundColor: Color = MaterialTheme.tacit.surfaceAlt,
+    borderColor: Color = MaterialTheme.tacit.border,
     contentPadding: PaddingValues = PaddingValues(TacitSpacing.sectionPadding),
     content: @Composable BoxScope.() -> Unit,
 ) {

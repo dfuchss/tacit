@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
@@ -16,7 +17,7 @@ import de.connect2x.trixnity.messenger.compose.view.richtext.RichTextDisplay
 import de.connect2x.trixnity.messenger.util.html.HtmlNode
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.TimelineElementMention
 import kotlinx.coroutines.flow.StateFlow
-import org.fuchss.matrix.tacit.tacitTextMuted
+import org.fuchss.matrix.tacit.tacit
 
 /*
  * Upstream renders `<blockquote>` inside its internal rich text renderer (trixnity-messenger-compose-view 4.10.3,
@@ -129,7 +130,7 @@ internal fun TacitRichTextDisplay(
  */
 @Composable
 private fun TacitBlockquote(content: @Composable () -> Unit) {
-    val color = tacitTextMuted
+    val color = MaterialTheme.tacit.textMuted
     val style = LocalTextStyle.current
     Column(
         Modifier

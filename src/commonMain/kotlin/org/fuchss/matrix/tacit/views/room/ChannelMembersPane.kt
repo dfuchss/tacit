@@ -36,13 +36,13 @@ internal fun ChannelMembersPane(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(tacitSurface)
+            .background(MaterialTheme.tacit.surface)
             .padding(horizontal = 12.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text(
             text = i18n.tacitMembersTitle(roomMembers.size),
-            color = tacitText,
+            color = MaterialTheme.tacit.text,
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.SemiBold,
         )
@@ -54,7 +54,7 @@ internal fun ChannelMembersPane(
             ) {
                 Text(
                     text = i18n.tacitNoMembersToShow(),
-                    color = tacitTextMuted,
+                    color = MaterialTheme.tacit.textMuted,
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
@@ -110,8 +110,8 @@ private fun MemberRow(
             .clickable(enabled = clickable, onClick = onClick)
             .padding(0.dp),
         shape = TacitShapes.control,
-        backgroundColor = tacitSurfaceAlt,
-        borderColor = tacitBorder,
+        backgroundColor = MaterialTheme.tacit.surfaceAlt,
+        borderColor = MaterialTheme.tacit.border,
         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 9.dp),
     ) {
         Row(
@@ -128,14 +128,14 @@ private fun MemberRow(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = if (member.isSelf) i18n.tacitYouSuffix(member.displayName) else member.displayName,
-                    color = tacitText,
+                    color = MaterialTheme.tacit.text,
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = member.userId.full,
-                    color = tacitTextMuted,
+                    color = MaterialTheme.tacit.textMuted,
                     style = MaterialTheme.typography.bodySmall,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,

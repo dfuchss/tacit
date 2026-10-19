@@ -18,10 +18,7 @@ import androidx.compose.ui.unit.dp
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.TypingIndicatorView
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedUserAvatar
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.TimelineViewModel
-import org.fuchss.matrix.tacit.tacitBorder
-import org.fuchss.matrix.tacit.tacitSurface
-import org.fuchss.matrix.tacit.tacitText
-import org.fuchss.matrix.tacit.tacitTextMuted
+import org.fuchss.matrix.tacit.tacit
 import org.fuchss.matrix.tacit.ui.TacitShapes
 import org.fuchss.matrix.tacit.viewmodel.room.timeline.TacitTimelineViewModel
 import org.fuchss.matrix.tacit.views.tacitMessageRowSidePadding
@@ -48,8 +45,8 @@ class TacitTypingIndicatorView : TypingIndicatorView {
                         .fillMaxWidth()
                         .padding(start = sidePadding, end = sidePadding, top = 2.dp, bottom = 6.dp)
                         .clip(TacitShapes.card)
-                        .background(tacitSurface.copy(alpha = 0.72f))
-                        .border(1.dp, tacitBorder.copy(alpha = 0.45f), TacitShapes.card)
+                        .background(MaterialTheme.tacit.surface.copy(alpha = 0.72f))
+                        .border(1.dp, MaterialTheme.tacit.border.copy(alpha = 0.45f), TacitShapes.card)
                         .padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -66,7 +63,7 @@ class TacitTypingIndicatorView : TypingIndicatorView {
                             Text(
                                 text = "+${typingMembers.size - 3}",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = tacitTextMuted,
+                                color = MaterialTheme.tacit.textMuted,
                                 fontWeight = FontWeight.SemiBold,
                             )
                         }
@@ -74,13 +71,13 @@ class TacitTypingIndicatorView : TypingIndicatorView {
                             modifier = Modifier
                                 .size(4.dp)
                                 .clip(CircleShape)
-                                .background(tacitTextMuted.copy(alpha = 0.7f))
+                                .background(MaterialTheme.tacit.textMuted.copy(alpha = 0.7f))
                         )
                     }
                     Text(
                         text = typingText.orEmpty(),
                         style = MaterialTheme.typography.bodySmall,
-                        color = tacitText,
+                        color = MaterialTheme.tacit.text,
                     )
                 }
             }

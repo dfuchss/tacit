@@ -13,32 +13,32 @@ internal object TacitThemeBundle {
     val defaultAccentColor: Color
         get() = tacitDefaultAccent
 
-    fun decorateComponents(base: ComponentStyles): ComponentStyles {
+    fun decorateComponents(base: ComponentStyles, tokens: TacitTokens): ComponentStyles {
         val commonBanner = base.commonBanner.copy(
-            color = tacitSurfaceAlt,
-            contentColor = tacitText,
-            border = BorderStroke(1.dp, tacitBorder),
-            focusedBorder = BorderStroke(1.dp, tacitBorder),
+            color = tokens.surfaceAlt,
+            contentColor = tokens.text,
+            border = BorderStroke(1.dp, tokens.border),
+            focusedBorder = BorderStroke(1.dp, tokens.border),
         )
         val warningBanner = base.warningBanner.copy(
-            color = tacitWarningBg,
-            contentColor = tacitWarningText,
-            border = BorderStroke(1.dp, tacitWarningBorder),
-            focusedBorder = BorderStroke(1.dp, tacitWarningBorder),
+            color = tokens.warningBg,
+            contentColor = tokens.warningText,
+            border = BorderStroke(1.dp, tokens.warningBorder),
+            focusedBorder = BorderStroke(1.dp, tokens.warningBorder),
         )
         val errorBanner = base.errorBanner.copy(
-            color = tacitErrorBg,
-            contentColor = tacitErrorText,
-            border = BorderStroke(1.dp, tacitErrorBorder),
-            focusedBorder = BorderStroke(1.dp, tacitErrorBorder),
+            color = tokens.errorBg,
+            contentColor = tokens.errorText,
+            border = BorderStroke(1.dp, tokens.errorBorder),
+            focusedBorder = BorderStroke(1.dp, tokens.errorBorder),
         )
         val dropdownMenu = base.dropdownMenu.copy(
             shape = TacitShapes.card,
-            color = tacitSurfaceAlt,
+            color = tokens.surfaceAlt,
             tonalElevation = 2.dp,
             shadowElevation = 8.dp,
-            border = BorderStroke(1.dp, tacitBorder),
-            focusedBorder = BorderStroke(1.dp, accentColor),
+            border = BorderStroke(1.dp, tokens.border),
+            focusedBorder = BorderStroke(1.dp, tokens.accent),
             contentPadding = PaddingValues(vertical = 4.dp),
         )
         val dropdownMenuItem = base.dropdownMenuItem.copy(
@@ -52,54 +52,55 @@ internal object TacitThemeBundle {
             dropdownMenu = dropdownMenu,
             dropdownMenuItem = dropdownMenuItem,
             messageBubbleError = base.messageBubbleError.copy(
-                color = tacitErrorBg,
-                contentColor = tacitErrorText,
+                color = tokens.errorBg,
+                contentColor = tokens.errorText,
             ),
         )
     }
 
     fun createTacitColorScheme(accentColor: Color): ColorScheme {
-        updateTacitAccentColor(accentColor)
-        val onAccent = tacitOnAccent(accentColor)
-        val accentSoft = tacitAccent(0.22f)
-        val accentSoftStrong = tacitAccent(0.35f)
+        val tokens = TacitTokens.fromAccent(accentColor)
+        // `primary` & co. use the raw accent; the soft containers use the hue-derived token accent.
+        val onAccent = tokens.onAccent(accentColor)
+        val accentSoft = tokens.accent(0.22f)
+        val accentSoftStrong = tokens.accent(0.35f)
         return darkColorScheme(
             primary = accentColor,
             onPrimary = onAccent,
             primaryContainer = accentSoftStrong,
-            onPrimaryContainer = tacitText,
+            onPrimaryContainer = tokens.text,
             secondary = accentColor,
             onSecondary = onAccent,
             secondaryContainer = accentSoft,
-            onSecondaryContainer = tacitText,
+            onSecondaryContainer = tokens.text,
             tertiary = accentColor,
             onTertiary = onAccent,
             tertiaryContainer = accentSoft,
-            onTertiaryContainer = tacitText,
-            error = tacitError,
-            errorContainer = tacitErrorBg,
-            onError = tacitOnAccent(tacitError),
-            onErrorContainer = tacitErrorText,
-            background = tacitBackground,
-            onBackground = tacitText,
-            surface = tacitSurface,
-            onSurface = tacitText,
-            surfaceVariant = tacitSurfaceAlt,
-            onSurfaceVariant = tacitTextMuted,
-            outline = tacitBorder,
-            inverseOnSurface = tacitBackground,
-            inverseSurface = tacitText,
+            onTertiaryContainer = tokens.text,
+            error = tokens.error,
+            errorContainer = tokens.errorBg,
+            onError = tokens.onAccent(tokens.error),
+            onErrorContainer = tokens.errorText,
+            background = tokens.background,
+            onBackground = tokens.text,
+            surface = tokens.surface,
+            onSurface = tokens.text,
+            surfaceVariant = tokens.surfaceAlt,
+            onSurfaceVariant = tokens.textMuted,
+            outline = tokens.border,
+            inverseOnSurface = tokens.background,
+            inverseSurface = tokens.text,
             inversePrimary = accentColor,
             surfaceTint = accentColor,
-            outlineVariant = tacitBorder,
-            scrim = tacitBackground.copy(alpha = 0.65f),
-            surfaceDim = tacitBackground,
-            surfaceBright = tacitSurfaceAlt,
-            surfaceContainerLowest = tacitBackground,
-            surfaceContainerLow = tacitSurface,
-            surfaceContainer = tacitSurface,
-            surfaceContainerHigh = tacitSurface,
-            surfaceContainerHighest = tacitSurfaceAlt,
+            outlineVariant = tokens.border,
+            scrim = tokens.background.copy(alpha = 0.65f),
+            surfaceDim = tokens.background,
+            surfaceBright = tokens.surfaceAlt,
+            surfaceContainerLowest = tokens.background,
+            surfaceContainerLow = tokens.surface,
+            surfaceContainer = tokens.surface,
+            surfaceContainerHigh = tokens.surface,
+            surfaceContainerHighest = tokens.surfaceAlt,
         )
     }
 }

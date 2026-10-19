@@ -72,10 +72,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
-import org.fuchss.matrix.tacit.accentColor
-import org.fuchss.matrix.tacit.tacitBorder
-import org.fuchss.matrix.tacit.tacitSurfaceAlt
-import org.fuchss.matrix.tacit.tacitTextMuted
+import org.fuchss.matrix.tacit.tacit
 import org.fuchss.matrix.tacit.ui.TacitShapes
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 import kotlin.time.Duration.Companion.seconds
@@ -378,8 +375,9 @@ internal fun TacitSystemEventHolder(
 @Composable
 private fun QuietSystemEvent(holder: TimelineElementHolderViewModel, index: Int, grouped: Boolean) {
     val colorScheme = MaterialTheme.colorScheme
-    val quietScheme = remember(colorScheme) {
-        colorScheme.copy(tertiary = tacitSurfaceAlt.copy(alpha = 0.7f), onTertiary = tacitTextMuted)
+    val tokens = MaterialTheme.tacit
+    val quietScheme = remember(colorScheme, tokens) {
+        colorScheme.copy(tertiary = tokens.surfaceAlt.copy(alpha = 0.7f), onTertiary = tokens.textMuted)
     }
     MaterialTheme(colorScheme = quietScheme) {
         // The pill's tooltip only repeats its text.
@@ -419,12 +417,12 @@ private fun SystemEventGroupHeader(group: TacitSystemEventGroup, expanded: Boole
     val interactionSource = remember { MutableInteractionSource() }
     val isHovered by interactionSource.collectIsHoveredAsState()
     val isFocused by interactionSource.collectIsFocusedAsState()
-    val background by animateColorAsState(tacitSurfaceAlt.copy(alpha = if (isHovered || expanded) 0.85f else 0.45f))
+    val background by animateColorAsState(MaterialTheme.tacit.surfaceAlt.copy(alpha = if (isHovered || expanded) 0.85f else 0.45f))
     val border by animateColorAsState(
         when {
-            isFocused -> accentColor.copy(alpha = 0.8f)
-            isHovered -> tacitBorder
-            else -> tacitBorder.copy(alpha = 0.5f)
+            isFocused -> MaterialTheme.tacit.accent.copy(alpha = 0.8f)
+            isHovered -> MaterialTheme.tacit.border
+            else -> MaterialTheme.tacit.border.copy(alpha = 0.5f)
         }
     )
     val chevronRotation by animateFloatAsState(if (expanded) 180f else 0f)
@@ -452,7 +450,7 @@ private fun SystemEventGroupHeader(group: TacitSystemEventGroup, expanded: Boole
             Text(
                 text = summary,
                 style = MaterialTheme.typography.labelMedium,
-                color = tacitTextMuted,
+                color = MaterialTheme.tacit.textMuted,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f, fill = false),
@@ -461,7 +459,7 @@ private fun SystemEventGroupHeader(group: TacitSystemEventGroup, expanded: Boole
                 imageVector = Icons.Filled.ExpandMore,
                 contentDescription = null,
                 modifier = Modifier.size(16.dp).rotate(chevronRotation),
-                tint = tacitTextMuted,
+                tint = MaterialTheme.tacit.textMuted,
             )
         }
     }

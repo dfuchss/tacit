@@ -15,7 +15,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import de.connect2x.trixnity.messenger.compose.view.DI
 import de.connect2x.trixnity.messenger.compose.view.get
-import org.fuchss.matrix.tacit.tacitTextMuted
+import org.fuchss.matrix.tacit.tacit
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 
 @Composable
@@ -36,7 +36,7 @@ internal fun TacitAttributionFooter(
     ) {
         Text(
             text = i18n.tacitFooterBuiltByPrefix(),
-            color = tacitTextMuted,
+            color = MaterialTheme.tacit.textMuted,
             style = textStyle,
             maxLines = maxLines,
             overflow = overflow,
@@ -54,7 +54,7 @@ internal fun TacitAttributionFooter(
         )
         Text(
             text = i18n.tacitFooterForkedFromPrefix(),
-            color = tacitTextMuted,
+            color = MaterialTheme.tacit.textMuted,
             style = textStyle,
             maxLines = maxLines,
             overflow = overflow,
@@ -72,7 +72,7 @@ internal fun TacitAttributionFooter(
         )
         Text(
             text = i18n.tacitFooterPoweredByPrefix(),
-            color = tacitTextMuted,
+            color = MaterialTheme.tacit.textMuted,
             style = textStyle,
             maxLines = maxLines,
             overflow = overflow,

@@ -90,15 +90,15 @@ private fun MembersPaneToggleButton(
     val i18n = DI.get<TacitI18nView>()
     var hovered by remember { mutableStateOf(false) }
     val background = when {
-        active -> tacitAccent(0.2f)
-        hovered -> tacitSurfaceAlt
-        else -> tacitSurface
+        active -> MaterialTheme.tacit.accent(0.2f)
+        hovered -> MaterialTheme.tacit.surfaceAlt
+        else -> MaterialTheme.tacit.surface
     }
     val border = when {
-        active -> accentColor
-        else -> tacitBorder
+        active -> MaterialTheme.tacit.accent
+        else -> MaterialTheme.tacit.border
     }
-    val iconColor = if (active) tacitText else tacitTextMuted
+    val iconColor = if (active) MaterialTheme.tacit.text else MaterialTheme.tacit.textMuted
 
     Box(
         modifier = modifier

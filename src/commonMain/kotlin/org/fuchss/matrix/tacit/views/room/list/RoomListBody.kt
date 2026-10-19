@@ -62,7 +62,7 @@ internal fun RoomListBody(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(tacitSurface)
+            .background(MaterialTheme.tacit.surface)
     ) {
         when {
             allRoomsEmpty && mode.isDirectMessages() && canCreateNewRoomWithAccount && !searchResultsEmpty -> {
@@ -80,7 +80,7 @@ internal fun RoomListBody(
 
             searchResultsEmpty -> {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(i18n.roomListNoSearchResults(), color = tacitText)
+                    Text(i18n.roomListNoSearchResults(), color = MaterialTheme.tacit.text)
                 }
             }
 
@@ -302,13 +302,13 @@ private fun EmptyFilteredState(
         Icon(
             imageVector = emptyStateIcon,
             contentDescription = null,
-            tint = tacitTextMuted,
+            tint = MaterialTheme.tacit.textMuted,
             modifier = Modifier.size(28.dp),
         )
         Text(
             text = emptyStateText,
             style = MaterialTheme.typography.bodySmall,
-            color = tacitTextMuted,
+            color = MaterialTheme.tacit.textMuted,
             textAlign = TextAlign.Center,
         )
     }
@@ -329,7 +329,7 @@ private fun SelectedGuildInviteRow(
     ) {
         Text(
             text = roomName,
-            color = tacitText,
+            color = MaterialTheme.tacit.text,
             modifier = Modifier.weight(1f),
             maxLines = 1,
         )
@@ -366,20 +366,20 @@ private fun RoomListEmptyState(
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.Chat,
                 contentDescription = null,
-                tint = tacitTextMuted,
+                tint = MaterialTheme.tacit.textMuted,
                 modifier = Modifier.size(28.dp),
             )
             Spacer(Modifier.height(12.dp))
             Text(
                 text = title,
-                color = tacitText,
+                color = MaterialTheme.tacit.text,
                 style = MaterialTheme.typography.titleSmall,
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(6.dp))
             Text(
                 text = description,
-                color = tacitTextMuted,
+                color = MaterialTheme.tacit.textMuted,
                 style = MaterialTheme.typography.bodySmall,
                 textAlign = TextAlign.Center,
             )
@@ -400,7 +400,7 @@ private fun RoomListEmptyState(
 private fun RoomListSectionLabel(text: String) {
     Text(
         text = text,
-        color = tacitTextMuted,
+        color = MaterialTheme.tacit.textMuted,
         style = MaterialTheme.typography.labelSmall,
         fontWeight = FontWeight.Bold,
         modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
@@ -441,7 +441,7 @@ private fun CategorySectionHeader(
     ) {
         Text(
             text = title,
-            color = tacitTextMuted,
+            color = MaterialTheme.tacit.textMuted,
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
             modifier = Modifier
@@ -487,8 +487,8 @@ private fun CategoryHeaderActionButton(
         modifier = Modifier
             .size(22.dp)
             .clip(RoundedCornerShape(6.dp))
-            .background(if (enabled) tacitSurfaceAlt else tacitSurface)
-            .border(1.dp, tacitBorder, RoundedCornerShape(6.dp))
+            .background(if (enabled) MaterialTheme.tacit.surfaceAlt else MaterialTheme.tacit.surface)
+            .border(1.dp, MaterialTheme.tacit.border, RoundedCornerShape(6.dp))
             .alpha(if (enabled) 1f else 0.45f)
             .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center,
@@ -496,7 +496,7 @@ private fun CategoryHeaderActionButton(
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
-            tint = tacitTextMuted,
+            tint = MaterialTheme.tacit.textMuted,
             modifier = Modifier.size(14.dp),
         )
     }

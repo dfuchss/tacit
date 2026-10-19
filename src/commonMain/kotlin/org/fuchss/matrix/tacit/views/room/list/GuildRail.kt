@@ -95,10 +95,10 @@ internal fun GuildRail(
             .clip(TacitShapes.rail)
             .background(
                 Brush.verticalGradient(
-                    listOf(tacitBackground, tacitSurface, tacitBackground)
+                    listOf(MaterialTheme.tacit.background, MaterialTheme.tacit.surface, MaterialTheme.tacit.background)
                 )
             )
-            .border(1.dp, tacitBorder, TacitShapes.rail)
+            .border(1.dp, MaterialTheme.tacit.border, TacitShapes.rail)
             .padding(vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -224,8 +224,8 @@ private fun GuildDropHint() {
             modifier = Modifier
                 .size(46.dp)
                 .clip(CircleShape)
-                .background(tacitSurface.copy(alpha = 0.35f))
-                .border(width = 1.5.dp, color = accentColor.copy(alpha = pulseAlpha), shape = CircleShape),
+                .background(MaterialTheme.tacit.surface.copy(alpha = 0.35f))
+                .border(width = 1.5.dp, color = MaterialTheme.tacit.accent.copy(alpha = pulseAlpha), shape = CircleShape),
         )
     }
 }
@@ -243,8 +243,8 @@ private fun GuildCreateButton(onClick: () -> Unit) {
                 .padding(top = TacitSpacing.compactGap)
                 .size(guildPillSize)
                 .clip(CircleShape)
-                .background(if (hovered) tacitSurfaceAlt else tacitSurface)
-                .border(1.dp, tacitBorder, CircleShape)
+                .background(if (hovered) MaterialTheme.tacit.surfaceAlt else MaterialTheme.tacit.surface)
+                .border(1.dp, MaterialTheme.tacit.border, CircleShape)
                 .pointerMoveFilter(
                     onEnter = {
                         hovered = true
@@ -268,7 +268,7 @@ private fun GuildCreateButton(onClick: () -> Unit) {
             Icon(
                 Icons.Default.Add,
                 contentDescription = label,
-                tint = if (hovered) Color.White else accentColor
+                tint = if (hovered) Color.White else MaterialTheme.tacit.accent
             )
         }
     }
@@ -324,14 +324,14 @@ private fun GuildPill(
                     .clip(pillShape)
                     .background(
                         when {
-                            selected -> tacitAccent(0.25f)
-                            hovered -> tacitSurfaceAlt
-                            else -> tacitSurface
+                            selected -> MaterialTheme.tacit.accent(0.25f)
+                            hovered -> MaterialTheme.tacit.surfaceAlt
+                            else -> MaterialTheme.tacit.surface
                         }
                     )
                     .border(
                         width = 1.dp,
-                        color = if (selected) accentColor.copy(alpha = 0.65f) else tacitBorder.copy(alpha = 0.75f),
+                        color = if (selected) MaterialTheme.tacit.accent.copy(alpha = 0.65f) else MaterialTheme.tacit.border.copy(alpha = 0.75f),
                         shape = pillShape,
                     )
                     .pointerMoveFilter(
@@ -396,13 +396,13 @@ private fun GuildPill(
                             .padding(3.dp)
                             .size(14.dp)
                             .clip(CircleShape)
-                            .background(tacitSurface),
+                            .background(MaterialTheme.tacit.surface),
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
                             Icons.AutoMirrored.Filled.Chat,
                             contentDescription = i18n.tacitDirectMessagesDescription(),
-                            tint = tacitText,
+                            tint = MaterialTheme.tacit.text,
                             modifier = Modifier.size(9.dp),
                         )
                     }
@@ -414,7 +414,7 @@ private fun GuildPill(
                 Icon(
                     Icons.Default.DragIndicator,
                     contentDescription = null,
-                    tint = tacitTextMuted,
+                    tint = MaterialTheme.tacit.textMuted,
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .size(12.dp),
@@ -426,13 +426,13 @@ private fun GuildPill(
                         .align(Alignment.TopEnd)
                         .offset(x = 1.dp, y = (-1).dp)
                         .clip(CircleShape)
-                        .background(accentColor)
+                        .background(MaterialTheme.tacit.accent)
                         .padding(horizontal = 6.dp, vertical = 1.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
                         text = if (unreadCount > 99) "99+" else unreadCount.toString(),
-                        color = tacitOnAccent(accentColor),
+                        color = MaterialTheme.tacit.onAccent(MaterialTheme.tacit.accent),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,

@@ -34,10 +34,7 @@ import de.connect2x.trixnity.messenger.compose.view.common.modifier.focusHighlig
 import de.connect2x.trixnity.messenger.compose.view.i18n.I18nView
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedDropdownMenu
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedDropdownMenuItem
-import org.fuchss.matrix.tacit.accentColor
-import org.fuchss.matrix.tacit.tacitBorder
-import org.fuchss.matrix.tacit.tacitSurface
-import org.fuchss.matrix.tacit.tacitText
+import org.fuchss.matrix.tacit.tacit
 import org.fuchss.matrix.tacit.ui.TacitShapes
 
 internal val tacitQuickReactionShortcuts = listOf("👍", "❤️", "😂", "🎉", "🔥", "🚀", "👀", "✅", "🤔", "😮", "😢", "\u2B55")
@@ -79,7 +76,7 @@ internal fun tacitMessageActionMenuEntries(
             TacitMessageActionMenuEntry(
                 i18n.retrySendMessage(),
                 Icons.Outlined.Refresh,
-                accentColor,
+                MaterialTheme.tacit.accent,
                 onRetrySend
             )
         )
@@ -94,24 +91,24 @@ internal fun tacitMessageActionMenuEntries(
         if (canReply) add(
             TacitMessageActionMenuEntry(
                 i18n.replyMessage(),
-                Icons.AutoMirrored.Outlined.Reply, tacitText, onReply
+                Icons.AutoMirrored.Outlined.Reply, MaterialTheme.tacit.text, onReply
             )
         )
-        if (canEdit) add(TacitMessageActionMenuEntry(i18n.editMessage(), Icons.Outlined.Edit, tacitText, onEdit))
+        if (canEdit) add(TacitMessageActionMenuEntry(i18n.editMessage(), Icons.Outlined.Edit, MaterialTheme.tacit.text, onEdit))
         if (canCopy) add(
             TacitMessageActionMenuEntry(
                 i18n.commonCopy(),
                 Icons.Outlined.ContentCopy,
-                tacitText,
+                MaterialTheme.tacit.text,
                 onCopy
             )
         )
-        add(TacitMessageActionMenuEntry(i18n.infoMessage(), Icons.Outlined.Info, tacitText, onShowInfo))
+        add(TacitMessageActionMenuEntry(i18n.infoMessage(), Icons.Outlined.Info, MaterialTheme.tacit.text, onShowInfo))
         if (canReport) add(
             TacitMessageActionMenuEntry(
                 i18n.reportMessage(),
                 Icons.Outlined.Report,
-                tacitText,
+                MaterialTheme.tacit.text,
                 onReport
             )
         )
@@ -232,12 +229,12 @@ private fun TacitQuickReactionPickerButton(
         modifier = Modifier
             .size(34.dp)
             .clip(TacitShapes.compact)
-            .background(tacitSurface, TacitShapes.compact)
-            .border(1.dp, tacitBorder, TacitShapes.compact)
+            .background(MaterialTheme.tacit.surface, TacitShapes.compact)
+            .border(1.dp, MaterialTheme.tacit.border, TacitShapes.compact)
             .tacitInteractive(onClickLabel = emoji, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Text(emoji, color = tacitText)
+        Text(emoji, color = MaterialTheme.tacit.text)
     }
 }
 
@@ -252,17 +249,17 @@ internal fun TacitQuickActionButton(
     Box(
         modifier = Modifier
             .clip(TacitShapes.compact)
-            .background(tacitSurface, TacitShapes.compact)
-            .border(1.dp, tacitBorder, TacitShapes.compact)
+            .background(MaterialTheme.tacit.surface, TacitShapes.compact)
+            .border(1.dp, MaterialTheme.tacit.border, TacitShapes.compact)
             .tacitInteractive(onClickLabel = description, onClick = onClick)
             // unchanged: keeps the button at its current visual size
             .padding(horizontal = 7.dp, vertical = 3.dp),
         contentAlignment = Alignment.Center,
     ) {
         if (icon != null) {
-            Icon(icon, contentDescription = description, tint = tacitText)
+            Icon(icon, contentDescription = description, tint = MaterialTheme.tacit.text)
         } else {
-            Text(label ?: "?", color = tacitText)
+            Text(label ?: "?", color = MaterialTheme.tacit.text)
         }
     }
 }
@@ -278,7 +275,7 @@ internal fun TacitQuickActionButton(
 private fun Modifier.tacitInteractive(onClickLabel: String? = null, onClick: () -> Unit): Modifier {
     val interactionSource = remember { MutableInteractionSource() }
     return this
-        .focusHighlighting(interactionSource, color = accentColor, shape = TacitShapes.compact)
+        .focusHighlighting(interactionSource, color = MaterialTheme.tacit.accent, shape = TacitShapes.compact)
         .buttonPointerModifier()
         .clickable(
             interactionSource = interactionSource,

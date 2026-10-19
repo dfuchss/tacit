@@ -10,10 +10,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import org.fuchss.matrix.tacit.tacitSurface
-import org.fuchss.matrix.tacit.tacitSurfaceAlt
-import org.fuchss.matrix.tacit.tacitText
-import org.fuchss.matrix.tacit.tacitTextMuted
+import org.fuchss.matrix.tacit.tacit
 import org.fuchss.matrix.tacit.viewmodel.room.list.entry.GuildEntry
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 
@@ -35,7 +32,7 @@ internal fun GuildHero(
             .fillMaxWidth()
             .background(
                 Brush.horizontalGradient(
-                    listOf(tacitSurface, tacitSurfaceAlt, tacitSurface)
+                    listOf(MaterialTheme.tacit.surface, MaterialTheme.tacit.surfaceAlt, MaterialTheme.tacit.surface)
                 )
             )
             .padding(horizontal = 14.dp, vertical = 12.dp)
@@ -44,7 +41,7 @@ internal fun GuildHero(
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
-                color = tacitText,
+                color = MaterialTheme.tacit.text,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -53,7 +50,7 @@ internal fun GuildHero(
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
-                color = tacitTextMuted,
+                color = MaterialTheme.tacit.textMuted,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )

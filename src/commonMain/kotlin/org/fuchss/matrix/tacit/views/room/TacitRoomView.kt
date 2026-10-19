@@ -25,9 +25,7 @@ import de.connect2x.trixnity.messenger.viewmodel.util.toFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import org.fuchss.matrix.tacit.TacitRoomNavigationState
-import org.fuchss.matrix.tacit.tacitBackground
-import org.fuchss.matrix.tacit.tacitSurface
-import org.fuchss.matrix.tacit.tacitTextMuted
+import org.fuchss.matrix.tacit.tacit
 import org.fuchss.matrix.tacit.ui.TacitPaneSurface
 import org.fuchss.matrix.tacit.ui.TacitShapes
 import org.fuchss.matrix.tacit.ui.TacitSpacing
@@ -54,7 +52,7 @@ class TacitRoomView : RoomView {
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
-                .background(tacitBackground)
+                .background(MaterialTheme.tacit.background)
                 .padding(TacitSpacing.appPadding)
         ) {
             val isSinglePane = this@BoxWithConstraints.maxWidth < roomExtrasTwoPaneThreshold
@@ -188,13 +186,13 @@ private fun TimelinePane(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(tacitSurface)
+                .background(MaterialTheme.tacit.surface)
                 .padding(24.dp),
             contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = i18n.tacitSelectChannelHint(),
-                color = tacitTextMuted,
+                color = MaterialTheme.tacit.textMuted,
                 style = MaterialTheme.typography.bodyMedium,
             )
         }

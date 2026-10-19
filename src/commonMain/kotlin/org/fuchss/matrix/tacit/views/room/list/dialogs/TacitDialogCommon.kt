@@ -32,10 +32,10 @@ internal fun TacitDialogHeroCard(
             .clip(TacitShapes.section)
             .background(
                 Brush.horizontalGradient(
-                    listOf(tacitSurface, tacitSurfaceAlt, tacitSurface)
+                    listOf(MaterialTheme.tacit.surface, MaterialTheme.tacit.surfaceAlt, MaterialTheme.tacit.surface)
                 )
             )
-            .border(1.dp, tacitBorder.copy(alpha = 0.8f), TacitShapes.section)
+            .border(1.dp, MaterialTheme.tacit.border.copy(alpha = 0.8f), TacitShapes.section)
             .padding(horizontal = 14.dp, vertical = 12.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -43,13 +43,13 @@ internal fun TacitDialogHeroCard(
                 Text(
                     text = it,
                     style = MaterialTheme.typography.labelMedium,
-                    color = tacitTextMuted,
+                    color = MaterialTheme.tacit.textMuted,
                 )
             }
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodyMedium,
-                color = tacitText,
+                color = MaterialTheme.tacit.text,
             )
         }
     }
@@ -64,8 +64,8 @@ internal fun TacitDialogSearchResultsContainer(
         modifier = modifier
             .fillMaxWidth()
             .clip(TacitShapes.card)
-            .background(tacitSurface)
-            .border(1.dp, tacitBorder, TacitShapes.card)
+            .background(MaterialTheme.tacit.surface)
+            .border(1.dp, MaterialTheme.tacit.border, TacitShapes.card)
             .padding(horizontal = 6.dp, vertical = 6.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
         content = content,
@@ -85,8 +85,8 @@ internal fun TacitUserDirectoryRow(
             .clickable(onClick = onClick)
             .padding(0.dp),
         shape = TacitShapes.compact,
-        backgroundColor = tacitSurface,
-        borderColor = if (selected) accentColor.copy(alpha = 0.65f) else tacitBorder.copy(alpha = 0.55f),
+        backgroundColor = MaterialTheme.tacit.surface,
+        borderColor = if (selected) MaterialTheme.tacit.accent.copy(alpha = 0.65f) else MaterialTheme.tacit.border.copy(alpha = 0.55f),
         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 7.dp),
     ) {
         Row(
@@ -112,7 +112,7 @@ internal fun TacitUserDirectoryRow(
                 Text(
                     text = user.userId,
                     style = MaterialTheme.typography.bodySmall,
-                    color = tacitTextMuted,
+                    color = MaterialTheme.tacit.textMuted,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )

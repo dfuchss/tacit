@@ -14,7 +14,7 @@ import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.theme.components
 import de.connect2x.trixnity.messenger.compose.view.theme.components.*
 import kotlinx.coroutines.delay
-import org.fuchss.matrix.tacit.tacitTextMuted
+import org.fuchss.matrix.tacit.tacit
 import org.fuchss.matrix.tacit.viewmodel.util.UserDirectoryEntry
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 import org.fuchss.matrix.tacit.views.room.list.dialogs.TacitDialogHeroCard
@@ -84,7 +84,7 @@ internal fun InviteToGuildDialog(
                             Text(
                                 i18n.tacitSearchingUsers(),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = tacitTextMuted,
+                                color = MaterialTheme.tacit.textMuted,
                             )
                         }
 

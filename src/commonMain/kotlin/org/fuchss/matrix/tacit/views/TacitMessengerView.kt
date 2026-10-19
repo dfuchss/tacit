@@ -6,6 +6,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.*
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,7 +29,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import org.fuchss.matrix.tacit.settings.readTacitRoomListWidthDp
 import org.fuchss.matrix.tacit.settings.writeTacitRoomListWidthDp
-import org.fuchss.matrix.tacit.tacitBorder
+import org.fuchss.matrix.tacit.tacit
 import org.fuchss.matrix.tacit.ui.TacitShapes
 import org.fuchss.matrix.tacit.ui.TacitSpacing
 
@@ -188,12 +189,12 @@ class TacitMessengerView : MessengerView {
                             .fillMaxHeight()
                             .padding(vertical = 18.dp)
                             .width(1.dp)
-                            .background(tacitBorder.copy(alpha = 0.22f), TacitShapes.pill)
+                            .background(MaterialTheme.tacit.border.copy(alpha = 0.22f), TacitShapes.pill)
                     )
                     Box(
                         modifier = Modifier
                             .size(width = 5.dp, height = 44.dp)
-                            .background(tacitBorder.copy(alpha = 0.68f), TacitShapes.pill)
+                            .background(MaterialTheme.tacit.border.copy(alpha = 0.68f), TacitShapes.pill)
                     )
                 }
 

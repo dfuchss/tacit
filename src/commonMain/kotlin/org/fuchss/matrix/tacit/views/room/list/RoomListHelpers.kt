@@ -1,6 +1,7 @@
 package org.fuchss.matrix.tacit.views.room.list
 
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -8,8 +9,8 @@ import androidx.compose.ui.graphics.Shape
 import de.connect2x.trixnity.core.model.events.m.Presence
 import de.connect2x.trixnity.messenger.compose.view.buttonPointerModifier
 import de.connect2x.trixnity.messenger.compose.view.common.modifier.focusHighlighting
-import org.fuchss.matrix.tacit.accentColor
-import org.fuchss.matrix.tacit.tacitText
+import org.fuchss.matrix.tacit.TacitTokens
+import org.fuchss.matrix.tacit.tacit
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 
 internal fun dmInitials(name: String): String {
@@ -21,8 +22,8 @@ internal fun dmInitials(name: String): String {
     }
 }
 
-internal fun dmPresenceColor(presence: Presence?): Color = when (presence) {
-    Presence.ONLINE -> accentColor
+internal fun dmPresenceColor(presence: Presence?, tokens: TacitTokens): Color = when (presence) {
+    Presence.ONLINE -> tokens.accent
     else -> Color.Transparent
 }
 
@@ -49,7 +50,7 @@ internal fun Modifier.tacitInteractive(
     interactionSource: MutableInteractionSource,
     shape: Shape,
     enabled: Boolean = true,
-    focusColor: Color = tacitText,
+    focusColor: Color = MaterialTheme.tacit.text,
 ): Modifier = this
     .focusHighlighting(interactionSource, color = focusColor, shape = shape)
     .buttonPointerModifier(enabled)

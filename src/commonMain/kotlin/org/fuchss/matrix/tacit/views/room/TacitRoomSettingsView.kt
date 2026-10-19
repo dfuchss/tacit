@@ -116,7 +116,7 @@ private fun DmRoomSettings(
             Text(
                 text = i18n.tacitDirectMessageSettingsInfo(),
                 style = MaterialTheme.typography.bodySmall,
-                color = tacitTextMuted,
+                color = MaterialTheme.tacit.textMuted,
             )
 
             RoomSettingsNotifications(roomSettingsViewModel.roomSettingsNotificationsViewModel)
@@ -126,7 +126,7 @@ private fun DmRoomSettings(
                 onOpenVerification = roomSettingsViewModel::openDmVerification,
             )
 
-            HorizontalDivider(color = tacitBorder)
+            HorizontalDivider(color = MaterialTheme.tacit.border)
             LeaveRoomSections(
                 roomSettingsViewModel = roomSettingsViewModel,
                 leaveWarningOpen = leaveWarningOpen,
@@ -180,7 +180,7 @@ private fun RoomIdentityAndSecuritySections(
     if (showRoomAliasSettings) RoomSettingsAlias(roomAliasViewModel)
 
     if (joinRule == JoinRulesEventContent.JoinRule.Public) {
-        HorizontalDivider(color = tacitBorder)
+        HorizontalDivider(color = MaterialTheme.tacit.border)
         RoomSettingsSecurity(roomSettingsViewModel.roomSettingsSecurityViewModel)
     }
 }
@@ -199,27 +199,27 @@ private fun ColumnScope.CommonRoomSections(
     )
 
     if (includeNotifications) {
-        HorizontalDivider(color = tacitBorder)
+        HorizontalDivider(color = MaterialTheme.tacit.border)
         RoomSettingsNotifications(roomSettingsViewModel.roomSettingsNotificationsViewModel)
     }
     if (includeHistoryVisibility) {
-        HorizontalDivider(color = tacitBorder)
+        HorizontalDivider(color = MaterialTheme.tacit.border)
         RoomSettingsHistoryVisibility(roomSettingsViewModel)
     }
 
     if (roomSettingsViewModel is TacitRoomSettingsViewModel) {
         val isSpaceRoom = roomSettingsViewModel.isSpaceRoom.collectAsState().value
         if (!isSpaceRoom) {
-            HorizontalDivider(color = tacitBorder)
+            HorizontalDivider(color = MaterialTheme.tacit.border)
             RoomCategoryAssignmentSection(roomSettingsViewModel)
         }
     }
 
-    HorizontalDivider(color = tacitBorder)
+    HorizontalDivider(color = MaterialTheme.tacit.border)
     RoomSettingsJoinRules(roomSettingsViewModel)
-    HorizontalDivider(color = tacitBorder)
+    HorizontalDivider(color = MaterialTheme.tacit.border)
     RoomSettingsMemberList(roomSettingsViewModel)
-    HorizontalDivider(color = tacitBorder)
+    HorizontalDivider(color = MaterialTheme.tacit.border)
     RoomSettingsPowerlevel(roomSettingsViewModel)
     RoomSettingsExportRoom(roomSettingsViewModel)
     LeaveRoomSections(
@@ -251,12 +251,12 @@ private fun RoomCategoryAssignmentSection(
         Text(
             text = i18n.tacitMoveToCategoryLabel(),
             style = MaterialTheme.typography.titleMedium,
-            color = tacitText,
+            color = MaterialTheme.tacit.text,
         )
         Text(
             text = i18n.tacitCurrentCategoryLabel(currentCategoryName),
             style = MaterialTheme.typography.bodySmall,
-            color = tacitTextMuted,
+            color = MaterialTheme.tacit.textMuted,
         )
 
         Box {
@@ -375,8 +375,8 @@ private fun GuildSettingsContent(
         showScrollbar = true,
         columnModifier = Modifier
             .clip(TacitShapes.card)
-            .background(tacitSurfaceAlt.copy(alpha = 0.25f), TacitShapes.card)
-            .border(1.dp, tacitBorder.copy(alpha = 0.45f), TacitShapes.card),
+            .background(MaterialTheme.tacit.surfaceAlt.copy(alpha = 0.25f), TacitShapes.card)
+            .border(1.dp, MaterialTheme.tacit.border.copy(alpha = 0.45f), TacitShapes.card),
     ) {
         CommonRoomSections(
             roomSettingsViewModel = roomSettingsViewModel,
@@ -430,10 +430,10 @@ private fun GuildSettings(
     val leaveWarningOpen = roomSettingsViewModel.leaveRoomWarningOpen.collectAsState().value
     val joinRule = roomSettingsViewModel.roomSettingsJoinRulesViewModel.joinRule.collectAsState().value
     val scroll = rememberScrollState()
-    val warningAccent = tacitWarningBorder
-    val warningContainer = tacitWarningBg
+    val warningAccent = MaterialTheme.tacit.warningBorder
+    val warningContainer = MaterialTheme.tacit.warningBg
 
-    Box(Modifier.fillMaxSize().background(tacitSurface)) {
+    Box(Modifier.fillMaxSize().background(MaterialTheme.tacit.surface)) {
         Column {
             TacitCardSurface(
                 modifier = Modifier
@@ -449,7 +449,7 @@ private fun GuildSettings(
                     Text(
                         text = if (isCategorySettings == true) i18n.tacitCategorySettingsTitle() else i18n.tacitGuildSettingsTitle(),
                         style = MaterialTheme.typography.titleMedium,
-                        color = tacitText,
+                        color = MaterialTheme.tacit.text,
                     )
                     Spacer(Modifier.weight(1f))
                     WarningSettingsDevInfoAction(
@@ -486,19 +486,19 @@ private fun DmUserVerificationSection(
         Text(
             text = i18n.tacitUserProfileTitle(),
             style = MaterialTheme.typography.titleMedium,
-            color = tacitText,
+            color = MaterialTheme.tacit.text,
         )
         Text(
             text = i18n.tacitUserProfileDescription(),
             style = MaterialTheme.typography.bodySmall,
-            color = tacitTextMuted,
+            color = MaterialTheme.tacit.textMuted,
         )
 
         if (entries.isEmpty()) {
             Text(
                 text = i18n.tacitNoDmContactForProfile(),
                 style = MaterialTheme.typography.bodySmall,
-                color = tacitTextMuted,
+                color = MaterialTheme.tacit.textMuted,
             )
             return@Column
         }
@@ -512,8 +512,8 @@ private fun DmUserVerificationSection(
                     .clickable { onOpenVerification(entry.userId) }
                     .padding(0.dp),
                 shape = TacitShapes.card,
-                backgroundColor = tacitSurfaceAlt,
-                borderColor = tacitBorder,
+                backgroundColor = MaterialTheme.tacit.surfaceAlt,
+                borderColor = MaterialTheme.tacit.border,
                 contentPadding = PaddingValues(horizontal = 10.dp, vertical = 10.dp),
             ) {
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -527,13 +527,13 @@ private fun DmUserVerificationSection(
                         Text(
                             text = entry.displayName,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = tacitText,
+                            color = MaterialTheme.tacit.text,
                             fontWeight = FontWeight.SemiBold,
                         )
                         Text(
                             text = statusText,
                             style = MaterialTheme.typography.bodySmall,
-                            color = tacitTextMuted,
+                            color = MaterialTheme.tacit.textMuted,
                         )
                     }
                 }

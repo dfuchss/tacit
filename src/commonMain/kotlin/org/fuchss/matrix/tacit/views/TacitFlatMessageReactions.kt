@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -58,13 +59,13 @@ private fun TacitReactionChip(
             modifier = Modifier
                 .clip(TacitShapes.compact)
                 .background(
-                    if (selected) accentColor.copy(alpha = 0.35f).compositeOver(tacitSurfaceAlt)
-                    else tacitSurfaceAlt,
+                    if (selected) MaterialTheme.tacit.accent.copy(alpha = 0.35f).compositeOver(MaterialTheme.tacit.surfaceAlt)
+                    else MaterialTheme.tacit.surfaceAlt,
                     TacitShapes.compact,
                 )
                 .border(
                     1.dp,
-                    if (selected) accentColor else tacitBorder.copy(alpha = 0.65f).compositeOver(tacitSurfaceAlt),
+                    if (selected) MaterialTheme.tacit.accent else MaterialTheme.tacit.border.copy(alpha = 0.65f).compositeOver(MaterialTheme.tacit.surfaceAlt),
                     TacitShapes.compact,
                 )
                 .clickable(onClick = onClick)
@@ -77,11 +78,11 @@ private fun TacitReactionChip(
             ) {
                 Text(
                     text = reaction,
-                    color = if (selected) accentColor else tacitText,
+                    color = if (selected) MaterialTheme.tacit.accent else MaterialTheme.tacit.text,
                 )
                 Text(
                     text = count.toString(),
-                    color = if (selected) accentColor else tacitTextMuted,
+                    color = if (selected) MaterialTheme.tacit.accent else MaterialTheme.tacit.textMuted,
                 )
             }
         }

@@ -57,10 +57,7 @@ import de.connect2x.trixnity.messenger.viewmodel.room.timeline.InputAreaViewMode
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.TimelineElementHolderViewModel
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.TimelineElementViewModel
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.message.RoomMessageTimelineElementViewModel
-import org.fuchss.matrix.tacit.accentColor
-import org.fuchss.matrix.tacit.tacitSurfaceAlt
-import org.fuchss.matrix.tacit.tacitText
-import org.fuchss.matrix.tacit.tacitTextMuted
+import org.fuchss.matrix.tacit.tacit
 import org.fuchss.matrix.tacit.ui.TacitShapes
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 import kotlin.time.TimeMark
@@ -115,7 +112,7 @@ internal const val TacitQuoteBorderAlpha = 0.16f
 
 @Composable
 private fun replySenderColor(sender: UserInfoElement?): Color =
-    sender?.let { MaterialTheme.messengerColors.getUserColor(it.userId, tacitSurfaceAlt) } ?: tacitTextMuted
+    sender?.let { MaterialTheme.messengerColors.getUserColor(it.userId, MaterialTheme.tacit.surfaceAlt) } ?: MaterialTheme.tacit.textMuted
 
 /**
  * Tacit's quote card, shared by reply quotes, the composer's reply bar and formatted blockquotes: a compact
@@ -160,7 +157,7 @@ internal class TacitReferencedMessagePillView : ReferencedMessagePillView {
     ) {
         if (LocalTacitReplyInComposer.current) {
             Box(modifier) {
-                CompositionLocalProvider(LocalContentColor provides tacitText.copy(alpha = 0.82f)) { content() }
+                CompositionLocalProvider(LocalContentColor provides MaterialTheme.tacit.text.copy(alpha = 0.82f)) { content() }
             }
             return
         }
@@ -172,7 +169,7 @@ internal class TacitReferencedMessagePillView : ReferencedMessagePillView {
         val backgroundColor by animateColorAsState(senderColor.copy(alpha = if (isHovered) 0.18f else TacitQuoteTintAlpha))
         val borderColor by animateColorAsState(
             when {
-                isFocused -> accentColor.copy(alpha = 0.8f)
+                isFocused -> MaterialTheme.tacit.accent.copy(alpha = 0.8f)
                 isHovered -> senderColor.copy(alpha = 0.42f)
                 else -> senderColor.copy(alpha = TacitQuoteBorderAlpha)
             }
@@ -226,7 +223,7 @@ internal class TacitReferencedMessagePillView : ReferencedMessagePillView {
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            CompositionLocalProvider(LocalContentColor provides tacitText.copy(alpha = 0.82f)) { content() }
+            CompositionLocalProvider(LocalContentColor provides MaterialTheme.tacit.text.copy(alpha = 0.82f)) { content() }
         }
     }
 }
@@ -297,7 +294,7 @@ private fun ColumnScope.TacitReplyToArea(inputAreaViewModel: InputAreaViewModel)
                 imageVector = Icons.AutoMirrored.Filled.Reply,
                 contentDescription = i18n.replyTo(),
                 modifier = Modifier.size(18.dp),
-                tint = accentColor,
+                tint = MaterialTheme.tacit.accent,
             )
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
@@ -308,7 +305,7 @@ private fun ColumnScope.TacitReplyToArea(inputAreaViewModel: InputAreaViewModel)
                         }
                     },
                     style = MaterialTheme.typography.labelMedium,
-                    color = tacitTextMuted,
+                    color = MaterialTheme.tacit.textMuted,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -325,7 +322,7 @@ private fun ColumnScope.TacitReplyToArea(inputAreaViewModel: InputAreaViewModel)
                         imageVector = Icons.Filled.Close,
                         contentDescription = i18n.replyToCancel(),
                         modifier = Modifier.size(18.dp),
-                        tint = tacitTextMuted,
+                        tint = MaterialTheme.tacit.textMuted,
                     )
                 }
             }

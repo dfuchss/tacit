@@ -73,11 +73,11 @@ internal fun ChannelRow(
     val interactionSource = remember { MutableInteractionSource() }
     val highlighted = hovered || rowFocused
     val showReadToggle = highlighted && !showInviteActions
-    val itemSelectedBackground = tacitAccent(0.35f)
-    val itemHoverBackground = tacitSurfaceAlt
-    val itemUnreadBackground = tacitSurfaceAlt
-    val badgeBackground = accentColor
-    val badgeContent = tacitOnAccent(accentColor)
+    val itemSelectedBackground = MaterialTheme.tacit.accent(0.35f)
+    val itemHoverBackground = MaterialTheme.tacit.surfaceAlt
+    val itemUnreadBackground = MaterialTheme.tacit.surfaceAlt
+    val badgeBackground = MaterialTheme.tacit.accent
+    val badgeContent = MaterialTheme.tacit.onAccent(MaterialTheme.tacit.accent)
     val inviteActionInProgress = if (showInviteActions) {
         room.rejectInvitationInProgress.collectAsState().value
     } else {
@@ -100,8 +100,8 @@ internal fun ChannelRow(
             .border(
                 1.dp,
                 when {
-                    selected -> accentColor.copy(alpha = 0.7f)
-                    highlighted -> tacitBorder
+                    selected -> MaterialTheme.tacit.accent.copy(alpha = 0.7f)
+                    highlighted -> MaterialTheme.tacit.border
                     else -> Color.Transparent
                 },
                 TacitShapes.card,
@@ -146,10 +146,10 @@ internal fun ChannelRow(
                             modifier = Modifier
                                 .size(36.dp)
                                 .clip(CircleShape)
-                                .background(dmPresenceColor(presence).copy(alpha = 0.18f))
+                                .background(dmPresenceColor(presence, MaterialTheme.tacit).copy(alpha = 0.18f))
                                 .border(
                                     width = 1.5.dp,
-                                    color = dmPresenceColor(presence).copy(alpha = if (selected) 0.95f else 0.72f),
+                                    color = dmPresenceColor(presence, MaterialTheme.tacit).copy(alpha = if (selected) 0.95f else 0.72f),
                                     shape = CircleShape,
                                 )
                                 // The ring is the only presence cue; without this it is colour-only
@@ -209,7 +209,7 @@ internal fun ChannelRow(
                     if (!time.isNullOrBlank()) {
                         Text(
                             text = time,
-                            color = if (selected) tacitText else tacitTextMuted,
+                            color = if (selected) MaterialTheme.tacit.text else MaterialTheme.tacit.textMuted,
                             style = MaterialTheme.typography.labelSmall,
                             modifier = Modifier
                                 .padding(end = 6.dp)
@@ -262,7 +262,7 @@ private fun ChannelRowText(
         Text(
             text = channelTitle,
             style = MaterialTheme.typography.bodyMedium,
-            color = if (selected) Color.White else tacitText,
+            color = if (selected) Color.White else MaterialTheme.tacit.text,
             maxLines = titleMaxLines,
             overflow = TextOverflow.Ellipsis,
             fontWeight = if (isUnread && !selected) FontWeight.SemiBold else FontWeight.Normal,
@@ -271,7 +271,7 @@ private fun ChannelRowText(
             Text(
                 text = lastMessage,
                 style = MaterialTheme.typography.bodySmall,
-                color = if (selected) tacitText else tacitTextMuted,
+                color = if (selected) MaterialTheme.tacit.text else MaterialTheme.tacit.textMuted,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -322,15 +322,15 @@ private fun InviteActionButton(
     primary: Boolean,
 ) {
     val contentPadding = PaddingValues(horizontal = 12.dp, vertical = 2.dp)
-    val focusedBorder = BorderStroke(2.dp, tacitText)
+    val focusedBorder = BorderStroke(2.dp, MaterialTheme.tacit.text)
     val style = if (primary) {
         ButtonStyle.filled(
             shape = TacitShapes.compact,
             colors = ButtonDefaults.buttonColors(
-                containerColor = accentColor,
-                contentColor = tacitOnAccent(),
-                disabledContainerColor = tacitSurfaceAlt,
-                disabledContentColor = tacitTextMuted,
+                containerColor = MaterialTheme.tacit.accent,
+                contentColor = MaterialTheme.tacit.onAccent(),
+                disabledContainerColor = MaterialTheme.tacit.surfaceAlt,
+                disabledContentColor = MaterialTheme.tacit.textMuted,
             ),
             elevation = null,
             contentPadding = contentPadding,
@@ -341,11 +341,11 @@ private fun InviteActionButton(
         ButtonStyle.outlined(
             shape = TacitShapes.compact,
             colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = tacitText,
-                disabledContentColor = tacitTextMuted,
+                contentColor = MaterialTheme.tacit.text,
+                disabledContentColor = MaterialTheme.tacit.textMuted,
             ),
-            enabledBorder = BorderStroke(1.dp, tacitBorder),
-            disabledBorder = BorderStroke(1.dp, tacitBorder),
+            enabledBorder = BorderStroke(1.dp, MaterialTheme.tacit.border),
+            disabledBorder = BorderStroke(1.dp, MaterialTheme.tacit.border),
             contentPadding = contentPadding,
             textStyle = MaterialTheme.typography.labelMedium,
             focusedBorder = focusedBorder,
@@ -405,7 +405,7 @@ private fun TrailingRoomIndicator(
                 modifier = Modifier
                     .size(8.dp)
                     .clip(CircleShape)
-                    .background(if (selected) tacitText else Color.White)
+                    .background(if (selected) MaterialTheme.tacit.text else Color.White)
             )
         } else {
             Spacer(Modifier.width(1.dp))
@@ -421,9 +421,9 @@ private fun ReadToggleButton(
 ) {
     var hovered by remember { mutableStateOf(false) }
     val interactionSource = remember { MutableInteractionSource() }
-    val background = if (hovered) tacitSurfaceAlt else tacitSurface
-    val borderColor = tacitBorder
-    val iconTint = if (isUnread) accentColor else tacitText
+    val background = if (hovered) MaterialTheme.tacit.surfaceAlt else MaterialTheme.tacit.surface
+    val borderColor = MaterialTheme.tacit.border
+    val iconTint = if (isUnread) MaterialTheme.tacit.accent else MaterialTheme.tacit.text
     val icon = if (isUnread) Icons.Default.MarkChatRead else Icons.Default.MarkAsUnread
 
     Box(
@@ -476,7 +476,7 @@ internal fun DmOverview(
         modifier = Modifier
             .fillMaxWidth()
             .clip(TacitShapes.card)
-            .background(tacitSurfaceAlt)
+            .background(MaterialTheme.tacit.surfaceAlt)
             .padding(10.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -485,7 +485,7 @@ internal fun DmOverview(
                 title = i18n.tacitDmStatChats(),
                 value = rooms.size.toString(),
                 modifier = Modifier.weight(1f),
-                valueColor = tacitText,
+                valueColor = MaterialTheme.tacit.text,
                 selected = selectedFilter == DmFilter.ALL,
                 onClick = { onFilterChange(DmFilter.ALL) },
             )
@@ -493,7 +493,7 @@ internal fun DmOverview(
                 title = i18n.tacitDmStatOnline(),
                 value = online.toString(),
                 modifier = Modifier.weight(1f),
-                valueColor = accentColor,
+                valueColor = MaterialTheme.tacit.accent,
                 selected = selectedFilter == DmFilter.ONLINE,
                 onClick = { onFilterChange(DmFilter.ONLINE) },
             )
@@ -501,7 +501,7 @@ internal fun DmOverview(
                 title = i18n.tacitDmStatUnread(),
                 value = unread.toString(),
                 modifier = Modifier.weight(1f),
-                valueColor = accentColor,
+                valueColor = MaterialTheme.tacit.accent,
                 selected = selectedFilter == DmFilter.UNREAD,
                 onClick = { onFilterChange(DmFilter.UNREAD) },
             )
@@ -528,10 +528,10 @@ private fun DmStatTile(
     Column(
         modifier = modifier
             .clip(TacitShapes.control)
-            .background(if (selected) tacitAccent(0.25f) else tacitSurface)
+            .background(if (selected) MaterialTheme.tacit.accent(0.25f) else MaterialTheme.tacit.surface)
             .border(
                 width = 1.dp,
-                color = if (selected) accentColor else tacitBorder,
+                color = if (selected) MaterialTheme.tacit.accent else MaterialTheme.tacit.border,
                 shape = TacitShapes.control,
             )
             .clickable(
@@ -547,7 +547,7 @@ private fun DmStatTile(
         Text(
             text = title.uppercase(),
             style = MaterialTheme.typography.labelSmall,
-            color = tacitTextMuted,
+            color = MaterialTheme.tacit.textMuted,
         )
         Text(
             text = value,

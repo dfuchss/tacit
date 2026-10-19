@@ -333,7 +333,7 @@ private fun RoomListContent(
     Row(
         modifier = Modifier
             .fillMaxSize()
-            .background(tacitBackground)
+            .background(MaterialTheme.tacit.background)
             .padding(TacitSpacing.appPadding)
     ) {
         GuildRail(
@@ -396,7 +396,7 @@ private fun RoomListContent(
                     errorType = errorType,
                     onDismissError = onDismissError,
                 )
-                HorizontalDivider(color = tacitBorder)
+                HorizontalDivider(color = MaterialTheme.tacit.border)
 
                 RoomListBody(
                     roomListViewModel = roomListViewModel,
@@ -439,20 +439,20 @@ private fun OfflineWarningBanner(
             .padding(horizontal = 12.dp, vertical = 8.dp)
             .fillMaxWidth()
             .clip(TacitShapes.compact)
-            .background(tacitWarningBg)
-            .border(1.dp, tacitWarningBorder, TacitShapes.compact)
+            .background(MaterialTheme.tacit.warningBg)
+            .border(1.dp, MaterialTheme.tacit.warningBorder, TacitShapes.compact)
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Text(
             text = title,
             style = MaterialTheme.typography.titleSmall,
-            color = tacitWarningText,
+            color = MaterialTheme.tacit.warningText,
         )
         Text(
             text = description,
             style = MaterialTheme.typography.bodySmall,
-            color = tacitWarningText,
+            color = MaterialTheme.tacit.warningText,
         )
     }
 }
@@ -470,13 +470,13 @@ private fun RoomListErrors(
                 .padding(horizontal = 12.dp, vertical = 8.dp)
                 .fillMaxWidth(),
             shape = TacitShapes.compact,
-            backgroundColor = tacitErrorBg,
-            borderColor = tacitErrorBorder,
+            backgroundColor = MaterialTheme.tacit.errorBg,
+            borderColor = MaterialTheme.tacit.errorBorder,
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
         ) {
             Text(
                 text = error,
-                color = tacitErrorText,
+                color = MaterialTheme.tacit.errorText,
                 style = MaterialTheme.typography.bodySmall,
                 maxLines = 3,
             )
