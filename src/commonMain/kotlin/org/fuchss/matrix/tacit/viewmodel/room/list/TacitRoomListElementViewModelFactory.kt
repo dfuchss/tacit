@@ -6,7 +6,7 @@ import de.connect2x.trixnity.core.model.events.m.room.CreateEventContent.RoomTyp
 import de.connect2x.trixnity.messenger.viewmodel.MatrixClientViewModelContext
 import de.connect2x.trixnity.messenger.viewmodel.roomlist.RoomListElementViewModel
 import de.connect2x.trixnity.messenger.viewmodel.roomlist.RoomListElementViewModelFactory
-import kotlinx.coroutines.flow.SharingStarted.Companion.WhileSubscribed
+import org.fuchss.matrix.tacit.viewmodel.util.tacitWhileSubscribed
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
@@ -59,7 +59,7 @@ private class TacitRoomListElementViewModelImpl(
 
     private val isSpaceByRoomState: StateFlow<Boolean?> = matrixClient.room.getById(roomId)
         .map { room -> room?.createEventContent?.type == RoomType.Space }
-        .stateIn(coroutineScope, WhileSubscribed(), null)
+        .stateIn(coroutineScope, tacitWhileSubscribed, null)
 
     override val roomType: StateFlow<TacitRoomType> =
         combine(delegate.isLoaded, delegate.isDirect, isSpaceByRoomState) {
@@ -74,19 +74,19 @@ private class TacitRoomListElementViewModelImpl(
                 isDirect == false -> TacitRoomType.GROUP_CHANNEL
                 else -> TacitRoomType.UNKNOWN
             }
-        }.stateIn(coroutineScope, WhileSubscribed(), TacitRoomType.UNKNOWN)
+        }.stateIn(coroutineScope, tacitWhileSubscribed, TacitRoomType.UNKNOWN)
 
     override val isSpaceRoom: StateFlow<Boolean> = roomType
         .map { it == TacitRoomType.SPACE }
-        .stateIn(coroutineScope, WhileSubscribed(), false)
+        .stateIn(coroutineScope, tacitWhileSubscribed, false)
 
     override val isGroupRoom: StateFlow<Boolean> = roomType
         .map { it == TacitRoomType.GROUP_CHANNEL }
-        .stateIn(coroutineScope, WhileSubscribed(), false)
+        .stateIn(coroutineScope, tacitWhileSubscribed, false)
 
     override val isDirectRoom: StateFlow<Boolean> = roomType
         .map { it == TacitRoomType.DIRECT_MESSAGE }
-        .stateIn(coroutineScope, WhileSubscribed(), false)
+        .stateIn(coroutineScope, tacitWhileSubscribed, false)
 
     // trixnity's isUnread only compares the receipt with the last *relevant* event, while the notification count
     // (and the global/tray count built from it) also includes events after it. Treat leftover notifications as
@@ -95,5 +95,5 @@ private class TacitRoomListElementViewModelImpl(
         combine(delegate.isUnread, delegate.notificationCount) { isUnread, notificationCount ->
             if (isUnread == null && notificationCount == null) null
             else isUnread == true || !notificationCount.isNullOrBlank()
-        }.stateIn(coroutineScope, WhileSubscribed(), null)
+        }.stateIn(coroutineScope, tacitWhileSubscribed, null)
 }

@@ -11,7 +11,7 @@ import de.connect2x.trixnity.messenger.viewmodel.roomlist.RoomListViewModelFacto
 import de.connect2x.trixnity.messenger.viewmodel.util.ErrorType
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.flow.SharingStarted.Companion.WhileSubscribed
+import org.fuchss.matrix.tacit.viewmodel.util.tacitWhileSubscribed
 import kotlinx.coroutines.launch
 import org.fuchss.matrix.tacit.viewmodel.i18n.TacitI18n
 import org.fuchss.matrix.tacit.viewmodel.room.TacitRoomSettingsMode
@@ -113,7 +113,7 @@ private class TacitRoomListViewModelImpl(
     private val spaceSettingsRequests = get<TacitSpaceSettingsRequests>()
 
     private fun <T> Flow<T>.stateInScope(initialValue: T): StateFlow<T> =
-        stateIn(coroutineScope, WhileSubscribed(), initialValue)
+        stateIn(coroutineScope, tacitWhileSubscribed, initialValue)
 
     // ---- accounts and selection ----
 

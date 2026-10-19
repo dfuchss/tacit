@@ -12,7 +12,7 @@ import de.connect2x.trixnity.messenger.viewmodel.room.settings.RoomSettingsViewM
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.OpenMentionCallback
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.flow.SharingStarted.Companion.WhileSubscribed
+import org.fuchss.matrix.tacit.viewmodel.util.tacitWhileSubscribed
 import org.fuchss.matrix.tacit.viewmodel.i18n.TacitI18n
 import org.fuchss.matrix.tacit.viewmodel.space.TacitSpaceHierarchy
 import org.fuchss.matrix.tacit.viewmodel.space.isSpace
@@ -72,15 +72,15 @@ private class TacitRoomSettingsViewModelImpl(
 
     override val isSpaceRoom: StateFlow<Boolean> = matrixClient.room.getById(selectedRoomId)
         .map { room -> room?.isSpace == true }
-        .stateIn(coroutineScope, WhileSubscribed(), false)
+        .stateIn(coroutineScope, tacitWhileSubscribed, false)
 
     private val guildRoomId: StateFlow<RoomId?> = spaceHierarchy.guildOf(matrixClient, selectedRoomId)
-        .stateIn(coroutineScope, WhileSubscribed(), null)
+        .stateIn(coroutineScope, tacitWhileSubscribed, null)
 
     override val isGuildSpace: StateFlow<Boolean> = combine(isSpaceRoom, guildRoomId) { isSpace, guildId ->
         isSpace && (guildId == selectedRoomId || guildId == null)
     }
-        .stateIn(coroutineScope, WhileSubscribed(), false)
+        .stateIn(coroutineScope, tacitWhileSubscribed, false)
 
     /** The guild's categories (except this room itself) with their children. */
     private val categoryChildrenByRoomId: StateFlow<Map<RoomId, Set<RoomId>>> = guildRoomId
@@ -88,13 +88,13 @@ private class TacitRoomSettingsViewModelImpl(
             if (guildId == null) flowOf(emptyMap())
             else spaceHierarchy.guildLayout(matrixClient, guildId).map { layout -> layout.categories - selectedRoomId }
         }
-        .stateIn(coroutineScope, WhileSubscribed(), emptyMap())
+        .stateIn(coroutineScope, tacitWhileSubscribed, emptyMap())
 
     override val currentCategoryRoomId: StateFlow<RoomId?> = categoryChildrenByRoomId
         .map { categoryChildren ->
             categoryChildren.entries.firstOrNull { (_, childRoomIds) -> childRoomIds.contains(selectedRoomId) }?.key
         }
-        .stateIn(coroutineScope, WhileSubscribed(), null)
+        .stateIn(coroutineScope, tacitWhileSubscribed, null)
 
     override val categoryTargets: StateFlow<List<TacitRoomCategoryTarget>> =
         combine(guildRoomId, categoryChildrenByRoomId.map { it.keys }.distinctUntilChanged()) { guildId, categories ->
@@ -112,12 +112,12 @@ private class TacitRoomSettingsViewModelImpl(
                     }
                     .sortedBy { it.displayName.lowercase() }
             }
-            .stateIn(coroutineScope, WhileSubscribed(), emptyList())
+            .stateIn(coroutineScope, tacitWhileSubscribed, emptyList())
 
     private val moveToCategoryError = MutableStateFlow<String?>(null)
     override val error: StateFlow<String?> = combine(delegate.error, moveToCategoryError) { delegateError, localError ->
         localError ?: delegateError
-    }.stateIn(coroutineScope, WhileSubscribed(), delegate.error.value)
+    }.stateIn(coroutineScope, tacitWhileSubscribed, delegate.error.value)
 
     private val _moveToCategoryInProgress = MutableStateFlow(false)
     override val moveToCategoryInProgress: StateFlow<Boolean> = _moveToCategoryInProgress
@@ -144,7 +144,7 @@ private class TacitRoomSettingsViewModelImpl(
                     entries.toList().sortedBy { it.displayName.lowercase() }
                 }
             }
-            .stateIn(coroutineScope, WhileSubscribed(), emptyList())
+            .stateIn(coroutineScope, tacitWhileSubscribed, emptyList())
 
     override fun openDmVerification(userId: UserId) {
         delegate.openUserProfile(userId)
