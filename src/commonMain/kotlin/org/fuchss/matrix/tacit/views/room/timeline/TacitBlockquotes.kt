@@ -44,7 +44,7 @@ private val transparentWrapperTags = setOf("#root", "html", "body", "div")
 private val invisibleTags = setOf("mx-reply", "head")
 
 private fun HtmlNode.isBlank(): Boolean = when (this) {
-    is HtmlNode.TextContent -> content.isBlank()
+    is HtmlNode.TextContent -> isBlankText()
     is HtmlNode.HtmlElement -> tag in invisibleTags
 }
 
@@ -64,7 +64,7 @@ private fun trimmedRoot(children: List<HtmlNode>): HtmlNode.HtmlElement? {
 internal fun splitTacitBlockquotes(document: HtmlNode.HtmlElement): List<TacitRichTextSegment>? {
     var container = document
     while (true) {
-        val single = container.children.filterNot { it.isBlank() }.singleOrNull() as? HtmlNode.HtmlElement
+        val single = container.soleElementChild { it.isBlank() }
         if (single == null || single.tag !in transparentWrapperTags) break
         container = single
     }

@@ -46,20 +46,16 @@ internal data class TacitStandaloneSpoiler(
 private val standaloneSpoilerWrapperTags = setOf("#root", "html", "body", "div", "p")
 
 internal fun extractStandaloneSpoiler(document: HtmlNode.HtmlElement): TacitStandaloneSpoiler? {
-    val normalizedChildren = document.children.filterNotBlankTextNodes()
     return when (document.tag) {
         "span" if document.attributes.containsKey("data-mx-spoiler") ->
             TacitStandaloneSpoiler(document.attributes["data-mx-spoiler"]?.ifBlank { null })
 
-        in standaloneSpoilerWrapperTags if normalizedChildren.size == 1 ->
-            (normalizedChildren.single() as? HtmlNode.HtmlElement)?.let(::extractStandaloneSpoiler)
+        in standaloneSpoilerWrapperTags ->
+            document.soleElementChild(HtmlNode::isBlankText)?.let(::extractStandaloneSpoiler)
 
         else -> null
     }
 }
-
-private fun List<HtmlNode>.filterNotBlankTextNodes(): List<HtmlNode> =
-    filterNot { node -> node is HtmlNode.TextContent && node.content.isBlank() }
 
 internal abstract class TacitDelegatingTextTimelineElementView<T : RoomMessageTimelineElementViewModel.TextBased<*>>(
     delegate: TimelineElementView<T>,
