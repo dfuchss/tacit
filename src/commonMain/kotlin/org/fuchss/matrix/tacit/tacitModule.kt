@@ -28,6 +28,7 @@ import de.connect2x.trixnity.messenger.compose.view.roomlist.header.ShowSearchVi
 import de.connect2x.trixnity.messenger.compose.view.root.MainView
 import de.connect2x.trixnity.messenger.compose.view.root.MessengerView
 import de.connect2x.trixnity.messenger.compose.view.settings.*
+import de.connect2x.trixnity.messenger.viewmodel.room.RoomViewModelFactory
 import de.connect2x.trixnity.messenger.viewmodel.room.settings.ChangeRoomAvatarViewModelFactory
 import de.connect2x.trixnity.messenger.viewmodel.room.settings.RoomSettingsViewModelFactory
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.InputAreaViewModelFactory
@@ -38,6 +39,8 @@ import de.connect2x.trixnity.messenger.viewmodel.settings.AppearanceSettingsView
 import de.connect2x.trixnity.messenger.viewmodel.settings.UserSettingsViewModelFactory
 import org.fuchss.matrix.tacit.notification.TacitAppleNotificationCleaner
 import org.fuchss.matrix.tacit.viewmodel.i18n.TacitI18n
+import org.fuchss.matrix.tacit.viewmodel.room.TacitRoomViewModelFactory
+import org.fuchss.matrix.tacit.viewmodel.room.TacitSpaceSettingsRequests
 import org.fuchss.matrix.tacit.viewmodel.room.list.TacitRoomListElementViewModelFactory
 import org.fuchss.matrix.tacit.viewmodel.room.list.TacitRoomListViewModelFactory
 import org.fuchss.matrix.tacit.viewmodel.room.settings.TacitChangeRoomAvatarViewModelFactory
@@ -133,4 +136,6 @@ fun tacitViewModelModule() = module {
     single { TacitAppleNotificationCleaner(get(), get()) }.bind<Worker>()
     single<RoomSettingsViewModelFactory> { TacitRoomSettingsViewModelFactory }
     single<ChangeRoomAvatarViewModelFactory> { TacitChangeRoomAvatarViewModelFactory }
+    single<RoomViewModelFactory> { TacitRoomViewModelFactory }
+    single { TacitSpaceSettingsRequests() }
 }

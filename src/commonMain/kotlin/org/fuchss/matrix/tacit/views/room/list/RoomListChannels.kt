@@ -47,6 +47,7 @@ import org.fuchss.matrix.tacit.ui.TacitShapes
 import org.fuchss.matrix.tacit.viewmodel.room.list.RoomListMode
 import org.fuchss.matrix.tacit.viewmodel.room.list.TacitRoomListElementViewModel
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
+import org.fuchss.matrix.tacit.views.room.LocalTacitMembersPane
 
 @Composable
 internal fun ChannelRow(
@@ -70,6 +71,7 @@ internal fun ChannelRow(
     val presence = room.presence.collectAsState().value
     val lastMessage = room.lastMessage.collectAsState().value
     val time = room.time.collectAsState().value
+    val membersPane = LocalTacitMembersPane.current
     val hoverSource = remember { MutableInteractionSource() }
     val hovered by hoverSource.collectIsHoveredAsState()
     // `hasFocus` covers the row itself and every focusable inside it (e.g. the read toggle), so the
@@ -119,7 +121,7 @@ internal fun ChannelRow(
                 role = Role.Button,
             ) {
                 if (mode is RoomListMode.DirectMessages) {
-                    TacitRoomNavigationState.showMembersPane = false
+                    membersPane.hide()
                 }
                 roomListViewModel.selectRoom(room.roomId)
             }

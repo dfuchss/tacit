@@ -44,6 +44,7 @@ class TacitRoomHeaderView(
     ) {
         val isDirectChat = roomHeaderViewModel.isDirectChat.collectAsState().value
         val showMembersButton = !isDirectChat && !showBackButton
+        val membersPane = LocalTacitMembersPane.current
         // The delegate draws the header bar only over its own (weighted) width, so paint an identical
         // surface behind the whole row to let the bar span under the members button as well.
         val headerStyle = MaterialTheme.components.header
@@ -71,10 +72,8 @@ class TacitRoomHeaderView(
                     }
                     if (showMembersButton) {
                         MembersPaneToggleButton(
-                            active = TacitRoomNavigationState.showMembersPane,
-                            onClick = {
-                                TacitRoomNavigationState.showMembersPane = !TacitRoomNavigationState.showMembersPane
-                            },
+                            active = membersPane.visible,
+                            onClick = membersPane::toggle,
                             modifier = Modifier.padding(start = 8.dp, end = 14.dp),
                         )
                     }

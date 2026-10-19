@@ -49,7 +49,7 @@ internal object TacitRoomSettingsViewModelFactory : RoomSettingsViewModelFactory
             onOpenPowerLevel = onOpenPowerLevel,
             onOpenMention = onOpenMention,
         )
-        return TacitRoomSettingsViewModelImpl(delegate, viewModelContext, selectedRoomId)
+        return TacitRoomSettingsViewModelImpl(delegate, viewModelContext, selectedRoomId, onCloseRoom)
     }
 }
 
@@ -58,11 +58,17 @@ private class TacitRoomSettingsViewModelImpl(
     private val delegate: RoomSettingsViewModel,
     viewModelContext: MatrixClientViewModelContext,
     private val selectedRoomId: RoomId,
+    private val onCloseRoom: () -> Unit,
 ) : TacitRoomSettingsViewModel,
     RoomSettingsViewModel by delegate,
     MatrixClientViewModelContext by viewModelContext {
 
     private val tacitI18n = get<TacitI18n>()
+
+    override fun closeSettingsAndRoom() {
+        delegate.close()
+        onCloseRoom()
+    }
 
     private val parentRoomIds: StateFlow<List<Pair<RoomId, Boolean>>> = matrixClient.room
         .getAllState(selectedRoomId, ParentEventContent::class)

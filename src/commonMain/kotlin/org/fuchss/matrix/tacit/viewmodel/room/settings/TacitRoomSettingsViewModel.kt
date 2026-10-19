@@ -14,6 +14,9 @@ internal interface TacitRoomSettingsViewModel : RoomSettingsViewModel {
     val moveToCategoryInProgress: StateFlow<Boolean>
     fun openDmVerification(userId: UserId)
     fun moveRoomToCategory(targetCategoryRoomId: RoomId?)
+
+    /** Closes the settings pane and then the room it belongs to (used after leaving and for guild/category settings). */
+    fun closeSettingsAndRoom()
 }
 
 internal data class TacitRoomCategoryTarget(

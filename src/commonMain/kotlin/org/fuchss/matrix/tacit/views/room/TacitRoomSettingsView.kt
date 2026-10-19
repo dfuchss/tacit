@@ -32,6 +32,7 @@ import de.connect2x.trixnity.messenger.viewmodel.room.settings.RoomSettingsViewM
 import org.fuchss.matrix.tacit.*
 import org.fuchss.matrix.tacit.ui.TacitCardSurface
 import org.fuchss.matrix.tacit.ui.TacitShapes
+import org.fuchss.matrix.tacit.viewmodel.room.TacitRoomSettingsMode
 import org.fuchss.matrix.tacit.viewmodel.room.settings.TacitDmVerificationEntry
 import org.fuchss.matrix.tacit.viewmodel.room.settings.TacitDmVerificationStatus
 import org.fuchss.matrix.tacit.viewmodel.room.settings.TacitRoomSettingsViewModel
@@ -42,20 +43,15 @@ class TacitRoomSettingsView : RoomSettingsView {
     override fun create(roomSettingsViewModel: RoomSettingsViewModel, isSinglePane: Boolean) {
         val isDirect = roomSettingsViewModel.isDirect.collectAsState().value
         val isLeave = roomSettingsViewModel.isLeave.collectAsState().value
-        val roomId = roomSettingsViewModel.roomId.full
-        val isSpaceSettingsOpen = TacitRoomNavigationState.suppressBackButtonForRoomId == roomId
-        val closeSettings = {
-            if (isSpaceSettingsOpen) {
-                TacitRoomNavigationState.closeRoomAfterSettingsForRoomId = roomId
-            }
-            roomSettingsViewModel.close()
+        val tacitRoomSettingsViewModel = roomSettingsViewModel as? TacitRoomSettingsViewModel
+        val isSpaceSettingsOpen = LocalTacitRoomSettingsMode.current == TacitRoomSettingsMode.SPACE
+        val closeSettingsAndRoom = {
+            tacitRoomSettingsViewModel?.closeSettingsAndRoom() ?: roomSettingsViewModel.close()
         }
+        val closeSettings = if (isSpaceSettingsOpen) closeSettingsAndRoom else roomSettingsViewModel::close
 
         LaunchedEffect(isLeave) {
-            if (isLeave) {
-                TacitRoomNavigationState.closeRoomAfterSettingsForRoomId = roomId
-                closeSettings()
-            }
+            if (isLeave) closeSettingsAndRoom()
         }
 
         if (isSpaceSettingsOpen && !isDirect) {

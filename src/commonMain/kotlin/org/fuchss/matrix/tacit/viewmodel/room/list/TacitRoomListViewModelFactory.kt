@@ -19,6 +19,8 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.flow.SharingStarted.Companion.WhileSubscribed
 import kotlinx.coroutines.launch
 import org.fuchss.matrix.tacit.viewmodel.i18n.TacitI18n
+import org.fuchss.matrix.tacit.viewmodel.room.TacitRoomSettingsMode
+import org.fuchss.matrix.tacit.viewmodel.room.TacitSpaceSettingsRequests
 import org.fuchss.matrix.tacit.viewmodel.room.list.entry.GuildEntry
 import org.fuchss.matrix.tacit.viewmodel.room.list.entry.SpaceChannelEntry
 import org.fuchss.matrix.tacit.viewmodel.room.list.entry.SpaceChannelStatus
@@ -68,6 +70,9 @@ internal interface TacitRoomListViewModel : RoomListViewModel {
     fun acceptGuildInvite(guild: GuildEntry)
     fun declineGuildInvite(guild: GuildEntry)
     fun reorderGuild(fromIndex: Int, toIndex: Int)
+
+    /** Opens [spaceRoomId] (a guild or category) with its settings shown in [TacitRoomSettingsMode.SPACE]. */
+    fun openSpaceSettings(spaceRoomId: RoomId)
 }
 
 internal object TacitRoomListViewModelFactory : RoomListViewModelFactory {
@@ -741,6 +746,13 @@ private class TacitRoomListViewModelImpl(
 
     override fun selectGuild(guild: GuildEntry?) {
         _selectedGuild.update { guild }
+    }
+
+    private val spaceSettingsRequests = get<TacitSpaceSettingsRequests>()
+
+    override fun openSpaceSettings(spaceRoomId: RoomId) {
+        spaceSettingsRequests.request(spaceRoomId)
+        delegate.selectRoom(spaceRoomId)
     }
 
     private fun resolveGuildClient(guild: GuildEntry): MatrixClient? {

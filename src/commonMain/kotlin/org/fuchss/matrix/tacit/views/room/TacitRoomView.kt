@@ -9,6 +9,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import de.connect2x.trixnity.core.model.RoomId
 import de.connect2x.trixnity.messenger.compose.view.DI
 import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.room.RoomView
@@ -24,11 +25,12 @@ import de.connect2x.trixnity.messenger.viewmodel.room.timeline.TimelineRouter
 import de.connect2x.trixnity.messenger.viewmodel.util.toFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import org.fuchss.matrix.tacit.TacitRoomNavigationState
 import org.fuchss.matrix.tacit.tacit
 import org.fuchss.matrix.tacit.ui.TacitPaneSurface
 import org.fuchss.matrix.tacit.ui.TacitShapes
 import org.fuchss.matrix.tacit.ui.TacitSpacing
+import org.fuchss.matrix.tacit.viewmodel.room.TacitRoomSettingsMode
+import org.fuchss.matrix.tacit.viewmodel.room.TacitRoomViewModel
 import org.fuchss.matrix.tacit.viewmodel.room.timeline.TacitTimelineViewModel
 import org.fuchss.matrix.tacit.views.LocalTacitRoomListHidden
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
@@ -69,39 +71,14 @@ class TacitRoomView : RoomView {
                 (activeTimelineStack.active.instance as? TimelineRouter.Wrapper.View)?.viewModel
             val tacitTimelineViewModel = activeTimelineViewModel as? TacitTimelineViewModel
             val activeRoomId = activeTimelineConfig?.roomId
-            val pendingSettingsRoomId = TacitRoomNavigationState.openSettingsForRoomId
-            val pendingCloseRoomAfterSettings = TacitRoomNavigationState.closeRoomAfterSettingsForRoomId
-
-            LaunchedEffect(activeRoomId, pendingSettingsRoomId) {
-                if (pendingSettingsRoomId != null && pendingSettingsRoomId == activeRoomId) {
-                    TacitRoomNavigationState.openSettingsForRoomId = null
-                    roomViewModel.openRoomSettings()
-                }
-            }
-            // The guild/category settings layout is tied to the room it was opened for. Once another room is shown,
-            // drop the flag so that a later plain "room settings" on that space gets the normal layout again.
-            // Keyed on activeRoomId only: the flag is set just before selectRoom(), while the old room is still active.
-            LaunchedEffect(activeRoomId) {
-                val suppressedRoomId = TacitRoomNavigationState.suppressBackButtonForRoomId
-                if (activeRoomId != null && suppressedRoomId != null && suppressedRoomId != activeRoomId) {
-                    TacitRoomNavigationState.suppressBackButtonForRoomId = null
-                }
-            }
-            LaunchedEffect(activeRoomId, pendingCloseRoomAfterSettings, isExtrasShown) {
-                if (
-                    pendingCloseRoomAfterSettings != null &&
-                    pendingCloseRoomAfterSettings == activeRoomId &&
-                    !isExtrasShown
-                ) {
-                    TacitRoomNavigationState.closeRoomAfterSettingsForRoomId = null
-                    TacitRoomNavigationState.suppressBackButtonForRoomId = null
-                    roomViewModel.closeRoom()
-                }
-            }
+            val tacitRoomViewModel = roomViewModel as? TacitRoomViewModel
+            // Owned by this room's view model: a new room gets a new view model and therefore the normal layout again.
+            val settingsMode = tacitRoomViewModel?.settingsMode?.collectAsState()?.value ?: TacitRoomSettingsMode.ROOM
 
             val roomMembers = tacitTimelineViewModel?.roomMembers?.collectAsState()?.value.orEmpty()
             val scope = rememberCoroutineScope()
-            val membersPaneRequested = TacitRoomNavigationState.showMembersPane
+            val membersPane = LocalTacitMembersPane.current
+            val membersPaneRequested = membersPane.visible
             val showMembersPane =
                 membersPaneRequested && !isExtrasShown && activeRoomId != null && tacitTimelineViewModel != null
             val membersPaneWidth = if (isSinglePane) 248.dp else 272.dp
@@ -132,7 +109,9 @@ class TacitRoomView : RoomView {
                                 style = MaterialTheme.components.details,
                                 modifier = Modifier.fillMaxSize()
                             ) {
-                                ExtrasPaneContentSwitch(roomViewModel.extrasStack, isSinglePane)
+                                CompositionLocalProvider(LocalTacitRoomSettingsMode provides settingsMode) {
+                                    ExtrasPaneContentSwitch(roomViewModel.extrasStack, isSinglePane)
+                                }
                             }
                         },
                     )
@@ -150,7 +129,7 @@ class TacitRoomView : RoomView {
                                         val existingRoomId =
                                             tacitTimelineViewModel.findExistingDirectMessageRoom(member.userId)
                                         if (existingRoomId != null) {
-                                            TacitRoomNavigationState.openRoomForRoomId = existingRoomId.full
+                                            openDirectMessage(tacitRoomViewModel, membersPane, existingRoomId)
                                         } else {
                                             onNeedsConfirmation()
                                         }
@@ -159,9 +138,7 @@ class TacitRoomView : RoomView {
                                 onConfirmStartDirectMessage = { member ->
                                     scope.launch {
                                         tacitTimelineViewModel.findOrCreateDirectMessageRoom(member.userId)
-                                            ?.let { roomId ->
-                                                TacitRoomNavigationState.openRoomForRoomId = roomId.full
-                                            }
+                                            ?.let { roomId -> openDirectMessage(tacitRoomViewModel, membersPane, roomId) }
                                     }
                                 },
                             )
@@ -173,6 +150,18 @@ class TacitRoomView : RoomView {
     }
 }
 
+/** The settings mode of the room whose extras pane is being rendered; read by [TacitRoomSettingsView]. */
+internal val LocalTacitRoomSettingsMode = compositionLocalOf { TacitRoomSettingsMode.ROOM }
+
+private suspend fun openDirectMessage(
+    roomViewModel: TacitRoomViewModel?,
+    membersPane: TacitMembersPaneState,
+    roomId: RoomId,
+) {
+    if (roomViewModel == null) return
+    roomViewModel.openRoomWhenJoined(roomId)
+    membersPane.hide()
+}
 
 @Composable
 private fun TimelinePane(

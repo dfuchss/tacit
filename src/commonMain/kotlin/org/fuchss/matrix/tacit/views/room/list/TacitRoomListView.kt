@@ -61,7 +61,6 @@ class TacitRoomListView : RoomListView {
         val selectedGuildInviteFallback =
             selectedGuild?.takeIf { guild -> guild.isInvite && inviteRooms.none { it.roomId == guild.roomId } }
         val selectedRoomId = roomListViewModel.selectedRoomId.collectAsState().value
-        val pendingRoomIdToOpen = TacitRoomNavigationState.openRoomForRoomId
         val canCreateNewRoomWithAccount = roomListViewModel.canCreateNewRoomWithAccount.collectAsState().value
         val searchResultsEmpty = roomListViewModel.searchResultsEmpty.collectAsState().value
         val error = tacitRoomListViewModel.error.collectAsState().value
@@ -79,14 +78,6 @@ class TacitRoomListView : RoomListView {
         val reorderCategoriesInProgress = tacitRoomListViewModel.reorderCategoriesInProgress.collectAsState().value
         val guildInviteActionInProgress = tacitRoomListViewModel.guildInviteActionInProgress.collectAsState().value
         val syncStates = roomListViewModel.syncStates.collectAsState().value
-
-        LaunchedEffect(pendingRoomIdToOpen, tacitRooms) {
-            val pendingRoomId = pendingRoomIdToOpen ?: return@LaunchedEffect
-            val targetRoom = tacitRooms.firstOrNull { it.roomId.full == pendingRoomId } ?: return@LaunchedEffect
-            roomListViewModel.selectRoom(targetRoom.roomId)
-            TacitRoomNavigationState.openRoomForRoomId = null
-            TacitRoomNavigationState.showMembersPane = false
-        }
 
         var createGuildDialogOpen by remember { mutableStateOf(false) }
         var createChannelDialogOpen by remember { mutableStateOf(false) }
@@ -184,11 +175,7 @@ class TacitRoomListView : RoomListView {
                 inviteToGuildDialogOpen = true
             },
             onOpenGuildSettings = selectedGuild?.let { guild ->
-                {
-                    TacitRoomNavigationState.openSettingsForRoomId = guild.roomId.full
-                    TacitRoomNavigationState.suppressBackButtonForRoomId = guild.roomId.full
-                    roomListViewModel.selectRoom(guild.roomId)
-                }
+                { tacitRoomListViewModel.openSpaceSettings(guild.roomId) }
             },
             onReorderCategory = { fromIndex, toIndex ->
                 val guild = selectedGuild ?: return@RoomListContent
@@ -201,11 +188,7 @@ class TacitRoomListView : RoomListView {
                 ordered.add(toIndex, moved)
                 tacitRoomListViewModel.reorderCategories(guild, ordered)
             },
-            onOpenCategorySettings = { categoryRoomId ->
-                TacitRoomNavigationState.openSettingsForRoomId = categoryRoomId.full
-                TacitRoomNavigationState.suppressBackButtonForRoomId = categoryRoomId.full
-                roomListViewModel.selectRoom(categoryRoomId)
-            },
+            onOpenCategorySettings = tacitRoomListViewModel::openSpaceSettings,
         )
 
         CreateGuildDialogContainer(

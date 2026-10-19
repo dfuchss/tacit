@@ -33,6 +33,8 @@ import org.fuchss.matrix.tacit.settings.writeTacitRoomListWidthDp
 import org.fuchss.matrix.tacit.tacit
 import org.fuchss.matrix.tacit.ui.TacitShapes
 import org.fuchss.matrix.tacit.ui.TacitSpacing
+import org.fuchss.matrix.tacit.views.room.LocalTacitMembersPane
+import org.fuchss.matrix.tacit.views.room.TacitMembersPaneState
 
 /*
  * The room list column carries a lot of fixed chrome before a single character of a room name
@@ -96,113 +98,117 @@ class TacitMessengerView : MessengerView {
             movableContentOf { RoomSwitch(mainViewModel.roomRouterStack) }
         }
 
-        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-            val density = LocalDensity.current
-            val maxWidthPx = with(density) { maxWidth.toPx() }
-            val splitterWidthPx = with(density) { splitterWidth.toPx() }
-            val minRoomListWidthPx = with(density) { minRoomListWidth.toPx() }
-            val minRoomWidthPx = with(density) { minRoomWidth.toPx() }
-            val minTwoPaneWidthPx = minRoomListWidthPx + minRoomWidthPx + splitterWidthPx
-            val canShowTwoPanes = maxWidthPx >= minTwoPaneWidthPx
+        val membersPane = remember { TacitMembersPaneState() }
 
-            if (!canShowTwoPanes) {
-                if (isRoomShown) {
-                    CompositionLocalProvider(LocalTacitRoomListHidden provides true) {
-                        Box(modifier = Modifier.fillMaxSize()) {
-                            roomContent()
+        CompositionLocalProvider(LocalTacitMembersPane provides membersPane) {
+            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                val density = LocalDensity.current
+                val maxWidthPx = with(density) { maxWidth.toPx() }
+                val splitterWidthPx = with(density) { splitterWidth.toPx() }
+                val minRoomListWidthPx = with(density) { minRoomListWidth.toPx() }
+                val minRoomWidthPx = with(density) { minRoomWidth.toPx() }
+                val minTwoPaneWidthPx = minRoomListWidthPx + minRoomWidthPx + splitterWidthPx
+                val canShowTwoPanes = maxWidthPx >= minTwoPaneWidthPx
+
+                if (!canShowTwoPanes) {
+                    if (isRoomShown) {
+                        CompositionLocalProvider(LocalTacitRoomListHidden provides true) {
+                            Box(modifier = Modifier.fillMaxSize()) {
+                                roomContent()
+                            }
+                        }
+                    } else {
+                        CompositionLocalProvider(LocalTacitRoomListHidden provides false) {
+                            Box(modifier = Modifier.fillMaxSize()) {
+                                roomListContent()
+                            }
                         }
                     }
-                } else {
-                    CompositionLocalProvider(LocalTacitRoomListHidden provides false) {
-                        Box(modifier = Modifier.fillMaxSize()) {
-                            roomListContent()
-                        }
+                    return@BoxWithConstraints
+                }
+
+                val settings = DI.get<MatrixMessengerSettingsHolder>()
+                val scope = rememberCoroutineScope()
+
+                // The *intent*: where the user dragged the splitter to, in dp, never clamped.
+                // Keeping it unclamped is what makes dragging back from a limit react immediately
+                // instead of waiting for the cursor to "catch up" with the rendered width.
+                var roomListWidthIntentDp by remember {
+                    mutableFloatStateOf(
+                        readTacitRoomListWidthDp(settings.value) ?: defaultRoomListWidth.value
+                    )
+                }
+
+                val totalContentWidthPx = (maxWidthPx - splitterWidthPx).coerceAtLeast(1f)
+                val maxRoomListWidthPx = (totalContentWidthPx - minRoomWidthPx).coerceAtLeast(minRoomListWidthPx)
+
+                // The *rendering*: the absolute width is kept as the window is resized; it is only
+                // squeezed when the window becomes too narrow to keep the room pane above its minimum.
+                val roomListWidthDp = with(density) {
+                    roomListWidthIntentDp.dp.toPx().coerceIn(minRoomListWidthPx, maxRoomListWidthPx).toDp()
+                }
+
+                fun persistRoomListWidth() {
+                    val widthToPersist = roomListWidthDp.value
+                    scope.launch {
+                        settings.update { writeTacitRoomListWidthDp(widthToPersist) }
                     }
                 }
-                return@BoxWithConstraints
-            }
 
-            val settings = DI.get<MatrixMessengerSettingsHolder>()
-            val scope = rememberCoroutineScope()
-
-            // The *intent*: where the user dragged the splitter to, in dp, never clamped.
-            // Keeping it unclamped is what makes dragging back from a limit react immediately
-            // instead of waiting for the cursor to "catch up" with the rendered width.
-            var roomListWidthIntentDp by remember {
-                mutableFloatStateOf(
-                    readTacitRoomListWidthDp(settings.value) ?: defaultRoomListWidth.value
-                )
-            }
-
-            val totalContentWidthPx = (maxWidthPx - splitterWidthPx).coerceAtLeast(1f)
-            val maxRoomListWidthPx = (totalContentWidthPx - minRoomWidthPx).coerceAtLeast(minRoomListWidthPx)
-
-            // The *rendering*: the absolute width is kept as the window is resized; it is only
-            // squeezed when the window becomes too narrow to keep the room pane above its minimum.
-            val roomListWidthDp = with(density) {
-                roomListWidthIntentDp.dp.toPx().coerceIn(minRoomListWidthPx, maxRoomListWidthPx).toDp()
-            }
-
-            fun persistRoomListWidth() {
-                val widthToPersist = roomListWidthDp.value
-                scope.launch {
-                    settings.update { writeTacitRoomListWidthDp(widthToPersist) }
-                }
-            }
-
-            val splitterDragState = rememberDraggableState { deltaPx ->
-                // Advance the never-clamped accumulator by the raw delta. The clamp lives in
-                // roomListWidthDp only and is never written back here.
-                roomListWidthIntentDp += with(density) { deltaPx.toDp() }.value
-            }
-
-            Row(modifier = Modifier.fillMaxSize()) {
-                Box(
-                    modifier = Modifier
-                        .width(roomListWidthDp)
-                        .fillMaxHeight()
-                ) {
-                    roomListContent()
+                val splitterDragState = rememberDraggableState { deltaPx ->
+                    // Advance the never-clamped accumulator by the raw delta. The clamp lives in
+                    // roomListWidthDp only and is never written back here.
+                    roomListWidthIntentDp += with(density) { deltaPx.toDp() }.value
                 }
 
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .width(splitterWidth)
-                        .pointerHoverIcon(PointerIcon.Hand)
-                        .pointerInput(Unit) {
-                            detectTapGestures(
-                                onDoubleTap = {
-                                    roomListWidthIntentDp = defaultRoomListWidth.value
-                                    persistRoomListWidth()
-                                },
-                            )
-                        }
-                        .draggable(
-                            state = splitterDragState,
-                            orientation = Orientation.Horizontal,
-                            onDragStopped = { persistRoomListWidth() },
-                        ),
-                    contentAlignment = Alignment.Center,
-                ) {
+                Row(modifier = Modifier.fillMaxSize()) {
+                    Box(
+                        modifier = Modifier
+                            .width(roomListWidthDp)
+                            .fillMaxHeight()
+                    ) {
+                        roomListContent()
+                    }
+
                     Box(
                         modifier = Modifier
                             .fillMaxHeight()
-                            .padding(vertical = 18.dp)
-                            .width(1.dp)
-                            .background(MaterialTheme.tacit.border.copy(alpha = 0.22f), TacitShapes.pill)
-                    )
-                    Box(
-                        modifier = Modifier
-                            .size(width = 5.dp, height = 44.dp)
-                            .background(MaterialTheme.tacit.border.copy(alpha = 0.68f), TacitShapes.pill)
-                    )
-                }
+                            .width(splitterWidth)
+                            .pointerHoverIcon(PointerIcon.Hand)
+                            .pointerInput(Unit) {
+                                detectTapGestures(
+                                    onDoubleTap = {
+                                        roomListWidthIntentDp = defaultRoomListWidth.value
+                                        persistRoomListWidth()
+                                    },
+                                )
+                            }
+                            .draggable(
+                                state = splitterDragState,
+                                orientation = Orientation.Horizontal,
+                                onDragStopped = { persistRoomListWidth() },
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .padding(vertical = 18.dp)
+                                .width(1.dp)
+                                .background(MaterialTheme.tacit.border.copy(alpha = 0.22f), TacitShapes.pill)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .size(width = 5.dp, height = 44.dp)
+                                .background(MaterialTheme.tacit.border.copy(alpha = 0.68f), TacitShapes.pill)
+                        )
+                    }
 
-                CompositionLocalProvider(LocalTacitRoomListHidden provides false) {
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        if (isRoomShown) {
-                            roomContent()
+                    CompositionLocalProvider(LocalTacitRoomListHidden provides false) {
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            if (isRoomShown) {
+                                roomContent()
+                            }
                         }
                     }
                 }
