@@ -30,6 +30,8 @@ import kotlin.math.roundToInt
 class TacitWindowIcon(
     private val unreadMessages: Int,
     iconSize: Float = defaultIconSize,
+    /** Fraction of the canvas the artwork spans, centred; the rest stays transparent (macOS icon grid margin). */
+    private val artworkFraction: Float = 1f,
 ) : Painter() {
     override val intrinsicSize = Size(iconSize, iconSize)
 
@@ -39,10 +41,12 @@ class TacitWindowIcon(
         val height = size.height.roundToInt().coerceAtLeast(1)
 
         // dstSize is the whole point: it scales the 1024 px master down to the canvas instead of cropping it.
+        val artWidth = (width * artworkFraction).roundToInt().coerceAtLeast(1)
+        val artHeight = (height * artworkFraction).roundToInt().coerceAtLeast(1)
         drawImage(
             image = logo,
-            dstOffset = IntOffset.Zero,
-            dstSize = IntSize(width, height),
+            dstOffset = IntOffset((width - artWidth) / 2, (height - artHeight) / 2),
+            dstSize = IntSize(artWidth, artHeight),
             filterQuality = FilterQuality.High,
         )
 
@@ -62,6 +66,13 @@ class TacitWindowIcon(
     companion object {
         /** Matches the canvas Compose Desktop uses for window icons, so `intrinsicSize` is not misleading. */
         const val defaultIconSize = 192f
+
+        /** Apple's macOS icon grid: the artwork body is 824 of 1024 px, so full-bleed icons look oversized in the Dock. */
+        const val macArtworkFraction = 824f / 1024f
+
+        /** Artwork fraction for the current platform: inset on macOS, full-bleed on Windows/Linux. */
+        val platformArtworkFraction: Float =
+            if (System.getProperty("os.name").orEmpty().startsWith("Mac", ignoreCase = true)) macArtworkFraction else 1f
 
         private val unreadBadgeColor = Color(0xFFFF0000)
 

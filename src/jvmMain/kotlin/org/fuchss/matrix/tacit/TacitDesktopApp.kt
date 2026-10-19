@@ -392,7 +392,8 @@ private fun DesktopTaskbarIcon(unreadMessages: Int) {
         // With a native badge the OS shows the counter, so the image itself stays plain.
         val drawnUnread = if (isTaskbarBadgeSupported) 0 else unreadMessages
         taskbar.iconImage =
-            MessengerTrayIcon(drawnUnread, iconSize = 1024f).toAwtImage(
+            // Inset to Apple's icon grid on macOS (full-bleed otherwise) so the Dock icon matches other apps.
+            TacitWindowIcon(drawnUnread, iconSize = 1024f, artworkFraction = TacitWindowIcon.platformArtworkFraction).toAwtImage(
                 Density(1f),
                 LayoutDirection.Ltr,
             )
@@ -418,7 +419,7 @@ private fun TacitDesktopWindow(
     Window(
         onCloseRequest = onCloseRequest,
         // The OS badge already carries the counter, so the window icon must not add a second indicator.
-        icon = TacitWindowIcon(if (isTaskbarBadgeSupported) 0 else unreadMessages),
+        icon = TacitWindowIcon(if (isTaskbarBadgeSupported) 0 else unreadMessages, artworkFraction = TacitWindowIcon.platformArtworkFraction),
         title = title,
         state = windowState,
         onPreviewKeyEvent = { event ->
