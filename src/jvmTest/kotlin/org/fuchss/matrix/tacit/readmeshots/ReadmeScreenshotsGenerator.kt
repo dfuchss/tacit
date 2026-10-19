@@ -3,7 +3,6 @@ package org.fuchss.matrix.tacit.readmeshots
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -13,10 +12,8 @@ import org.fuchss.matrix.tacit.update.TacitUpdateCard
 import org.fuchss.matrix.tacit.update.TacitUpdateState
 import org.fuchss.matrix.tacit.viewmodel.settings.TacitMarkAllAsRead
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.SemanticsProperties
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
@@ -30,20 +27,12 @@ import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performMouseInput
-import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.performTextInput
-import androidx.compose.ui.test.SkikoComposeUiTest
-import androidx.compose.ui.unit.Density
 import de.connect2x.trixnity.core.model.RoomId
 import de.connect2x.trixnity.messenger.compose.view.Client
 import de.connect2x.trixnity.messenger.compose.view.DI
-import de.connect2x.trixnity.messenger.compose.view.EscapeKeyPressed
-import de.connect2x.trixnity.messenger.compose.view.Platform
-import de.connect2x.trixnity.messenger.compose.view.PlatformType
-import de.connect2x.trixnity.messenger.compose.view.theme.IsFocusHighlighting
 import de.connect2x.trixnity.messenger.compose.view.theme.MessengerTheme
 import de.connect2x.trixnity.messenger.viewmodel.roomlist.RoomListRouter
 import kotlinx.coroutines.CoroutineScope
@@ -65,7 +54,6 @@ import java.util.Locale
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.fail
-import kotlin.coroutines.EmptyCoroutineContext
 
 /**
  * Regenerates the README screenshots in `.images/` from scratch:
@@ -128,40 +116,25 @@ class ReadmeScreenshotsGenerator {
                 // Not runDesktopComposeUiTest(): that wrapper ignores its testTimeout and aborts the body after
                 // runTest's default 60s (CMP 1.11.1), which froze the scene mid-scenario. Instantiating the harness
                 // directly uses its own (unlimited) timeout.
-                val harness = SkikoComposeUiTest(
-                    width = ScreenshotFrame.CONTENT_WIDTH_PX,
-                    height = ScreenshotFrame.CONTENT_HEIGHT_PX,
-                    effectContext = EmptyCoroutineContext,
-                    density = Density(1f),
-                )
-                harness.runTest {
+                newScreenshotHarness().runTest {
                     val ui = Ui(this)
                     val i18n = app.messenger.di.get<TacitI18nView>()
                     mainClock.autoAdvance = false
-                    setContent {
-                        CompositionLocalProvider(LocalDensity provides Density(ScreenshotFrame.DENSITY)) {
-                            CompositionLocalProvider(
-                                Platform provides PlatformType.DESKTOP,
-                                DI provides app.messenger.di,
-                                IsFocusHighlighting provides false,
-                                EscapeKeyPressed provides escapeKeyPressed,
-                            ) {
-                                MessengerTheme {
-                                    // Same overlay as TacitDesktopApp: the update card floats over the client.
-                                    Box(Modifier.fillMaxSize()) {
-                                        Client(app.root)
-                                        val state by app.updates.state.collectAsState()
-                                        TacitUpdateCard(
-                                            i18n = i18n,
-                                            version = (state as? TacitUpdateState.ReadyToRestart)?.version,
-                                            dismissed = false,
-                                            onRestart = app.updates::restartToUpdate,
-                                            onWhatsNew = {},
-                                            onLater = {},
-                                            modifier = Modifier.align(Alignment.TopEnd).padding(top = 72.dp, end = 24.dp),
-                                        )
-                                    }
-                                }
+                    setScreenshotContent(app, escapeKeyPressed) {
+                        MessengerTheme {
+                            // Same overlay as TacitDesktopApp: the update card floats over the client.
+                            Box(Modifier.fillMaxSize()) {
+                                Client(app.root)
+                                val state by app.updates.state.collectAsState()
+                                TacitUpdateCard(
+                                    i18n = i18n,
+                                    version = (state as? TacitUpdateState.ReadyToRestart)?.version,
+                                    dismissed = false,
+                                    onRestart = app.updates::restartToUpdate,
+                                    onWhatsNew = {},
+                                    onLater = {},
+                                    modifier = Modifier.align(Alignment.TopEnd).padding(top = 72.dp, end = 24.dp),
+                                )
                             }
                         }
                     }
@@ -510,17 +483,13 @@ class ReadmeScreenshotsGenerator {
 
         /** `scrollToItem(0)` on every lazy list: the (reversed) timeline lands exactly on its newest item. */
         private fun pinListsToEnd() {
-            val lists = test.onAllNodes(hasScrollToIndexAction())
-            val nodes = lists.fetchSemanticsNodes()
-            repeat(nodes.size) { index -> runCatching { lists[index].performScrollToIndex(0) } } // empty lists throw
+            test.onAllNodes(hasScrollToIndexAction()).pinToStart()
             pump()
         }
 
         fun parkPointer() {
             runCatching {
-                test.onAllNodes(isRoot()).onFirst().performMouseInput {
-                    moveTo(Offset(60f, (ScreenshotFrame.CONTENT_HEIGHT_PX - 40).toFloat())) // the footer strip
-                }
+                test.parkPointerOnFooter()
             }.onFailure { println("SCREENSHOT settle: park pointer failed $it") }
             pump()
         }

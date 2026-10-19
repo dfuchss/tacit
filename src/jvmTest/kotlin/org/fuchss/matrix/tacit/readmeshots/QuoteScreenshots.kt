@@ -1,44 +1,11 @@
 package org.fuchss.matrix.tacit.readmeshots
 
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.ExperimentalTestApi
-import androidx.compose.ui.test.SkikoComposeUiTest
-import androidx.compose.ui.test.captureToImage
-import androidx.compose.ui.test.hasScrollToIndexAction
-import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.isRoot
-import androidx.compose.ui.test.onFirst
-import androidx.compose.ui.test.performMouseInput
-import androidx.compose.ui.test.performScrollToIndex
-import androidx.compose.ui.unit.Density
 import de.connect2x.trixnity.core.model.RoomId
-import de.connect2x.trixnity.messenger.compose.view.Client
-import de.connect2x.trixnity.messenger.compose.view.DI
-import de.connect2x.trixnity.messenger.compose.view.EscapeKeyPressed
-import de.connect2x.trixnity.messenger.compose.view.Platform
-import de.connect2x.trixnity.messenger.compose.view.PlatformType
-import de.connect2x.trixnity.messenger.compose.view.theme.IsFocusHighlighting
-import de.connect2x.trixnity.messenger.compose.view.theme.MessengerTheme
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.async
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
-import okio.Path.Companion.toOkioPath
-import java.io.File
-import java.nio.file.Files
-import java.util.Locale
-import kotlin.coroutines.EmptyCoroutineContext
-import kotlin.test.AfterTest
 import kotlin.test.Test
-import org.junit.AssumptionViolatedException
 
 /**
  * Dev-only capture of formatted blockquotes (`<blockquote>`, markdown `> …`) next to reply quotes, in a room of its
@@ -48,117 +15,19 @@ import org.junit.AssumptionViolatedException
  * (optional file name prefix: `TACIT_QUOTE_SCREENSHOTS_PREFIX`).
  */
 @OptIn(ExperimentalTestApi::class)
-class QuoteScreenshots {
-    private val tempDirs = mutableListOf<java.nio.file.Path>()
-
-    @AfterTest
-    fun cleanUpTempDirs() {
-        tempDirs.forEach { it.toFile().deleteRecursively() }
-        tempDirs.clear()
-    }
-
+class QuoteScreenshots : DevScreenshotTest("QUOTE", "tacit-quote-screenshots") {
     @Test
     fun `capture blockquote screenshots`() {
-        val outputDir = System.getenv("TACIT_QUOTE_SCREENSHOTS_DIR")?.let(::File)
-            ?: throw AssumptionViolatedException("TACIT_QUOTE_SCREENSHOTS_DIR is not set")
-        val prefix = System.getenv("TACIT_QUOTE_SCREENSHOTS_PREFIX") ?: ""
-        outputDir.mkdirs()
-        Locale.setDefault(Locale.ENGLISH)
-        val dataDir = Files.createTempDirectory("tacit-quote-screenshots").also(tempDirs::add)
-        configureScreenshotLogging(dataDir.toOkioPath())
-
-        tuwunelDocker().use { container ->
-            container.start()
-            val serverUrl = container.clientServerUrl()
-            val users = seedDemoUsers(MatrixHttp(serverUrl))
-            val room = seedQuoteRoom(users)
-
-            val app = runBlocking { ScreenshotMessenger.start(dataDir.toOkioPath()) }
-            try {
-                SkikoComposeUiTest(
-                    width = ScreenshotFrame.CONTENT_WIDTH_PX,
-                    height = ScreenshotFrame.CONTENT_HEIGHT_PX,
-                    effectContext = EmptyCoroutineContext,
-                    density = Density(1f),
-                ).runTest {
-                    mainClock.autoAdvance = false
-                    setContent {
-                        CompositionLocalProvider(LocalDensity provides Density(ScreenshotFrame.DENSITY)) {
-                            CompositionLocalProvider(
-                                Platform provides PlatformType.DESKTOP,
-                                DI provides app.messenger.di,
-                                IsFocusHighlighting provides false,
-                                EscapeKeyPressed provides MutableSharedFlow<Unit>(extraBufferCapacity = 1),
-                            ) {
-                                MessengerTheme { Client(app.root) }
-                            }
-                        }
-                    }
-                    fun pump() {
-                        mainClock.advanceTimeByFrame()
-                        waitForIdle()
-                    }
-                    fun settle(millis: Long) {
-                        val deadline = System.currentTimeMillis() + millis
-                        while (System.currentTimeMillis() < deadline) {
-                            pump()
-                            Thread.sleep(16)
-                        }
-                    }
-                    fun <T> await(what: String, block: suspend CoroutineScope.() -> T): T {
-                        val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
-                        val deferred = scope.async(block = block)
-                        val deadline = System.currentTimeMillis() + 120_000
-                        try {
-                            while (!deferred.isCompleted) {
-                                pump()
-                                Thread.sleep(16)
-                                check(System.currentTimeMillis() < deadline) { "timed out: $what" }
-                            }
-                            return runBlocking { deferred.await() }
-                        } finally {
-                            scope.cancel()
-                        }
-                    }
-                    fun waitForText(text: String) {
-                        val deadline = System.currentTimeMillis() + 60_000
-                        while (onAllNodes(hasText(text, substring = true)).fetchSemanticsNodes().isEmpty()) {
-                            check(System.currentTimeMillis() < deadline) { "timed out waiting for '$text'" }
-                            pump()
-                            Thread.sleep(50)
-                        }
-                    }
-                    fun settleForCapture() {
-                        settle(800)
-                        onAllNodes(isRoot()).onFirst().performMouseInput {
-                            moveTo(Offset(60f, (ScreenshotFrame.CONTENT_HEIGHT_PX - 40).toFloat()))
-                        }
-                        repeat(4) {
-                            val lists = onAllNodes(hasScrollToIndexAction())
-                            repeat(lists.fetchSemanticsNodes().size) { i -> runCatching { lists[i].performScrollToIndex(0) } }
-                            settle(500)
-                        }
-                    }
-                    fun capture(name: String) {
-                        pump()
-                        val roots = onAllNodes(isRoot())
-                        val image = roots[roots.fetchSemanticsNodes().size - 1].captureToImage()
-                        File(outputDir, "$prefix$name.png").writeBytes(ScreenshotFrame.toPng(image))
-                        println("SCREENSHOT wrote ${File(outputDir, "$prefix$name.png")}")
-                    }
-
-                    settle(300)
-                    await("login") { app.login(serverUrl, "tacit", DEMO_PASSWORD) }
-                    await("open the quote room") {
-                        app.selectRoom(RoomId(room)).also { delay(1_000) }
-                    }
-                    waitForText("Couldn't agree more")
-                    settleForCapture()
-                    capture("quotes")
-                }
-            } finally {
-                runBlocking { runCatching { app.multi.closeSuspending() } }
+        runDevScreenshots(seed = ::seedQuoteRoom) { session ->
+            val app = session.app
+            settle(300)
+            await("login") { app.login(session.serverUrl, "tacit", DEMO_PASSWORD) }
+            await("open the quote room") {
+                app.selectRoom(RoomId(session.seeded)).also { delay(1_000) }
             }
+            waitForText("Couldn't agree more")
+            settleForCapture()
+            capture("quotes")
         }
     }
 }
