@@ -50,9 +50,11 @@ import de.connect2x.trixnity.core.model.UserId
 import de.connect2x.trixnity.messenger.compose.view.DI
 import de.connect2x.trixnity.messenger.compose.view.common.LoadingSpinner
 import de.connect2x.trixnity.messenger.compose.view.get
+import de.connect2x.trixnity.messenger.compose.view.room.timeline.HorizontalDividerWithText
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.TimelineViewElement
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.UnreadMessagesIndicator
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.TimelineElementHolderSwitch
+import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.TimelineElementViewSelector
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.BaseTimelineElementHolderViewModel
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.TimelineElementHolderViewModel
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.TimelineElementViewModel
@@ -87,8 +89,16 @@ private const val MinGroupSize = 2
 /**
  * A maximal run of consecutive system (state) events. [members] are chronological (oldest first);
  * the oldest one, [headKey], is visually on top and renders the group's summary row.
+ *
+ * [undecryptableHistoryInfo] is the "history before you joined is not decryptable" notice of the
+ * oldest member that carries one (upstream draws it as a divider above the user's own first
+ * invite/join in encrypted rooms). The group draws it above its summary row instead, so it stays
+ * visible while collapsed (see [TacitSystemEventHolder]).
  */
-internal class TacitSystemEventGroup(val members: List<TimelineElementHolderViewModel>) {
+internal class TacitSystemEventGroup(
+    val members: List<TimelineElementHolderViewModel>,
+    val undecryptableHistoryInfo: String? = null,
+) {
     val headKey: String = members.first().key
     val memberKeys: Set<String> = members.mapTo(LinkedHashSet()) { it.key }
 }
@@ -109,7 +119,7 @@ internal class TacitSystemEventGroups(
 }
 
 /** How an element takes part in grouping (see [rememberTacitSystemEventGroups]). */
-private enum class SystemEventRole {
+internal enum class SystemEventRole {
     /** Renders nothing (unsupported or ignored event): neither joins nor breaks a run. */
     Transparent,
 
@@ -123,13 +133,15 @@ private enum class SystemEventRole {
 /**
  * Per-element state that is only known asynchronously and affects grouping: the element's [role]
  * (elements load, get redacted, ...); [standalone] system events never join a group (they carry
- * extra UI such as the "rejoin" prompt or the "history before you joined is not decryptable"
- * divider), and the unread marker drawn below an event ends a run right after it ([breakAfter]).
+ * extra UI with an action, the "rejoin" prompt), and the unread marker drawn below an event ends a
+ * run right after it ([breakAfter]). [undecryptableHistoryInfo] is the member event's "history is
+ * not decryptable" notice; it does not keep the event out of a group (the group shows it instead).
  */
-private data class SystemEventGroupingInfo(
+internal data class SystemEventGroupingInfo(
     val role: SystemEventRole,
     val standalone: Boolean = false,
     val breakAfter: Boolean = false,
+    val undecryptableHistoryInfo: String? = null,
 ) {
     companion object {
         val Transparent = SystemEventGroupingInfo(SystemEventRole.Transparent)
@@ -150,8 +162,9 @@ private fun BaseTimelineElementHolderViewModel.groupingInfo(): Flow<SystemEventG
                 combine(showUnreadMarker, element.showRejoinRoomInfo, element.undecryptableHistoryInfo) { unread, rejoin, undecryptable ->
                     SystemEventGroupingInfo(
                         role = SystemEventRole.Groupable,
-                        standalone = rejoin == true || undecryptable != null,
+                        standalone = rejoin == true,
                         breakAfter = unread,
+                        undecryptableHistoryInfo = undecryptable,
                     )
                 }
 
@@ -167,9 +180,9 @@ private fun BaseTimelineElementHolderViewModel.currentGroupingInfo(): SystemEven
         this !is TimelineElementHolderViewModel || !element.isGroupableState() -> SystemEventGroupingInfo.Breaking
         else -> SystemEventGroupingInfo(
             role = SystemEventRole.Groupable,
-            standalone = element is MemberStateTimelineElementViewModel &&
-                (element.showRejoinRoomInfo.value == true || element.undecryptableHistoryInfo.value != null),
+            standalone = element is MemberStateTimelineElementViewModel && element.showRejoinRoomInfo.value == true,
             breakAfter = showUnreadMarker.value,
+            undecryptableHistoryInfo = (element as? MemberStateTimelineElementViewModel)?.undecryptableHistoryInfo?.value,
         )
     }
 }
@@ -180,7 +193,7 @@ private fun BaseTimelineElementHolderViewModel.currentGroupingInfo(): SystemEven
  * Works on the *unfiltered* upstream elements (newest first) so that redacted elements -- which
  * Tacit hides from the rendered list -- still break a run. A run is broken by anything that is not a
  * groupable state event: messages, outbox elements, redacted or not yet loaded elements, tombstones
- * (a room upgrade is too important to fold away) and standalone member events; by a date change
+ * (a room upgrade is too important to fold away) and standalone member events (rejoin prompt); by a date change
  * (the date separator sits between two events exactly when their dates differ); and right after an
  * event that carries the unread marker. Empty elements (unsupported or ignored events, which render
  * nothing) are transparent: they neither join nor break a run.
@@ -224,34 +237,80 @@ private fun computeGroups(
     timelineViewElements: List<TimelineViewElement>,
     groupingInfos: Map<String, SystemEventGroupingInfo>,
 ): TacitSystemEventGroups {
+    // Oldest first, i.e. in visual top-to-bottom order.
+    val holders = timelineViewElements.asReversed().mapNotNull { (it as? TimelineViewElement.Element)?.viewModel }
+    val runs = groupSystemEventRuns(
+        items = holders,
+        infoOf = { holder ->
+            if (holder !is TimelineElementHolderViewModel) SystemEventGroupingInfo.Breaking
+            else groupingInfos[holder.key] ?: holder.currentGroupingInfo()
+        },
+        dateOf = { it.formattedDate },
+    )
     val byKey = HashMap<String, TacitSystemEventGroup>()
-    val quietKeys = HashSet<String>()
-    val run = ArrayList<TimelineElementHolderViewModel>()
+    runs.groups.forEach { run ->
+        // Only TimelineElementHolderViewModels are groupable (anything else is Breaking above).
+        val group = TacitSystemEventGroup(
+            run.members.map { it as TimelineElementHolderViewModel },
+            run.undecryptableHistoryInfo,
+        )
+        group.members.forEach { byKey[it.key] = group }
+    }
+    return TacitSystemEventGroups(byKey, runs.quiet.mapTo(HashSet()) { it.key })
+}
+
+/** Result of [groupSystemEventRuns]. */
+internal class SystemEventRuns<T>(
+    /** The groups (runs of at least [MinGroupSize] events), oldest first. */
+    val groups: List<SystemEventRun<T>>,
+    /** Every event rendered in Tacit's quieter system event style (grouped or isolated). */
+    val quiet: List<T>,
+)
+
+/** One group: its [members] (oldest first) and the notice of the oldest member that has one. */
+internal class SystemEventRun<T>(val members: List<T>, val undecryptableHistoryInfo: String?)
+
+/**
+ * The grouping decision of [rememberTacitSystemEventGroups] as a pure function over [items] in
+ * chronological order (oldest first); see there for what breaks a run.
+ *
+ * A group carries the "history is not decryptable" notice of its oldest member that has one. An
+ * isolated event with that notice is not quiet: it keeps upstream's rendering (divider above an
+ * accent pill), exactly as before such events took part in grouping.
+ */
+internal fun <T> groupSystemEventRuns(
+    items: List<T>,
+    infoOf: (T) -> SystemEventGroupingInfo,
+    dateOf: (T) -> String?,
+): SystemEventRuns<T> {
+    val groups = ArrayList<SystemEventRun<T>>()
+    val quiet = ArrayList<T>()
+    val run = ArrayList<Pair<T, SystemEventGroupingInfo>>()
     fun closeRun() {
         if (run.size >= MinGroupSize) {
-            val group = TacitSystemEventGroup(run.toList())
-            run.forEach { byKey[it.key] = group }
+            groups += SystemEventRun(run.map { it.first }, run.firstNotNullOfOrNull { it.second.undecryptableHistoryInfo })
+            run.mapTo(quiet) { it.first }
+        } else {
+            run.filter { it.second.undecryptableHistoryInfo == null }.mapTo(quiet) { it.first }
         }
         run.clear()
     }
-    // Oldest first, i.e. in visual top-to-bottom order.
-    for (index in timelineViewElements.indices.reversed()) {
-        val holder = (timelineViewElements[index] as? TimelineViewElement.Element)?.viewModel ?: continue
-        val info = groupingInfos[holder.key] ?: holder.currentGroupingInfo()
-        when {
-            info.role == SystemEventRole.Transparent -> Unit
-            info.role == SystemEventRole.Breaking || holder !is TimelineElementHolderViewModel -> closeRun()
-            info.standalone -> closeRun()
-            else -> {
-                if (run.isNotEmpty() && run.last().formattedDate != holder.formattedDate) closeRun()
-                quietKeys += holder.key
-                run += holder
+    for (item in items) {
+        val info = infoOf(item)
+        when (info.role) {
+            SystemEventRole.Transparent -> Unit
+            SystemEventRole.Breaking -> closeRun()
+            SystemEventRole.Groupable -> if (info.standalone) {
+                closeRun()
+            } else {
+                if (run.isNotEmpty() && dateOf(run.last().first) != dateOf(item)) closeRun()
+                run += item to info
                 if (info.breakAfter) closeRun()
             }
         }
     }
     closeRun()
-    return TacitSystemEventGroups(byKey, quietKeys)
+    return SystemEventRuns(groups, quiet)
 }
 
 /**
@@ -263,6 +322,11 @@ private fun computeGroups(
  * - isolated event ([group] == null): the event.
  * - head of a group (oldest event): the summary row, then the event while expanded.
  * - other members: only the event while expanded, nothing (zero height) while collapsed.
+ *
+ * A group with a "history is not decryptable" notice draws it (upstream's divider, in its regular
+ * accent colour) above the summary row, expanded or not. Grouped member events therefore skip
+ * upstream's own per-event divider (see [QuietSystemEvent]), so the notice never shows twice and
+ * does not jump between the header and the event when the group is toggled.
  *
  * [snapOpen] skips the expand animation: a jump to an event inside a collapsed group opens it at
  * once, so the scroll that follows measures the final layout instead of a half-open group.
@@ -282,15 +346,18 @@ internal fun TacitSystemEventHolder(
     Column {
         AnimatedVisibility(showLoadingIndicatorBefore) { LoadingSpinner() }
         if (group == null) {
-            QuietSystemEvent(holder, index)
+            QuietSystemEvent(holder, index, grouped = false)
         } else {
-            if (group.headKey == holder.key) SystemEventGroupHeader(group, expanded, onToggle)
+            if (group.headKey == holder.key) {
+                group.undecryptableHistoryInfo?.let { HorizontalDividerWithText(it) }
+                SystemEventGroupHeader(group, expanded, onToggle)
+            }
             AnimatedVisibility(
                 visible = expanded,
                 enter = if (snapOpen) EnterTransition.None else expandVertically(expandFrom = Alignment.Top) + fadeIn(),
                 exit = shrinkVertically(shrinkTowards = Alignment.Top) + fadeOut(),
             ) {
-                QuietSystemEvent(holder, index)
+                QuietSystemEvent(holder, index, grouped = true)
             }
         }
         AnimatedVisibility(showUnreadMarker) { UnreadMessagesIndicator() }
@@ -303,16 +370,27 @@ internal fun TacitSystemEventHolder(
  * Re-theming just that slot around the element turns all of them -- whatever their type -- into a
  * muted pill without overriding each state view. The unread marker, which also uses `tertiary`, is
  * drawn outside of this scope and keeps its accent.
+ *
+ * Upstream's member event view draws the "history is not decryptable" divider above the event in
+ * `createInTimeline`; its `createAsPreview` is the same minus that divider (checked against 4.10.3).
+ * A [grouped] member event is rendered through the latter, as its group shows the notice already.
  */
 @Composable
-private fun QuietSystemEvent(holder: TimelineElementHolderViewModel, index: Int) {
+private fun QuietSystemEvent(holder: TimelineElementHolderViewModel, index: Int, grouped: Boolean) {
     val colorScheme = MaterialTheme.colorScheme
     val quietScheme = remember(colorScheme) {
         colorScheme.copy(tertiary = tacitSurfaceAlt.copy(alpha = 0.7f), onTertiary = tacitTextMuted)
     }
     MaterialTheme(colorScheme = quietScheme) {
         // The pill's tooltip only repeats its text.
-        WithoutTooltips { TimelineElementHolderSwitch(holder, index) }
+        WithoutTooltips {
+            val element = holder.element.collectAsState().value
+            if (grouped && element is MemberStateTimelineElementViewModel) {
+                DI.get<TimelineElementViewSelector>().createAsPreview(holder, element, index)
+            } else {
+                TimelineElementHolderSwitch(holder, index)
+            }
+        }
     }
 }
 

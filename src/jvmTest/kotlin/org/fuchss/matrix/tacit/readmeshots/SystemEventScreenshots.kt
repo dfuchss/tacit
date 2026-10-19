@@ -49,7 +49,8 @@ import kotlin.test.Test
 /**
  * Dev-only capture of the collapsed system-event group in a fresh DM (the same scenario as the README's
  * `chatting.png`): tacit2 opens a DM, tacit accepts and answers. Writes `collapsed.png` and, when a group header
- * is on screen, `expanded.png` after clicking it. Skipped unless `TACIT_SYSEVENT_SCREENSHOTS_DIR` is set; never
+ * is on screen, `expanded.png` after clicking it; then the same for an encrypted DM, whose own invite carries the
+ * "previous messages cannot be decrypted" notice (`encrypted-collapsed.png`, `encrypted-expanded.png`). Skipped unless `TACIT_SYSEVENT_SCREENSHOTS_DIR` is set; never
  * writes into `.images/`. Run with
  * `TACIT_SYSEVENT_SCREENSHOTS_DIR=/some/dir ./gradlew generateReadmeScreenshots --tests '*SystemEventScreenshots*'`
  * (optional file name prefix: `TACIT_SYSEVENT_SCREENSHOTS_PREFIX`).
@@ -190,14 +191,55 @@ class SystemEventScreenshots {
                     capture("collapsed")
 
                     val header = hasTestTag(TacitSystemEventGroupTestTag)
-                    if (onAllNodes(header).fetchSemanticsNodes().isNotEmpty()) {
-                        onAllNodes(header).onFirst().performClick()
-                        settle(1_000)
-                        settleForCapture()
-                        capture("expanded")
-                    } else {
-                        println("SCREENSHOT no system event group on screen; skipped expanded.png")
+                    fun captureExpanded(name: String) {
+                        if (onAllNodes(header).fetchSemanticsNodes().isNotEmpty()) {
+                            onAllNodes(header).onFirst().performClick()
+                            settle(1_000)
+                            settleForCapture()
+                            capture(name)
+                        } else {
+                            println("SCREENSHOT no system event group on screen; skipped $name.png")
+                        }
                     }
+                    captureExpanded("expanded")
+
+                    // An encrypted DM: the own invite carries the "previous messages cannot be
+                    // decrypted" notice. Only tacit writes here (the seeded users cannot encrypt).
+                    val encryptedRoomId = tacit2.createRoom(
+                        buildJsonObject {
+                            put("is_direct", true)
+                            put("preset", "trusted_private_chat")
+                            put("invite", buildJsonArray { add(JsonPrimitive(tacit.userId)) })
+                            put(
+                                "initial_state",
+                                buildJsonArray {
+                                    add(
+                                        buildJsonObject {
+                                            put("type", "m.room.encryption")
+                                            put("state_key", "")
+                                            put("content", buildJsonObject { put("algorithm", "m.megolm.v1.aes-sha2") })
+                                        }
+                                    )
+                                }
+                            )
+                        }
+                    )
+                    val encryptedRoom = RoomId(encryptedRoomId)
+                    await("accept encrypted DM invitation") {
+                        val element = app.roomElement(encryptedRoom)
+                        element.isInvite.first { it == true }
+                        element.acceptInvitation()
+                        element.isInvite.first { it == false }
+                    }
+                    await("open encrypted DM and send a message") {
+                        val timeline = app.selectRoom(encryptedRoom)
+                        delay(1_000)
+                        with(app) { sendMessage(timeline.inputAreaViewModel, "Is this encrypted? 🔒") }
+                    }
+                    waitFor("own encrypted message", hasText("Is this encrypted?", substring = true))
+                    settleForCapture()
+                    capture("encrypted-collapsed")
+                    captureExpanded("encrypted-expanded")
                 }
             } finally {
                 runBlocking { runCatching { app.multi.closeSuspending() } }
