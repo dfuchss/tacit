@@ -29,16 +29,16 @@ import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedSurfa
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.InputAreaViewModel
 import org.fuchss.matrix.tacit.tacit
 import org.fuchss.matrix.tacit.ui.TacitShapes
+import org.fuchss.matrix.tacit.viewmodel.room.timeline.TacitComposerEdit
+import org.fuchss.matrix.tacit.viewmodel.room.timeline.TacitEmojiShortcodeMatch
+import org.fuchss.matrix.tacit.viewmodel.room.timeline.TacitSlashCommandMatch
+import org.fuchss.matrix.tacit.viewmodel.room.timeline.findEmojiShortcodeMatch
 import org.fuchss.matrix.tacit.viewmodel.room.timeline.findSlashCommandMatch
+import org.fuchss.matrix.tacit.viewmodel.room.timeline.replaceEmojiShortcode
 import org.fuchss.matrix.tacit.viewmodel.room.timeline.slashCommandSuggestions
 import org.fuchss.matrix.tacit.viewmodel.i18n.TacitI18n
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 
-private data class EmojiShortcodeMatch(
-    val startIndex: Int,
-    val cursorIndex: Int,
-    val query: String,
-)
 
 private data class ComposerSuggestion(
     val title: String,
@@ -311,56 +311,13 @@ private fun AutocompleteSuggestions(
     }
 }
 
-private fun TextFieldValue.findShortcodeMatch(): EmojiShortcodeMatch? {
-    if (!selection.collapsed || selection.start == 0) return null
-    val cursorIndex = selection.start
-    val textBeforeCursor = text.substring(0, cursorIndex)
-    val colonIndex = textBeforeCursor.lastIndexOf(':')
-    if (colonIndex < 0) return null
+private fun TextFieldValue.findShortcodeMatch(): TacitEmojiShortcodeMatch? =
+    findEmojiShortcodeMatch(text, selection.start, selection.end)
 
-    if (colonIndex > 0) {
-        val previous = textBeforeCursor[colonIndex - 1]
-        if (previous.isLetterOrDigit() || previous == '_' || previous == '-') return null
-    }
+private fun TextFieldValue.replaceShortcode(match: TacitEmojiShortcodeMatch, emoji: String): TextFieldValue =
+    replaceEmojiShortcode(text, match, emoji).toTextFieldValue()
 
-    val query = textBeforeCursor.substring(colonIndex + 1)
-    if (query.isBlank()) return null
-    if (query.contains(':')) return null
-    if (!query.all { it.isLetterOrDigit() || it == '_' || it == '-' }) return null
+private fun TextFieldValue.replaceSlashCommand(match: TacitSlashCommandMatch, replacement: String): TextFieldValue =
+    org.fuchss.matrix.tacit.viewmodel.room.timeline.replaceSlashCommand(text, match, replacement).toTextFieldValue()
 
-    return EmojiShortcodeMatch(
-        startIndex = colonIndex,
-        cursorIndex = cursorIndex,
-        query = query.lowercase(),
-    )
-}
-
-private fun TextFieldValue.replaceShortcode(
-    match: EmojiShortcodeMatch,
-    emoji: String,
-): TextFieldValue {
-    val appendSpace = match.cursorIndex >= text.length
-    val replacement = if (appendSpace) "$emoji " else emoji
-    val newText = buildString {
-        append(text.substring(0, match.startIndex))
-        append(replacement)
-        append(text.substring(match.cursorIndex))
-    }
-    val newCursor = match.startIndex + replacement.length
-    return TextFieldValue(
-        text = newText,
-        selection = TextRange(newCursor),
-    )
-}
-
-private fun TextFieldValue.replaceSlashCommand(
-    match: org.fuchss.matrix.tacit.viewmodel.room.timeline.TacitSlashCommandMatch,
-    replacement: String,
-): TextFieldValue {
-    val newText = replacement + text.substring(match.cursorIndex)
-    val newCursor = replacement.length
-    return TextFieldValue(
-        text = newText,
-        selection = TextRange(newCursor),
-    )
-}
+private fun TacitComposerEdit.toTextFieldValue() = TextFieldValue(text = text, selection = TextRange(cursor))
