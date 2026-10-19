@@ -70,6 +70,45 @@ open class TacitI18nView(
         DE - "$displayName (Du)"
     }
 
+    /**
+     * Summary of a collapsed run of [count] system events, e.g. "6 room events by tacit2 and tacit".
+     * [senders] are the distinct senders in chronological order (may be empty while names load).
+     */
+    open fun tacitSystemEventGroupSummary(count: Int, senders: List<String>): String =
+        if (senders.isEmpty()) tacitSystemEventGroupCount(count)
+        else tacitSystemEventGroupCountBy(count, tacitSystemEventSenders(senders))
+
+    open fun tacitSystemEventGroupCount(count: Int) = translate {
+        EN - "$count room events"
+        DE - "$count Raumereignisse"
+    }
+
+    open fun tacitSystemEventGroupCountBy(count: Int, senders: String) = translate {
+        EN - "$count room events by $senders"
+        DE - "$count Raumereignisse von $senders"
+    }
+
+    open fun tacitSystemEventSenders(senders: List<String>): String = when (senders.size) {
+        1 -> senders[0]
+        2 -> commonAnd(senders[0], senders[1])
+        else -> tacitSystemEventSendersAndMore(senders[0], senders[1], senders.size - 2)
+    }
+
+    open fun tacitSystemEventSendersAndMore(first: String, second: String, more: Int) = translate {
+        EN - "$first, $second and $more more"
+        DE - "$first, $second und $more weitere"
+    }
+
+    open fun tacitSystemEventGroupExpand() = translate {
+        EN - "Show room events"
+        DE - "Raumereignisse anzeigen"
+    }
+
+    open fun tacitSystemEventGroupCollapse() = translate {
+        EN - "Hide room events"
+        DE - "Raumereignisse ausblenden"
+    }
+
     /** Prefix of the composer's reply bar; the quoted sender's name follows it. */
     open fun tacitReplyingTo() = translate {
         EN - "Replying to "

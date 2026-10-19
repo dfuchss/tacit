@@ -296,7 +296,7 @@ class ReadmeScreenshotsGenerator {
         // 5. guild_create: the real dialog, filled in, before creating the guild through it
         step("guild_create") {
             ui.settleForCapture()
-            ui.click(hasText("has created the chat", substring = true)) // moves focus out of the composer
+            ui.click(hasText("Howdy", substring = true)) // moves focus out of the composer (system events are collapsed)
             ui.parkPointer()
             ui.activate(hasContentDescription("Create guild")) // no pointer hover: the button has a tooltip
             ui.waitForNode("create guild dialog", hasText("Create Guild"))
@@ -322,7 +322,9 @@ class ReadmeScreenshotsGenerator {
         // 7. guild_invite: the real invite dialog with a user directory hit
         step("guild_invite") {
             ui.settleForCapture()
-            ui.click(hasText("has created the group", substring = true))
+            // moves focus out of the composer and expands the collapsed system events behind the dialog
+            ui.click(hasText("room events", substring = true) and hasClickAction())
+            ui.settle(500)
             ui.parkPointer()
             ui.activate(hasContentDescription("Invite members"))
             ui.waitForNode("invite dialog", hasText("Invite to Guild"))

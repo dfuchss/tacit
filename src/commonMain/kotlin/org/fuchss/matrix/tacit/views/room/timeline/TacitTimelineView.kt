@@ -37,6 +37,7 @@ import de.connect2x.trixnity.messenger.compose.view.theme.messengerIcons
 import de.connect2x.trixnity.messenger.compose.view.util.scrollIntoView
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.TimelineViewModel
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.RedactedTimelineElementViewModel
+import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.TimelineElementHolderViewModel
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.TimelineElementViewModel
 import de.connect2x.trixnity.messenger.viewmodel.util.throttleFirst
 import kotlinx.coroutines.delay
@@ -101,6 +102,9 @@ private suspend fun LazyListState.safeScrollIntoView(index: Int) {
     }
 }
 
+/** Direction the timeline's roving keyboard focus last moved in (the list is reversed: index 0 is the newest). */
+private class TimelineFocusTravel(var towardsNewer: Boolean = false)
+
 class TacitTimelineView : TimelineView {
     @Composable
     override fun ColumnScope.create(timelineViewModel: TimelineViewModel) {
@@ -128,6 +132,40 @@ class TacitTimelineView : TimelineView {
                     buildRenderableTimelineElements(timelineViewElements.value)
                 }
             }
+            // Runs of consecutive system events collapse into one expandable row (see
+            // TacitSystemEventGroups). Grouping happens per element, not by merging lazy items: every
+            // element keeps its own item, key and index, so scroll anchoring, index-based scrolling,
+            // visible-item reporting (read receipts, read marker) and the unread marker are untouched.
+            val systemEventGroups = rememberTacitSystemEventGroups(timelineViewElements)
+            // Expanded groups, remembered while their events stay loaded. Stored as the member keys of
+            // the expanded groups; a group is expanded when any of its members is in there. Groups
+            // change as the timeline does, and the expansion follows the events:
+            // - growing (older history loaded, a new event appended) keeps a group expanded;
+            // - merging (the event between two groups is redacted) expands the merged group when
+            //   either part was expanded;
+            // - splitting (an event lands inside a group) keeps every part expanded.
+            // After each change the map is normalised to exactly the members of the expanded groups:
+            // newcomers are added (so a later split stays consistent) and keys of events that are no
+            // longer in an expanded group are dropped (so the map does not grow, and an event that
+            // later joins a group again starts collapsed).
+            val expandedSystemEvents = remember { mutableStateMapOf<String, Unit>() }
+            fun isExpanded(group: TacitSystemEventGroup) = group.memberKeys.any { it in expandedSystemEvents }
+            fun toggle(group: TacitSystemEventGroup) {
+                if (isExpanded(group)) group.memberKeys.forEach { expandedSystemEvents.remove(it) }
+                else group.memberKeys.forEach { expandedSystemEvents[it] = Unit }
+            }
+            LaunchedEffect(systemEventGroups) {
+                snapshotFlow { systemEventGroups.value }.collect { groups ->
+                    val expandedKeys = expandedSystemEvents.keys
+                        .mapNotNullTo(HashSet()) { groups[it] }
+                        .flatMapTo(HashSet()) { it.memberKeys }
+                    expandedSystemEvents.keys.filter { it !in expandedKeys }.forEach { expandedSystemEvents.remove(it) }
+                    expandedKeys.forEach { if (it !in expandedSystemEvents) expandedSystemEvents[it] = Unit }
+                }
+            }
+            // Key of the event a jump unfolded its group for; that group opens without animation
+            // until the jump has scrolled (see the scrollTo effect below).
+            var snapOpenSystemEventKey by remember { mutableStateOf<String?>(null) }
             val isTimelineLoading = timelineViewElements.value.isEmpty()
             val error = timelineViewModel.error.collectAsState()
             val draggedFile = timelineViewModel.draggedFile.collectAsState()
@@ -186,6 +224,24 @@ class TacitTimelineView : TimelineView {
                             snapshotFlow { renderedTimelineViewElements.value.indexOfFirst { it.key == scrollToKey } }
                                 .first { it >= 0 }
                         } ?: -1
+                        val followsReplyPress = replyJumpSignal.consumeRecentPress()
+                        // A jump to an event inside a collapsed system event group unfolds it, so the
+                        // target is shown instead of a zero-height placeholder. Only the plain jump to
+                        // the end (index 0, not following a reply press) leaves the groups alone.
+                        val unfoldGroup = if (index > 0 || (index == 0 && followsReplyPress)) {
+                            systemEventGroups.value[scrollToKey]?.takeIf { !isExpanded(it) }
+                        } else {
+                            null
+                        }
+                        if (unfoldGroup != null) {
+                            // Snap the group open (no expand animation) and let the list compose and
+                            // measure it before scrolling: scrolling during the animation would use
+                            // the offsets of a half-open group and miss the target.
+                            snapOpenSystemEventKey = scrollToKey
+                            toggle(unfoldGroup)
+                            withFrameNanos { }
+                            withFrameNanos { }
+                        }
                         when {
                             // Index 0 is the newest element, i.e. the request is "go to the end of
                             // the timeline" (that is what the jump-to-end button asks for). Pin to
@@ -197,7 +253,7 @@ class TacitTimelineView : TimelineView {
                             // Any other element is merely revealed, without jumping to the end.
                             index > 0 -> listState.safeScrollIntoView(if (showTypingIndicator.value) index + 1 else index)
                         }
-                        val followsReplyPress = replyJumpSignal.consumeRecentPress()
+                        snapOpenSystemEventKey = null
                         if (index > 0 && followsReplyPress) {
                             jumpHighlightKey = scrollToKey
                             jumpHighlightToken++
@@ -292,6 +348,18 @@ class TacitTimelineView : TimelineView {
                                     showTypingIndicator.value,
                                     renderedTimelineViewElements.value,
                                 ) { mutableStateOf(0) }
+                                // Elements that render nothing (Empty ones, collapsed group members) pass
+                                // the roving focus on in the direction it last travelled, so it can move
+                                // past a collapsed group towards newer elements as well.
+                                val focusTravel = remember { TimelineFocusTravel() }
+                                fun skipFocus(index: Int) {
+                                    if (focusTravel.towardsNewer && index > 0) {
+                                        focusedElement = index - 1
+                                    } else {
+                                        focusTravel.towardsNewer = false
+                                        focusedElement = index + 1
+                                    }
+                                }
                                 CompositionLocalProvider(
                                     LocalTacitReplyJumpSignal provides replyJumpSignal,
                                     LocalTacitJumpHighlightKey provides jumpHighlightKey,
@@ -330,14 +398,21 @@ class TacitTimelineView : TimelineView {
                                                 }
                                             },
                                         ) { index, timelineViewElement ->
+                                            // Member of a group that a jump snaps open (no animations).
+                                            val snapOpen = snapOpenSystemEventKey?.let { key ->
+                                                systemEventGroups.value[timelineViewElement.key]?.memberKeys?.contains(key)
+                                            } == true
                                             Box(
                                                 Modifier
                                                     .rovingFocusItem(
                                                         isFocused = focusedElement == index,
-                                                        onFocus = { focusedElement = index },
+                                                        onFocus = {
+                                                            focusTravel.towardsNewer = index < focusedElement
+                                                            focusedElement = index
+                                                        },
                                                     )
                                                     .animateItem()
-                                                    .animateContentSize()
+                                                    .then(if (snapOpen) Modifier else Modifier.animateContentSize())
                                             ) {
                                                 when (timelineViewElement) {
                                                     is TimelineViewElement.Date -> {
@@ -350,10 +425,29 @@ class TacitTimelineView : TimelineView {
                                                     is TimelineViewElement.Element -> {
                                                         val viewModel = timelineViewElement.viewModel
                                                         if (viewModel.element.value is TimelineElementViewModel.Empty && index == focusedElement) {
-                                                            focusedElement++
+                                                            skipFocus(index)
                                                         }
 
-                                                        TimelineElementHolder(viewModel, index)
+                                                        val groups = systemEventGroups.value
+                                                        val group = groups[viewModel.key]
+                                                        if (viewModel is TimelineElementHolderViewModel && groups.isSystemEvent(viewModel.key)) {
+                                                            val expanded = group != null && isExpanded(group)
+                                                            // Collapsed members other than the head render nothing; keep
+                                                            // keyboard focus moving like for Empty elements.
+                                                            if (group != null && !expanded && group.headKey != viewModel.key && index == focusedElement) {
+                                                                skipFocus(index)
+                                                            }
+                                                            TacitSystemEventHolder(
+                                                                holder = viewModel,
+                                                                index = index,
+                                                                group = group,
+                                                                expanded = expanded,
+                                                                snapOpen = snapOpen,
+                                                                onToggle = { group?.let { toggle(it) } },
+                                                            )
+                                                        } else {
+                                                            TimelineElementHolder(viewModel, index)
+                                                        }
                                                     }
                                                 }
                                             }
