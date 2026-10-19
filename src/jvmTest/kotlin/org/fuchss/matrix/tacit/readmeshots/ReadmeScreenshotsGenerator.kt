@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import org.fuchss.matrix.tacit.update.TacitUpdateCard
 import org.fuchss.matrix.tacit.update.TacitUpdateState
+import org.fuchss.matrix.tacit.viewmodel.settings.TacitMarkAllAsRead
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
@@ -255,6 +256,12 @@ class ReadmeScreenshotsGenerator {
             ui.waitForNode("pending invitation from tacit2", hasText("tacit2", substring = true))
             ui.settleForCapture()
             ui.capture("invite")
+            // Badge check (no screenshot): the invite holds a notification that "mark all as read" reports.
+            ui.await(30_000, "pending invite in the badge and the mark-all-as-read plan") {
+                app.messenger.notificationCount.first { it >= 1 }
+                val markAllAsRead = app.messenger.di.get<TacitMarkAllAsRead>()
+                while (dmRoom !in markAllAsRead.plan(app.matrixClient()).pendingInvites) delay(250)
+            }
         }
 
         // 3. chatting: accept, tacit2 says hi, tacit answers

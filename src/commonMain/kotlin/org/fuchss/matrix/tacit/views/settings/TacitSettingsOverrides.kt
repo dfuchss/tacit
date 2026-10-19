@@ -103,13 +103,18 @@ private fun DevelopmentSettings(viewModel: TacitUserSettingsViewModel) {
                         current.total?.let { i18n.tacitMarkAllAsReadProgress(current.processed, it) }
                             ?: i18n.tacitMarkAllAsReadChecking()
 
-                    is TacitMarkAllAsReadState.Done -> when {
-                        current.failedRooms > 0 ->
-                            i18n.tacitMarkAllAsReadPartiallyFailed(current.markedRooms, current.failedRooms)
+                    is TacitMarkAllAsReadState.Done -> listOfNotNull(
+                        when {
+                            current.failedRooms > 0 ->
+                                i18n.tacitMarkAllAsReadPartiallyFailed(current.markedRooms, current.failedRooms)
 
-                        current.markedRooms == 0 -> i18n.tacitMarkAllAsReadNothingToDo()
-                        else -> i18n.tacitMarkAllAsReadDone(current.markedRooms)
-                    }
+                            current.markedRooms == 0 && current.pendingInvites == 0 ->
+                                i18n.tacitMarkAllAsReadNothingToDo()
+
+                            else -> i18n.tacitMarkAllAsReadDone(current.markedRooms)
+                        },
+                        current.pendingInvites.takeIf { it > 0 }?.let { i18n.tacitMarkAllAsReadPendingInvites(it) },
+                    ).joinToString("\n")
 
                     TacitMarkAllAsReadState.Failed -> i18n.tacitMarkAllAsReadFailed()
                 }

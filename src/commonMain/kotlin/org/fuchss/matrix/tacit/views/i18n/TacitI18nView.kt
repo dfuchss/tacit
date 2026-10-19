@@ -796,6 +796,13 @@ open class TacitI18nView(
         DE - "$markedRooms Räume als gelesen markiert, $failedRooms fehlgeschlagen"
     }
 
+    open fun tacitMarkAllAsReadPendingInvites(pendingInvites: Int) = translate {
+        EN - if (pendingInvites == 1) "1 pending invitation keeps the counter; accept or decline it"
+        else "$pendingInvites pending invitations keep the counter; accept or decline them"
+        DE - if (pendingInvites == 1) "1 offene Einladung hält den Zähler; nimm sie an oder lehne sie ab"
+        else "$pendingInvites offene Einladungen halten den Zähler; nimm sie an oder lehne sie ab"
+    }
+
     open fun tacitMarkAllAsReadFailed() = translate {
         EN - "Marking all rooms as read failed"
         DE - "Markieren aller Räume als gelesen fehlgeschlagen"
