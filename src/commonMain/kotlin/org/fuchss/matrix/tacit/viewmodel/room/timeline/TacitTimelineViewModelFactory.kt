@@ -24,6 +24,8 @@ import org.koin.core.component.get
 import org.fuchss.matrix.tacit.viewmodel.room.timeline.entry.ChannelMemberEntry
 import org.fuchss.matrix.tacit.viewmodel.util.findExistingDirectMessageRoom
 import org.fuchss.matrix.tacit.viewmodel.util.findOrCreateDM
+import org.fuchss.matrix.tacit.viewmodel.util.loadAvatarThumbnail
+import org.fuchss.matrix.tacit.viewmodel.util.mapConcurrently
 
 internal object TacitTimelineViewModelFactory : TimelineViewModelFactory {
     override fun create(
@@ -48,6 +50,8 @@ internal object TacitTimelineViewModelFactory : TimelineViewModelFactory {
     }
 }
 
+private data class MemberAvatarInput(val userId: UserId, val name: String, val avatarUrl: String?)
+
 @OptIn(ExperimentalCoroutinesApi::class)
 private class TacitTimelineViewModelImpl(
     private val delegate: TimelineViewModel,
@@ -56,7 +60,6 @@ private class TacitTimelineViewModelImpl(
 ) : TacitTimelineViewModel, TimelineViewModel by delegate, MatrixClientViewModelContext by viewModelContext {
 
     private val tacitI18n = get<TacitI18n>()
-    private val avatarCache = mutableMapOf<String, ByteArray?>()
     private val _scrollToEndRequests = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     private val caughtUp = MutableStateFlow(false)
     private var lastCaughtUpReceiptEventId: EventId? = null
@@ -70,28 +73,22 @@ private class TacitTimelineViewModelImpl(
     override val roomMembers: StateFlow<List<ChannelMemberEntry>> = matrixClient.user.getAll(roomId)
         .flattenValues()
         .map { members ->
+            members
+                .filter { it.event.content.membership == Membership.JOIN }
+                .map { MemberAvatarInput(it.userId, it.name, it.event.content.avatarUrl) }
+        }
+        .distinctUntilChanged()
+        .mapLatest { members ->
             val joinedMembers = buildList {
-                members.forEach { roomUser ->
-                    if (roomUser.event.content.membership != Membership.JOIN) return@forEach
-                    val userId = roomUser.userId
-                    val avatarUri = roomUser.event.content.avatarUrl?.ifBlank { null }
-                    val avatarImage = avatarUri?.let { uri ->
-                        avatarCache.getOrPut(uri) {
-                            matrixClient.media
-                                .getThumbnail(uri = uri, width = 64L, height = 64L, maxSize = 512L * 1024L)
-                                .getOrNull()
-                                ?.toByteArray(maxSize = 512L * 1024L)
-                        }
-                    }
-                    add(
-                        ChannelMemberEntry(
-                            userId = userId,
-                            displayName = roomUser.name.ifBlank { userId.full },
-                            isSelf = userId == matrixClient.userId,
-                            avatarImage = avatarImage,
-                        )
+                addAll(members.mapConcurrently { member ->
+                    val userId = member.userId
+                    ChannelMemberEntry(
+                        userId = userId,
+                        displayName = member.name.ifBlank { userId.full },
+                        isSelf = userId == matrixClient.userId,
+                        avatarImage = matrixClient.loadAvatarThumbnail(member.avatarUrl, 64L),
                     )
-                }
+                })
                 if (none { it.userId == matrixClient.userId }) {
                     add(
                         ChannelMemberEntry(
@@ -122,17 +119,12 @@ private class TacitTimelineViewModelImpl(
                 flowOf(emptyList())
             } else {
                 combine(typingUsers.map { typingUserId ->
-                    matrixClient.user.getById(roomId, typingUserId).map { roomUser ->
-                        val displayName = roomUser?.name?.ifBlank { null } ?: typingUserId.full
-                        val avatarUri = roomUser?.avatarUrl?.ifBlank { null }
-                        val avatarImage = avatarUri?.let { uri ->
-                            avatarCache.getOrPut(uri) {
-                                matrixClient.media
-                                    .getThumbnail(uri = uri, width = 48L, height = 48L, maxSize = 512L * 1024L)
-                                    .getOrNull()
-                                    ?.toByteArray(maxSize = 512L * 1024L)
-                            }
-                        }
+                    matrixClient.user.getById(roomId, typingUserId)
+                        .map { roomUser -> roomUser?.name to roomUser?.avatarUrl }
+                        .distinctUntilChanged()
+                        .mapLatest { (name, avatarUrl) ->
+                        val displayName = name?.ifBlank { null } ?: typingUserId.full
+                        val avatarImage = matrixClient.loadAvatarThumbnail(avatarUrl, 48L)
                         ChannelMemberEntry(
                             userId = typingUserId,
                             displayName = displayName,

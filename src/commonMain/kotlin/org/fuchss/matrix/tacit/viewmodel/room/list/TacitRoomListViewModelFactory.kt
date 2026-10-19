@@ -23,6 +23,8 @@ import org.fuchss.matrix.tacit.viewmodel.room.list.entry.GuildEntry
 import org.fuchss.matrix.tacit.viewmodel.room.list.entry.SpaceChannelEntry
 import org.fuchss.matrix.tacit.viewmodel.room.list.entry.SpaceChannelStatus
 import org.fuchss.matrix.tacit.viewmodel.util.UserDirectoryEntry
+import org.fuchss.matrix.tacit.viewmodel.util.loadAvatarThumbnail
+import org.fuchss.matrix.tacit.viewmodel.util.mapConcurrently
 import org.fuchss.matrix.tacit.viewmodel.util.searchUserDirectory
 import org.koin.core.component.get
 
@@ -100,6 +102,8 @@ internal object TacitRoomListViewModelFactory : RoomListViewModelFactory {
 }
 
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+private data class GuildAvatarInput(val key: String, val client: MatrixClient?, val avatarUri: String?)
+
 private class TacitRoomListViewModelImpl(
     private val delegate: RoomListViewModel,
     viewModelContext: ViewModelContext,
@@ -293,31 +297,17 @@ private class TacitRoomListViewModelImpl(
         }.stateIn(coroutineScope, WhileSubscribed(), emptyList())
 
     override val guildAvatars: StateFlow<Map<String, ByteArray?>> =
-        combine(guilds, selectedMatrixClients) { allGuilds, clients -> allGuilds to clients }
-            .mapLatest { (allGuilds, clients) ->
-                if (allGuilds.isEmpty() || clients.isEmpty()) return@mapLatest emptyMap()
-                val avatarCache = mutableMapOf<String, ByteArray?>()
-                buildMap {
-                    allGuilds.forEach { guild ->
-                        val avatarUri = guild.avatarUri
-                        if (avatarUri == null) {
-                            put(guild.key(), null)
-                            return@forEach
-                        }
-                        val matrixClient = clients.find { it.userId == guild.userId }
-                        if (matrixClient == null) {
-                            put(guild.key(), null)
-                            return@forEach
-                        }
-                        val avatar = avatarCache.getOrPut(avatarUri) {
-                            matrixClient.media
-                                .getThumbnail(uri = avatarUri, width = 46L, height = 46L, maxSize = 512L * 1024L)
-                                .getOrNull()
-                                ?.toByteArray(maxSize = 512L * 1024L)
-                        }
-                        put(guild.key(), avatar)
-                    }
-                }
+        combine(guilds, selectedMatrixClients) { allGuilds, clients ->
+            if (allGuilds.isEmpty() || clients.isEmpty()) emptyList()
+            else allGuilds.map { guild ->
+                GuildAvatarInput(guild.key(), clients.find { it.userId == guild.userId }, guild.avatarUri)
+            }
+        }
+            .distinctUntilChanged()
+            .mapLatest { inputs ->
+                inputs.mapConcurrently { input ->
+                    input.key to input.client?.loadAvatarThumbnail(input.avatarUri, 46L)
+                }.toMap()
             }.stateIn(coroutineScope, WhileSubscribed(), emptyMap())
 
     private val guildChildren: StateFlow<Map<RoomId, Set<String>>> =
