@@ -8,6 +8,9 @@ import de.connect2x.trixnity.messenger.i18n.I18n
 import de.connect2x.trixnity.messenger.i18n.Languages
 import kotlinx.datetime.TimeZone
 import org.fuchss.matrix.tacit.viewmodel.room.timeline.TacitSlashCommandId
+import org.fuchss.matrix.tacit.viewmodel.util.RoomOperationError
+import org.fuchss.matrix.tacit.viewmodel.util.RoomOperationField
+import org.fuchss.matrix.tacit.viewmodel.util.RoomOperationStep
 
 /**
  * View-model-side Tacit strings. Registered as the app's [I18n] (see `tammyTacitModule`), so upstream view
@@ -119,6 +122,120 @@ open class TacitI18n(
     open fun tacitDeclineInviteFailed(reason: String) = translate {
         EN - "Could not decline invite: $reason"
         DE - "Einladung konnte nicht abgelehnt werden: $reason"
+    }
+
+    // ---- room operation errors ----
+
+    /** Localised text for any failure: typed [RoomOperationError]s are translated, everything else uses its message. */
+    internal fun tacitErrorMessage(error: Throwable): String = when (error) {
+        is RoomOperationError.MissingField -> tacitRequiredField(error.field)
+        is RoomOperationError.InvalidUserId -> tacitEnterValidMatrixUserId()
+        is RoomOperationError.TimedOut -> tacitOperationTimedOut(tacitOperationStepName(error.step))
+        else -> error.message ?: tacitUnknownError()
+    }
+
+    internal fun tacitRequiredField(field: RoomOperationField) = when (field) {
+        RoomOperationField.GUILD_NAME -> translate {
+            EN - "Guild name is required"
+            DE - "Der Gildenname ist erforderlich"
+        }
+
+        RoomOperationField.ROOM_NAME -> translate {
+            EN - "Room name is required"
+            DE - "Der Raumname ist erforderlich"
+        }
+
+        RoomOperationField.CATEGORY_NAME -> translate {
+            EN - "Category name is required"
+            DE - "Der Kategoriename ist erforderlich"
+        }
+
+        RoomOperationField.MATRIX_USER_ID -> translate {
+            EN - "Matrix user ID is required"
+            DE - "Die Matrix-Nutzer-ID ist erforderlich"
+        }
+    }
+
+    open fun tacitEnterValidMatrixUserId() = translate {
+        EN - "Enter a valid Matrix user ID like @alice:example.org"
+        DE - "Gib eine gültige Matrix-Nutzer-ID wie @alice:example.org ein"
+    }
+
+    open fun tacitOperationTimedOut(operation: String) = translate {
+        EN - "$operation timed out. Please try again."
+        DE - "Zeitüberschreitung bei: $operation. Bitte versuche es erneut."
+    }
+
+    internal fun tacitOperationStepName(step: RoomOperationStep) = when (step) {
+        RoomOperationStep.GUILD_CREATION -> translate {
+            EN - "Guild creation"
+            DE - "Erstellen der Gilde"
+        }
+
+        RoomOperationStep.ROOM_CREATION -> translate {
+            EN - "Room creation"
+            DE - "Erstellen des Raums"
+        }
+
+        RoomOperationStep.LINK_ROOM_TO_GUILD -> translate {
+            EN - "Link room to guild"
+            DE - "Verknüpfen des Raums mit der Gilde"
+        }
+
+        RoomOperationStep.LINK_GUILD_TO_ROOM -> translate {
+            EN - "Link guild to room"
+            DE - "Verknüpfen der Gilde mit dem Raum"
+        }
+
+        RoomOperationStep.CONFIGURE_ROOM_JOIN_RULES -> translate {
+            EN - "Configure room join rules"
+            DE - "Konfigurieren der Beitrittsregeln des Raums"
+        }
+
+        RoomOperationStep.CATEGORY_CREATION -> translate {
+            EN - "Category creation"
+            DE - "Erstellen der Kategorie"
+        }
+
+        RoomOperationStep.LINK_CATEGORY_TO_GUILD -> translate {
+            EN - "Link category to guild"
+            DE - "Verknüpfen der Kategorie mit der Gilde"
+        }
+
+        RoomOperationStep.LINK_GUILD_TO_CATEGORY -> translate {
+            EN - "Link guild to category"
+            DE - "Verknüpfen der Gilde mit der Kategorie"
+        }
+
+        RoomOperationStep.CONFIGURE_CATEGORY_JOIN_RULES -> translate {
+            EN - "Configure category join rules"
+            DE - "Konfigurieren der Beitrittsregeln der Kategorie"
+        }
+
+        RoomOperationStep.UNLINK_ROOM_FROM_CATEGORY -> translate {
+            EN - "Unlink room from previous category"
+            DE - "Lösen des Raums aus der vorherigen Kategorie"
+        }
+
+        RoomOperationStep.LINK_ROOM_TO_CATEGORY -> translate {
+            EN - "Link room to category"
+            DE - "Verknüpfen des Raums mit der Kategorie"
+        }
+
+        RoomOperationStep.LINK_CATEGORY_TO_ROOM -> translate {
+            EN - "Link category to room"
+            DE - "Verknüpfen der Kategorie mit dem Raum"
+        }
+
+        RoomOperationStep.GROUP_CHAT_CREATION -> translate {
+            EN - "Group chat creation"
+            DE - "Erstellen des Gruppenchats"
+        }
+
+        RoomOperationStep.DIRECT_MESSAGE_CREATION -> translate {
+            EN - "Direct message creation"
+            DE - "Erstellen der Direktnachricht"
+        }
     }
 
     // ---- slash commands ----

@@ -16,8 +16,10 @@ import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.OpenMent
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.flow.SharingStarted.Companion.WhileSubscribed
+import org.fuchss.matrix.tacit.viewmodel.i18n.TacitI18n
 import org.fuchss.matrix.tacit.viewmodel.util.launchExclusive
 import org.fuchss.matrix.tacit.viewmodel.util.moveRoomToCategory
+import org.koin.core.component.get
 
 internal object TacitRoomSettingsViewModelFactory : RoomSettingsViewModelFactory {
     override fun create(
@@ -58,6 +60,8 @@ private class TacitRoomSettingsViewModelImpl(
 ) : TacitRoomSettingsViewModel,
     RoomSettingsViewModel by delegate,
     MatrixClientViewModelContext by viewModelContext {
+
+    private val tacitI18n = get<TacitI18n>()
 
     private val parentRoomIds: StateFlow<List<Pair<RoomId, Boolean>>> = matrixClient.room
         .getAllState(selectedRoomId, ParentEventContent::class)
@@ -234,7 +238,7 @@ private class TacitRoomSettingsViewModelImpl(
                 targetCategoryRoomId = targetCategoryRoomId,
                 currentCategoryRoomIds = currentCategoryRoomIds,
             ).onFailure { throwable ->
-                moveToCategoryError.value = "Could not move room to category: ${throwable.message ?: "Unknown error"}"
+                moveToCategoryError.value = tacitI18n.tacitMoveRoomToCategoryFailed(tacitI18n.tacitErrorMessage(throwable))
             }
         }
     }

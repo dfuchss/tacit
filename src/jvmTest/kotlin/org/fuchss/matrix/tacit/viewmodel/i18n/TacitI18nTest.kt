@@ -8,6 +8,9 @@ import de.connect2x.trixnity.messenger.settings.SettingsStorage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.datetime.TimeZone
 import org.fuchss.matrix.tacit.viewmodel.room.timeline.TacitSlashCommandId
+import org.fuchss.matrix.tacit.viewmodel.util.RoomOperationError
+import org.fuchss.matrix.tacit.viewmodel.util.RoomOperationField
+import org.fuchss.matrix.tacit.viewmodel.util.RoomOperationStep
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -31,6 +34,41 @@ class TacitI18nTest {
         assertEquals("Could not join room: boom", i18n("en").tacitJoinRoomFailed("boom"))
         assertEquals("Raum konnte nicht betreten werden: boom", i18n("de").tacitJoinRoomFailed("boom"))
         assertEquals("Unbekannter Fehler", i18n("de-DE").tacitUnknownError())
+    }
+
+    @Test
+    fun mapsRoomOperationErrorsToLocalisedMessages() {
+        val en = i18n("en")
+        val de = i18n("de")
+        assertEquals("Guild name is required", en.tacitErrorMessage(RoomOperationError.MissingField(RoomOperationField.GUILD_NAME)))
+        assertEquals("Der Raumname ist erforderlich", de.tacitErrorMessage(RoomOperationError.MissingField(RoomOperationField.ROOM_NAME)))
+        assertEquals(
+            "Enter a valid Matrix user ID like @alice:example.org",
+            en.tacitErrorMessage(RoomOperationError.InvalidUserId()),
+        )
+        assertEquals(
+            "Gib eine gültige Matrix-Nutzer-ID wie @alice:example.org ein",
+            de.tacitErrorMessage(RoomOperationError.InvalidUserId()),
+        )
+        val timeout = RoomOperationError.TimedOut(RoomOperationStep.GUILD_CREATION, RuntimeException())
+        assertEquals("Guild creation timed out. Please try again.", en.tacitErrorMessage(timeout))
+        assertEquals("Zeitüberschreitung bei: Erstellen der Gilde. Bitte versuche es erneut.", de.tacitErrorMessage(timeout))
+        assertEquals("boom", en.tacitErrorMessage(IllegalStateException("boom")))
+        assertEquals("Unbekannter Fehler", de.tacitErrorMessage(IllegalStateException()))
+    }
+
+    @Test
+    fun resolvesEveryRoomOperationStringInBothLanguages() {
+        val en = i18n("en")
+        val de = i18n("de")
+        RoomOperationField.entries.forEach { field ->
+            assertEquals(false, en.tacitRequiredField(field).isBlank(), "EN $field")
+            assertEquals(false, de.tacitRequiredField(field).isBlank(), "DE $field")
+        }
+        RoomOperationStep.entries.forEach { step ->
+            assertEquals(false, en.tacitOperationStepName(step).isBlank(), "EN $step")
+            assertEquals(false, de.tacitOperationStepName(step).isBlank(), "DE $step")
+        }
     }
 
     @Test

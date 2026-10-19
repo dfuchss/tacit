@@ -63,7 +63,7 @@ internal class TacitRoomListActions(
                     onSuccess()
                 },
                 onFailure = { throwable ->
-                    reportError(i18n.tacitCreateGuildFailed(throwable.message ?: i18n.tacitUnknownError()))
+                    reportError(i18n.tacitCreateGuildFailed(i18n.tacitErrorMessage(throwable)))
                 },
             )
         }
@@ -85,7 +85,7 @@ internal class TacitRoomListActions(
                     onSuccess()
                 },
                 onFailure = { throwable ->
-                    reportError(i18n.tacitCreateRoomFailed(throwable.message ?: i18n.tacitUnknownError()))
+                    reportError(i18n.tacitCreateRoomFailed(i18n.tacitErrorMessage(throwable)))
                 },
             )
         }
@@ -105,7 +105,7 @@ internal class TacitRoomListActions(
                     onSuccess()
                 },
                 onFailure = { throwable ->
-                    reportError(i18n.tacitJoinRoomFailed(throwable.message ?: i18n.tacitUnknownError()))
+                    reportError(i18n.tacitJoinRoomFailed(i18n.tacitErrorMessage(throwable)))
                 },
             )
         }
@@ -124,7 +124,7 @@ internal class TacitRoomListActions(
             result.fold(
                 onSuccess = { onSuccess() },
                 onFailure = { throwable ->
-                    reportError(i18n.tacitSendInviteFailed(throwable.message ?: i18n.tacitUnknownError()))
+                    reportError(i18n.tacitSendInviteFailed(i18n.tacitErrorMessage(throwable)))
                 },
             )
         }
@@ -145,7 +145,7 @@ internal class TacitRoomListActions(
                     onSuccess()
                 },
                 onFailure = { throwable ->
-                    reportError(i18n.tacitStartDirectMessageFailed(throwable.message ?: i18n.tacitUnknownError()))
+                    reportError(i18n.tacitStartDirectMessageFailed(i18n.tacitErrorMessage(throwable)))
                 },
             )
         }
@@ -164,7 +164,7 @@ internal class TacitRoomListActions(
                     onSuccess()
                 },
                 onFailure = { throwable ->
-                    reportError(i18n.tacitCreateGroupChatFailed(throwable.message ?: i18n.tacitUnknownError()))
+                    reportError(i18n.tacitCreateGroupChatFailed(i18n.tacitErrorMessage(throwable)))
                 },
             )
         }
@@ -182,7 +182,7 @@ internal class TacitRoomListActions(
             result.fold(
                 onSuccess = { onSuccess() },
                 onFailure = { throwable ->
-                    reportError(i18n.tacitCreateCategoryFailed(throwable.message ?: i18n.tacitUnknownError()))
+                    reportError(i18n.tacitCreateCategoryFailed(i18n.tacitErrorMessage(throwable)))
                 },
             )
         }
@@ -205,7 +205,7 @@ internal class TacitRoomListActions(
                 )
             } ?: Result.failure(IllegalStateException(i18n.tacitNoGuildContext()))
             result.onFailure { throwable ->
-                reportError(i18n.tacitMoveRoomToCategoryFailed(throwable.message ?: i18n.tacitUnknownError()))
+                reportError(i18n.tacitMoveRoomToCategoryFailed(i18n.tacitErrorMessage(throwable)))
             }
         }
     }
@@ -218,7 +218,7 @@ internal class TacitRoomListActions(
             result.fold(
                 onSuccess = { roomId -> onRoomSelected(roomId) },
                 onFailure = { throwable ->
-                    reportError(i18n.tacitAcceptInviteFailed(throwable.message ?: i18n.tacitUnknownError()))
+                    reportError(i18n.tacitAcceptInviteFailed(i18n.tacitErrorMessage(throwable)))
                 },
             )
         }
@@ -232,7 +232,7 @@ internal class TacitRoomListActions(
             result.fold(
                 onSuccess = { onGuildSelected(null) },
                 onFailure = { throwable ->
-                    reportError(i18n.tacitDeclineInviteFailed(throwable.message ?: i18n.tacitUnknownError()))
+                    reportError(i18n.tacitDeclineInviteFailed(i18n.tacitErrorMessage(throwable)))
                 },
             )
         }
