@@ -49,76 +49,86 @@ internal class TacitMessageActionMenuEntry(
     operator fun invoke() = action()
 }
 
+/** Which entries the message action menu offers. */
+internal data class TacitMessageActionAvailability(
+    val canReply: Boolean,
+    val canEdit: Boolean,
+    val canRedact: Boolean,
+    val canReport: Boolean,
+    val canCopy: Boolean,
+    val canRetrySend: Boolean,
+    val canAbortSend: Boolean,
+)
+
+/** What each message action menu entry does when picked. */
+internal class TacitMessageActionCallbacks(
+    val onReply: () -> Unit,
+    val onEdit: () -> Unit,
+    val onShowInfo: () -> Unit,
+    val onReport: () -> Unit,
+    val onDelete: () -> Unit,
+    val onCopy: () -> Unit,
+    val onRetrySend: () -> Unit,
+    val onAbortSend: () -> Unit,
+)
+
 @Composable
 internal fun tacitMessageActionMenuEntries(
     i18n: I18nView,
-    canReply: Boolean,
-    canEdit: Boolean,
-    canRedact: Boolean,
-    canReport: Boolean,
-    canCopy: Boolean,
-    canRetrySend: Boolean,
-    canAbortSend: Boolean,
-    onReply: () -> Unit,
-    onEdit: () -> Unit,
-    onShowInfo: () -> Unit,
-    onReport: () -> Unit,
-    onDelete: () -> Unit,
-    onCopy: () -> Unit,
-    onRetrySend: () -> Unit,
-    onAbortSend: () -> Unit,
+    availability: TacitMessageActionAvailability,
+    callbacks: TacitMessageActionCallbacks,
 ): List<TacitMessageActionMenuEntry> {
     val deleteColor = MaterialTheme.colorScheme.error
     return buildList {
         // Recovery of a message that never left the device comes first: for an outbox element the
         // rest of this menu is almost empty (no event id -> no reply/edit/redact/report), and a
         // stuck message is the only thing the user wants to act on.
-        if (canRetrySend) add(
+        if (availability.canRetrySend) add(
             TacitMessageActionMenuEntry(
                 i18n.retrySendMessage(),
                 Icons.Outlined.Refresh,
                 MaterialTheme.tacit.accent,
-                onRetrySend
+                callbacks.onRetrySend
             )
         )
-        if (canAbortSend) add(
+        if (availability.canAbortSend) add(
             TacitMessageActionMenuEntry(
                 i18n.abortSendMessage(),
                 Icons.Outlined.Cancel,
                 deleteColor,
-                onAbortSend
+                callbacks.onAbortSend
             )
         )
-        if (canReply) add(
+        if (availability.canReply) add(
             TacitMessageActionMenuEntry(
                 i18n.replyMessage(),
-                Icons.AutoMirrored.Outlined.Reply, MaterialTheme.tacit.text, onReply
+                Icons.AutoMirrored.Outlined.Reply, MaterialTheme.tacit.text, callbacks.onReply
             )
         )
-        if (canEdit) add(TacitMessageActionMenuEntry(i18n.editMessage(), Icons.Outlined.Edit, MaterialTheme.tacit.text, onEdit))
-        if (canCopy) add(
+        if (availability.canEdit) add(TacitMessageActionMenuEntry(i18n.editMessage(), Icons.Outlined.Edit, MaterialTheme.tacit.text, callbacks.onEdit))
+        if (availability.canCopy) add(
             TacitMessageActionMenuEntry(
                 i18n.commonCopy(),
                 Icons.Outlined.ContentCopy,
                 MaterialTheme.tacit.text,
-                onCopy
+                callbacks.onCopy
             )
         )
-        add(TacitMessageActionMenuEntry(i18n.infoMessage(), Icons.Outlined.Info, MaterialTheme.tacit.text, onShowInfo))
-        if (canReport) add(
+        add(TacitMessageActionMenuEntry(i18n.infoMessage(), Icons.Outlined.Info, MaterialTheme.tacit.text, callbacks.onShowInfo))
+        if (availability.canReport) add(
             TacitMessageActionMenuEntry(
                 i18n.reportMessage(),
                 Icons.Outlined.Report,
                 MaterialTheme.tacit.text,
-                onReport
+                callbacks.onReport
             )
         )
-        if (canRedact) add(
+        if (availability.canRedact) add(
             TacitMessageActionMenuEntry(
                 i18n.redactMessage(),
                 Icons.Outlined.Delete,
                 deleteColor,
-                onDelete
+                callbacks.onDelete
             )
         )
     }

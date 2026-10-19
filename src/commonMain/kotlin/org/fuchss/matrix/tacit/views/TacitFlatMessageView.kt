@@ -7,8 +7,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.hoverable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
@@ -17,7 +15,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -47,7 +44,6 @@ import androidx.compose.ui.semantics.collectionItemInfo
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.text
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -112,26 +108,17 @@ private fun TacitFlatMessageContainer(
     isMentioned: Boolean,
     index: Int,
     content: @Composable (showActionMenu: () -> Unit) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val i18n = DI.get<TacitI18nView>()
     val timelineElementViewSelector = DI.get<TimelineElementViewSelector>()
     val element = holder.element.collectAsState().value
     val sender = holder.sender.collectAsState().value
 
-    val hoverInteractionSource = remember { MutableInteractionSource() }
-    val quickActionsInteractionSource = remember { MutableInteractionSource() }
-    val hoverMessage by hoverInteractionSource.collectIsHoveredAsState()
-    val hoverQuickActions by quickActionsInteractionSource.collectIsHoveredAsState()
-    val quickReactionsOpen = remember { mutableStateOf(false) }
-    val allReactionsOpen = remember { mutableStateOf(false) }
-    val showActionMenu = remember { mutableStateOf(false) }
+    val menuState = rememberTacitMessageRowMenuState()
     // The row is "active" while it is hovered or while one of its menus is open. Everything that
     // used to be painted permanently (card background, border, quick actions) is bound to this.
-    val isRowActive = hoverMessage ||
-            hoverQuickActions ||
-            showActionMenu.value ||
-            quickReactionsOpen.value ||
-            allReactionsOpen.value
+    val isRowActive = menuState.rememberIsActive()
 
     val timelineElementHolder = uiState.timelineElementHolder
     val isOwnMessage = holder.isByMe
@@ -141,7 +128,7 @@ private fun TacitFlatMessageContainer(
     val canReact = timelineElementHolder?.canBeReactedTo?.collectAsState()?.value == true
 
     BoxWithConstraints(
-        Modifier
+        modifier
             .fillMaxWidth()
             .zIndex(if (isRowActive) 100f else 0f)
             .graphicsLayer { clip = false }
@@ -225,9 +212,9 @@ private fun TacitFlatMessageContainer(
                     )
                     .then(if (wasJumpTarget) Modifier.background(jumpTint, TacitShapes.card) else Modifier)
                     .border(TacitSizes.borderWidth, if (isJumpTarget) MaterialTheme.tacit.accent.copy(alpha = 0.7f) else rowBorderColor, TacitShapes.card)
-                    .hoverable(hoverInteractionSource)
+                    .hoverable(menuState.messageInteractionSource)
                     .pointerInput(holder) {
-                        detectTapGestures(onLongPress = { showActionMenu.value = true })
+                        detectTapGestures(onLongPress = { menuState.openActionMenu() })
                     }
                     // Secondary (right) click opens the same menu on desktop. This has to sit
                     // *after* detectTapGestures: within one layout node the Main pass is delivered
@@ -249,7 +236,7 @@ private fun TacitFlatMessageContainer(
                                 if (!event.buttons.isSecondaryPressed) continue
                                 val change = event.changes.firstOrNull { !it.isConsumed } ?: continue
                                 change.consume()
-                                showActionMenu.value = true
+                                menuState.openActionMenu()
                             }
                         }
                     }
@@ -269,31 +256,23 @@ private fun TacitFlatMessageContainer(
                 if (!isPreview && isRowActive) {
                     TacitFlatMessageHoverActions(
                         holder = holder,
-                        timelineElementHolder = timelineElementHolder,
-                        outboxElementHolder = uiState.outboxElementHolder,
-                        canRetrySend = uiState.canRetrySend,
-                        canAbortSend = uiState.canAbortSend,
-                        i18n = i18n,
+                        uiState = uiState,
+                        menuState = menuState,
                         rowSidePadding = rowSidePadding,
-                        density = density,
                         isOwnMessage = isOwnMessage,
                         canReact = canReact,
-                        quickActionsInteractionSource = quickActionsInteractionSource,
-                        quickReactionsOpen = quickReactionsOpen,
-                        allReactionsOpen = allReactionsOpen,
-                        showActionMenu = showActionMenu,
                         additionalContextActions = additionalContextActions,
                     )
                 }
                 if (canReact) {
                     TacitReactionPickerMenu(
-                        expanded = allReactionsOpen.value,
+                        expanded = menuState.allReactionsOpen,
                         alignEnd = true,
                         yOffset = (-16).dp,
-                        onDismiss = { allReactionsOpen.value = false },
+                        onDismiss = { menuState.allReactionsOpen = false },
                         onSelectReaction = { reaction ->
                             timelineElementHolder.addReaction(reaction)
-                            allReactionsOpen.value = false
+                            menuState.allReactionsOpen = false
                         },
                     )
                 }
@@ -345,7 +324,7 @@ private fun TacitFlatMessageContainer(
                                     // right behind short text instead, so the corner is not consistent.)
                                     needsMaxWidth = true,
                                     isMentioned = isMentioned,
-                                    showActionMenu = { showActionMenu.value = true },
+                                    showActionMenu = menuState::openActionMenu,
                                     content = { showMenu ->
                                         Box(Modifier.fillMaxWidth()) { content(showMenu) }
                                     },
@@ -418,9 +397,9 @@ private fun DrawScope.drawMentionGlow(glowColor: Color) {
  * indeterminate.
  */
 @Composable
-private fun TacitUploadProgress(percent: Float?, label: String?) {
+private fun TacitUploadProgress(percent: Float?, label: String?, modifier: Modifier = Modifier) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+        modifier = modifier.fillMaxWidth().padding(top = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -450,21 +429,18 @@ private fun TacitUploadProgress(percent: Float?, label: String?) {
 @Composable
 private fun TacitFlatMessageHoverActions(
     holder: BaseTimelineElementHolderViewModel,
-    timelineElementHolder: TimelineElementHolderViewModel?,
-    outboxElementHolder: OutboxElementHolderViewModel?,
-    canRetrySend: Boolean,
-    canAbortSend: Boolean,
-    i18n: TacitI18nView,
+    uiState: TacitFlatMessageUiState,
+    menuState: TacitMessageRowMenuState,
     rowSidePadding: Dp,
-    density: Density,
     isOwnMessage: Boolean,
     canReact: Boolean,
-    quickActionsInteractionSource: MutableInteractionSource,
-    quickReactionsOpen: MutableState<Boolean>,
-    allReactionsOpen: MutableState<Boolean>,
-    showActionMenu: MutableState<Boolean>,
     additionalContextActions: @Composable ColumnScope.(onClose: () -> Unit) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
+    val i18n = DI.get<TacitI18nView>()
+    val density = LocalDensity.current
+    val timelineElementHolder = uiState.timelineElementHolder
+    val outboxElementHolder = uiState.outboxElementHolder
     val canReply = timelineElementHolder?.canBeRepliedTo?.collectAsState()?.value == true
     val canEdit = timelineElementHolder?.canBeEdited?.collectAsState()?.value == true
     val canRedact = timelineElementHolder?.canBeRedacted?.collectAsState()?.value == true
@@ -481,45 +457,49 @@ private fun TacitFlatMessageHoverActions(
 
     val actions = tacitMessageActionMenuEntries(
         i18n = i18n,
-        canReply = canReply,
-        canEdit = canEdit,
-        canRedact = canRedact,
-        canReport = canReport,
-        canCopy = clipEntry != null,
-        canRetrySend = canRetrySend,
-        canAbortSend = canAbortSend,
-        onCopy = {
-            clipEntry?.let { entry -> clipboardScope.launch { clipboard.setClipEntry(entry) } }
-            showActionMenu.value = false
-        },
-        onRetrySend = {
-            outboxElementHolder?.retrySend()
-            showActionMenu.value = false
-        },
-        onAbortSend = {
-            outboxElementHolder?.abortSend()
-            showActionMenu.value = false
-        },
-        onReply = {
-            timelineElementHolder?.reply()
-            showActionMenu.value = false
-        },
-        onEdit = {
-            timelineElementHolder?.replace()
-            showActionMenu.value = false
-        },
-        onShowInfo = {
-            timelineElementHolder?.openTimelineElementMetadata()
-            showActionMenu.value = false
-        },
-        onReport = {
-            timelineElementHolder?.report()
-            showActionMenu.value = false
-        },
-        onDelete = {
-            timelineElementHolder?.redact()
-            showActionMenu.value = false
-        },
+        availability = TacitMessageActionAvailability(
+            canReply = canReply,
+            canEdit = canEdit,
+            canRedact = canRedact,
+            canReport = canReport,
+            canCopy = clipEntry != null,
+            canRetrySend = uiState.canRetrySend,
+            canAbortSend = uiState.canAbortSend,
+        ),
+        callbacks = TacitMessageActionCallbacks(
+            onCopy = {
+                clipEntry?.let { entry -> clipboardScope.launch { clipboard.setClipEntry(entry) } }
+                menuState.closeActionMenu()
+            },
+            onRetrySend = {
+                outboxElementHolder?.retrySend()
+                menuState.closeActionMenu()
+            },
+            onAbortSend = {
+                outboxElementHolder?.abortSend()
+                menuState.closeActionMenu()
+            },
+            onReply = {
+                timelineElementHolder?.reply()
+                menuState.closeActionMenu()
+            },
+            onEdit = {
+                timelineElementHolder?.replace()
+                menuState.closeActionMenu()
+            },
+            onShowInfo = {
+                timelineElementHolder?.openTimelineElementMetadata()
+                menuState.closeActionMenu()
+            },
+            onReport = {
+                timelineElementHolder?.report()
+                menuState.closeActionMenu()
+            },
+            onDelete = {
+                timelineElementHolder?.redact()
+                menuState.closeActionMenu()
+            },
+        ),
     )
 
     Popup(
@@ -530,9 +510,9 @@ private fun TacitFlatMessageHoverActions(
         ),
     ) {
         Box(
-            modifier = Modifier
+            modifier = modifier
                 .graphicsLayer { clip = false }
-                .hoverable(quickActionsInteractionSource)
+                .hoverable(menuState.quickActionsInteractionSource)
         ) {
             Row(
                 modifier = Modifier
@@ -545,39 +525,36 @@ private fun TacitFlatMessageHoverActions(
             ) {
                 if (canReact) {
                     TacitQuickActionButton(label = "🙂", description = i18n.tacitAddReactionAction()) {
-                        quickReactionsOpen.value = true
-                        allReactionsOpen.value = false
+                        menuState.openQuickReactions()
                     }
                 }
                 if (canReply) {
                     TacitQuickActionButton(label = "↩", description = i18n.tacitReplyAction()) {
                         timelineElementHolder.reply()
-                        quickReactionsOpen.value = false
-                        allReactionsOpen.value = false
-                        showActionMenu.value = false
+                        menuState.closeAllMenus()
                     }
                 }
                 TacitQuickActionButton(
                     label = i18n.tacitMoreActions(),
                     icon = Icons.Default.MoreVert
-                ) { showActionMenu.value = true }
+                ) { menuState.openActionMenu() }
             }
 
             TacitMessageActionDropdown(
-                expanded = showActionMenu.value,
-                onDismiss = { showActionMenu.value = false },
+                expanded = menuState.actionMenuOpen,
+                onDismiss = menuState::closeActionMenu,
                 actions = actions,
                 additionalContextActions = additionalContextActions,
             )
             if (canReact) {
                 TacitQuickReactionPickerMenu(
-                    expanded = quickReactionsOpen.value,
+                    expanded = menuState.quickReactionsOpen,
                     alignEnd = isOwnMessage,
                     quickReactions = tacitQuickReactionShortcuts,
-                    onDismiss = { quickReactionsOpen.value = false },
+                    onDismiss = { menuState.quickReactionsOpen = false },
                     onSelectReaction = { reaction ->
                         timelineElementHolder?.addReaction(reaction)
-                        quickReactionsOpen.value = false
+                        menuState.quickReactionsOpen = false
                     },
                 )
             }
