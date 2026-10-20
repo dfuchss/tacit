@@ -25,7 +25,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import de.connect2x.trixnity.messenger.compose.view.collectAsTextFieldValueState
-import de.connect2x.trixnity.messenger.viewmodel.roomlist.RoomListViewModel
+import de.connect2x.trixnity.messenger.viewmodel.TextFieldViewModel
 import org.fuchss.matrix.tacit.*
 import org.fuchss.matrix.tacit.ui.TacitShapes
 import org.fuchss.matrix.tacit.ui.TacitSpacing
@@ -34,13 +34,15 @@ import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 @Composable
 internal fun DmChannelToolbar(
     i18n: TacitI18nView,
-    roomListViewModel: RoomListViewModel,
+    searchTerm: TextFieldViewModel,
     canCreateRoom: Boolean,
     onCreateRoom: () -> Unit,
     onCreateGroupChannel: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     ChannelToolbarScaffold(
-        roomListViewModel = roomListViewModel,
+        searchTerm = searchTerm,
+        modifier = modifier,
         i18n = i18n,
         searchPlaceholder = i18n.tacitSearchFriendsPlaceholder(),
         toolbarVerticalPadding = 7.dp,
@@ -66,7 +68,7 @@ internal fun DmChannelToolbar(
 @Composable
 internal fun GuildChannelToolbar(
     i18n: TacitI18nView,
-    roomListViewModel: RoomListViewModel,
+    searchTerm: TextFieldViewModel,
     canCreateRoom: Boolean,
     onCreateRoom: () -> Unit,
     onCreateCategory: (() -> Unit)?,
@@ -75,9 +77,11 @@ internal fun GuildChannelToolbar(
     canInviteToGuild: Boolean,
     onOpenGuildSettings: (() -> Unit)?,
     canEditGuildSettings: Boolean,
+    modifier: Modifier = Modifier,
 ) {
     ChannelToolbarScaffold(
-        roomListViewModel = roomListViewModel,
+        searchTerm = searchTerm,
+        modifier = modifier,
         i18n = i18n,
         searchPlaceholder = i18n.tacitSearchRoomsPlaceholder(),
         toolbarVerticalPadding = 4.dp,
@@ -129,18 +133,19 @@ internal fun GuildChannelToolbar(
 /** Search field plus action buttons shared by the DM and guild toolbars; only the spacing, placeholder and actions differ. */
 @Composable
 private fun ChannelToolbarScaffold(
-    roomListViewModel: RoomListViewModel,
+    searchTerm: TextFieldViewModel,
     i18n: TacitI18nView,
     searchPlaceholder: String,
     toolbarVerticalPadding: androidx.compose.ui.unit.Dp,
     searchVerticalPadding: androidx.compose.ui.unit.Dp,
     actionSpacing: androidx.compose.ui.unit.Dp,
+    modifier: Modifier = Modifier,
     actions: @Composable RowScope.() -> Unit,
 ) {
-    var searchText by roomListViewModel.searchTerm.collectAsTextFieldValueState()
+    var searchText by searchTerm.collectAsTextFieldValueState()
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = TacitSpacing.paneInsetPadding, vertical = toolbarVerticalPadding),
     ) {
@@ -153,7 +158,7 @@ private fun ChannelToolbarScaffold(
                 placeholder = searchPlaceholder,
                 searchVerticalPadding = searchVerticalPadding,
                 clearSearchLabel = i18n.tacitClearSearchDescription(),
-                onClear = { roomListViewModel.searchTerm.update("") },
+                onClear = { searchTerm.update("") },
             )
             ToolbarActionsRow(
                 actionSpacing = actionSpacing,

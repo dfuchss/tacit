@@ -28,49 +28,40 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import de.connect2x.trixnity.core.model.RoomId
-import de.connect2x.trixnity.core.model.events.m.Presence
 import de.connect2x.trixnity.messenger.compose.view.DI
 import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.theme.components
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedButton
-import de.connect2x.trixnity.messenger.viewmodel.roomlist.RoomListViewModel
 import org.fuchss.matrix.tacit.*
 import org.fuchss.matrix.tacit.viewmodel.room.list.*
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 
 @Composable
 internal fun RoomListBody(
-    roomListViewModel: RoomListViewModel,
     i18n: TacitI18nView,
-    mode: RoomListMode,
-    selectedRoomId: RoomId?,
-    visibleRooms: List<TacitRoomListElementViewModel>,
-    guildChannelGroups: List<TacitGuildChannelGroup>,
-    inviteRooms: List<TacitRoomListElementViewModel>,
-    allRoomsEmpty: Boolean,
-    canCreateNewRoomWithAccount: Boolean,
-    searchResultsEmpty: Boolean,
-    onBrowseRooms: () -> Unit,
-    onReorderCategory: (fromIndex: Int, toIndex: Int) -> Unit,
-    onOpenCategorySettings: (RoomId) -> Unit,
-    selectedGuildInviteRoomId: RoomId? = null,
-    selectedGuildInviteName: String? = null,
-    onAcceptSelectedGuildInvite: (() -> Unit)? = null,
-    onDeclineSelectedGuildInvite: (() -> Unit)? = null,
+    state: TacitRoomListUiState,
+    actions: RoomListActions,
+    modifier: Modifier = Modifier,
 ) {
-    val selectedGuildInviteVisible = selectedGuildInviteRoomId != null &&
-            inviteRooms.none { it.roomId == selectedGuildInviteRoomId }
+    val mode = state.mode
+    val rooms = state.rooms
+    val visibleRooms = rooms.visibleRooms
+    val inviteRooms = rooms.inviteRooms
+    val guildChannelGroups = rooms.guildChannelGroups
+    val selectedRoomId = state.status.selectedRoomId
+    val searchResultsEmpty = state.status.searchResultsEmpty
+    val selectedGuildInvite = state.selectedGuildInviteFallback
+    val selectedGuildInviteVisible = selectedGuildInvite != null
     val hasAnyRooms = visibleRooms.isNotEmpty() || inviteRooms.isNotEmpty() || selectedGuildInviteVisible
 
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.tacit.surface)
     ) {
         when {
-            allRoomsEmpty && mode.isDirectMessages() && canCreateNewRoomWithAccount && !searchResultsEmpty -> {
-                EmptyRoomList(roomListViewModel)
+            rooms.allRoomsEmpty && mode.isDirectMessages() && state.status.canCreateNewRoomWithAccount && !searchResultsEmpty -> {
+                EmptyRoomList(onCreateRoom = actions::createNewRoom)
             }
 
             !hasAnyRooms && mode is RoomListMode.GuildChannels -> {
@@ -78,7 +69,7 @@ internal fun RoomListBody(
                     title = i18n.tacitNoJoinedRoomsInGuildTitle(),
                     description = i18n.tacitNoJoinedRoomsInGuildDescription(),
                     actionLabel = i18n.tacitBrowseRoomsAction(),
-                    onAction = onBrowseRooms,
+                    onAction = actions::openBrowseChannels,
                 )
             }
 
@@ -97,35 +88,12 @@ internal fun RoomListBody(
 
             else -> {
                 // The room list is composed from two different call sites in TacitMessengerView
-                // (two pane vs. single pane). Keeping scroll position and the DM filter outside of
-                // the composition means a window resize across the breakpoint no longer silently
-                // throws them away.
-                val stateKey = mode.stateKey()
-                val listState = remember(stateKey) {
-                    val restored = RoomListBodyState.scrollPositions[stateKey]
-                    LazyListState(
-                        firstVisibleItemIndex = restored?.first ?: 0,
-                        firstVisibleItemScrollOffset = restored?.second ?: 0,
-                    )
-                }
-                DisposableEffect(stateKey, listState) {
-                    onDispose {
-                        RoomListBodyState.scrollPositions[stateKey] =
-                            listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset
-                    }
-                }
-                var dmFilter by RoomListBodyState.dmFilter
-                val filteredVisibleRooms = if (mode.isDirectMessages()) {
-                    visibleRooms.filter { room ->
-                        when (dmFilter) {
-                            DmFilter.ALL -> true
-                            DmFilter.UNREAD -> room.isUnread.collectAsState().value == true
-                            DmFilter.ONLINE -> room.presence.collectAsState().value == Presence.ONLINE
-                        }
-                    }
-                } else {
-                    visibleRooms
-                }
+                // (two pane vs. single pane). The view model keeps the scroll position (per account
+                // and guild) and the DM filter, so a window resize across the breakpoint no longer
+                // silently throws them away.
+                val listState = rememberSavedLazyListState(state.scrollKey, actions)
+                val dmFilter = state.dmFilter
+                val filteredVisibleRooms = state.filteredRooms
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -133,15 +101,9 @@ internal fun RoomListBody(
                 ) {
                     if (visibleRooms.isNotEmpty() && mode.isDirectMessages()) {
                         DmOverview(
-                            rooms = visibleRooms,
+                            overview = state.dmOverview,
                             selectedFilter = dmFilter,
-                            onFilterChange = { requested ->
-                                dmFilter = if (requested == dmFilter && requested != DmFilter.ALL) {
-                                    DmFilter.ALL
-                                } else {
-                                    requested
-                                }
-                            },
+                            onFilterChange = actions::selectDmFilter,
                         )
                         Spacer(Modifier.height(8.dp))
                         RoomListSectionLabel(i18n.tacitRoomsSectionTitle(mode.isDirectMessages()))
@@ -171,15 +133,15 @@ internal fun RoomListBody(
                                 key = { _, element -> "invite:${element.roomId.full}" },
                             ) { _, room ->
                                 ChannelRow(
-                                    roomListViewModel = roomListViewModel,
                                     room = room,
                                     selectedRoomId = selectedRoomId,
                                     mode = mode,
                                     i18n = i18n,
+                                    onSelectRoom = actions::selectRoom,
                                     showInviteActions = true,
                                     onAcceptInvite = {
                                         room.acceptInvitation()
-                                        roomListViewModel.selectRoom(room.roomId)
+                                        actions.selectRoom(room.roomId)
                                     },
                                     onDeclineInvite = {
                                         room.rejectInvitation()
@@ -188,13 +150,13 @@ internal fun RoomListBody(
                             }
                         }
 
-                        if (selectedGuildInviteVisible) {
+                        if (selectedGuildInvite != null) {
                             item {
                                 SelectedGuildInviteRow(
                                     i18n = i18n,
-                                    roomName = selectedGuildInviteName ?: selectedGuildInviteRoomId.full,
-                                    onAccept = onAcceptSelectedGuildInvite,
-                                    onDecline = onDeclineSelectedGuildInvite,
+                                    roomName = selectedGuildInvite.displayName ?: selectedGuildInvite.roomId.full,
+                                    onAccept = actions::acceptSelectedGuildInvite,
+                                    onDecline = actions::declineSelectedGuildInvite,
                                 )
                             }
                         }
@@ -219,16 +181,15 @@ internal fun RoomListBody(
                                 key = { _, element -> element.roomId.full },
                             ) { _, room ->
                                 ChannelRow(
-                                    roomListViewModel = roomListViewModel,
                                     room = room,
                                     selectedRoomId = selectedRoomId,
                                     mode = mode,
                                     i18n = i18n,
+                                    onSelectRoom = actions::selectRoom,
                                 )
                             }
 
-                            guildChannelGroups.forEach { group ->
-                                val groupIndex = guildChannelGroups.indexOf(group)
+                            guildChannelGroups.forEachIndexed { groupIndex, group ->
                                 item(key = "category:${group.categoryRoomId.full}") {
                                     CategorySectionHeader(
                                         title = group.categoryName,
@@ -237,9 +198,9 @@ internal fun RoomListBody(
                                         moveUpDescription = i18n.tacitMoveCategoryUpDescription(),
                                         moveDownDescription = i18n.tacitMoveCategoryDownDescription(),
                                         settingsDescription = i18n.tacitOpenCategorySettingsDescription(),
-                                        onMoveUp = { onReorderCategory(groupIndex, groupIndex - 1) },
-                                        onMoveDown = { onReorderCategory(groupIndex, groupIndex + 1) },
-                                        onOpenSettings = { onOpenCategorySettings(group.categoryRoomId) },
+                                        onMoveUp = { actions.reorderCategory(groupIndex, groupIndex - 1) },
+                                        onMoveDown = { actions.reorderCategory(groupIndex, groupIndex + 1) },
+                                        onOpenSettings = { actions.openSpaceSettings(group.categoryRoomId) },
                                     )
                                 }
                                 itemsIndexed(
@@ -247,11 +208,11 @@ internal fun RoomListBody(
                                     key = { _, element -> "category:${group.categoryRoomId.full}:${element.roomId.full}" },
                                 ) { _, room ->
                                     ChannelRow(
-                                        roomListViewModel = roomListViewModel,
                                         room = room,
                                         selectedRoomId = selectedRoomId,
                                         mode = mode,
                                         i18n = i18n,
+                                        onSelectRoom = actions::selectRoom,
                                     )
                                 }
                             }
@@ -261,11 +222,11 @@ internal fun RoomListBody(
                                 key = { _, element -> element.roomId.full },
                             ) { _, room ->
                                 ChannelRow(
-                                    roomListViewModel = roomListViewModel,
                                     room = room,
                                     selectedRoomId = selectedRoomId,
                                     mode = mode,
                                     i18n = i18n,
+                                    onSelectRoom = actions::selectRoom,
                                 )
                             }
                         }
@@ -278,6 +239,24 @@ internal fun RoomListBody(
             }
         }
     }
+}
+
+/** A list state restored from the view model, and saved back when it leaves the composition or [key] changes. */
+@Composable
+private fun rememberSavedLazyListState(key: String, actions: RoomListActions): LazyListState {
+    val listState = remember(key) {
+        val restored = actions.restoreScrollPosition(key)
+        LazyListState(
+            firstVisibleItemIndex = restored?.index ?: 0,
+            firstVisibleItemScrollOffset = restored?.offset ?: 0,
+        )
+    }
+    DisposableEffect(key, listState) {
+        onDispose {
+            actions.saveScrollPosition(key, TacitScrollPosition(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset))
+        }
+    }
+    return listState
 }
 
 @Composable
@@ -499,15 +478,18 @@ private fun CategoryHeaderActionButton(
 }
 
 @Composable
-internal fun EmptyRoomList(roomListViewModel: RoomListViewModel) {
+internal fun EmptyRoomList(
+    onCreateRoom: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val i18n = DI.get<TacitI18nView>()
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(Modifier.padding(horizontal = 20.dp)) {
             Text(i18n.roomListNoRoom())
             Spacer(Modifier.size(10.dp))
             ThemedButton(
                 style = MaterialTheme.components.commonButton,
-                onClick = { roomListViewModel.createNewRoom() },
+                onClick = onCreateRoom,
             ) {
                 Icon(
                     Icons.AutoMirrored.Filled.Chat,
@@ -519,18 +501,4 @@ internal fun EmptyRoomList(roomListViewModel: RoomListViewModel) {
             }
         }
     }
-}
-
-/**
- * Room list state that has to outlive the composition, because the room list is composed from two
- * different call sites depending on the two pane / single pane breakpoint.
- */
-private object RoomListBodyState {
-    val dmFilter = mutableStateOf(DmFilter.ALL)
-    val scrollPositions = mutableMapOf<String, Pair<Int, Int>>()
-}
-
-private fun RoomListMode.stateKey(): String = when (this) {
-    is RoomListMode.DirectMessages -> "dm"
-    is RoomListMode.GuildChannels -> "guild:${guild.key()}"
 }

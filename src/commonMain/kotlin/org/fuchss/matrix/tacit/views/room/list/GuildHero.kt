@@ -19,6 +19,7 @@ internal fun GuildHero(
     i18n: TacitI18nView,
     selectedGuild: GuildEntry?,
     visibleRoomsCount: Int,
+    modifier: Modifier = Modifier,
 ) {
     val title = selectedGuild?.displayName?.ifBlank { null } ?: selectedGuild?.roomId?.full ?: i18n.tacitAllDms()
     val subtitle = if (selectedGuild == null) {
@@ -28,7 +29,7 @@ internal fun GuildHero(
     }
 
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .background(
                 Brush.horizontalGradient(

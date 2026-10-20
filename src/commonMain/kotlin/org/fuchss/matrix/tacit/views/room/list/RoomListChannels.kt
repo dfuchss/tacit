@@ -34,28 +34,29 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import de.connect2x.trixnity.core.model.RoomId
-import de.connect2x.trixnity.core.model.events.m.Presence
 import de.connect2x.trixnity.messenger.compose.view.DI
 import de.connect2x.trixnity.messenger.compose.view.common.Tooltip
 import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ButtonStyle
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedButton
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedUserAvatar
-import de.connect2x.trixnity.messenger.viewmodel.roomlist.RoomListViewModel
 import org.fuchss.matrix.tacit.*
 import org.fuchss.matrix.tacit.ui.TacitShapes
+import org.fuchss.matrix.tacit.viewmodel.room.list.DmFilter
 import org.fuchss.matrix.tacit.viewmodel.room.list.RoomListMode
+import org.fuchss.matrix.tacit.viewmodel.room.list.TacitDmOverview
 import org.fuchss.matrix.tacit.viewmodel.room.list.TacitRoomListElementViewModel
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 import org.fuchss.matrix.tacit.views.room.LocalTacitMembersPane
 
 @Composable
 internal fun ChannelRow(
-    roomListViewModel: RoomListViewModel,
     room: TacitRoomListElementViewModel,
     selectedRoomId: RoomId?,
     mode: RoomListMode,
     i18n: TacitI18nView,
+    onSelectRoom: (RoomId) -> Unit,
+    modifier: Modifier = Modifier,
     showInviteActions: Boolean = false,
     onAcceptInvite: (() -> Unit)? = null,
     onDeclineInvite: (() -> Unit)? = null,
@@ -92,7 +93,7 @@ internal fun ChannelRow(
     }
 
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 4.dp, vertical = 3.dp)
             .clip(TacitShapes.card)
@@ -123,7 +124,7 @@ internal fun ChannelRow(
                 if (mode is RoomListMode.DirectMessages) {
                     membersPane.hide()
                 }
-                roomListViewModel.selectRoom(room.roomId)
+                onSelectRoom(room.roomId)
             }
             .tacitInteractive(interactionSource = interactionSource, shape = TacitShapes.card)
             .padding(horizontal = 10.dp, vertical = 8.dp),
@@ -455,15 +456,14 @@ private fun ReadToggleButton(
 
 @Composable
 internal fun DmOverview(
-    rooms: List<TacitRoomListElementViewModel>,
+    overview: TacitDmOverview,
     selectedFilter: DmFilter,
     onFilterChange: (DmFilter) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val i18n = DI.get<TacitI18nView>()
-    val unread = rooms.count { room -> room.isUnread.collectAsState().value == true }
-    val online = rooms.count { room -> room.presence.collectAsState().value == Presence.ONLINE }
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clip(TacitShapes.card)
             .background(MaterialTheme.tacit.surfaceAlt)
@@ -473,7 +473,7 @@ internal fun DmOverview(
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             DmStatTile(
                 title = i18n.tacitDmStatChats(),
-                value = rooms.size.toString(),
+                value = overview.chats.toString(),
                 modifier = Modifier.weight(1f),
                 valueColor = MaterialTheme.tacit.text,
                 selected = selectedFilter == DmFilter.ALL,
@@ -481,7 +481,7 @@ internal fun DmOverview(
             )
             DmStatTile(
                 title = i18n.tacitDmStatOnline(),
-                value = online.toString(),
+                value = overview.online.toString(),
                 modifier = Modifier.weight(1f),
                 valueColor = MaterialTheme.tacit.accent,
                 selected = selectedFilter == DmFilter.ONLINE,
@@ -489,7 +489,7 @@ internal fun DmOverview(
             )
             DmStatTile(
                 title = i18n.tacitDmStatUnread(),
-                value = unread.toString(),
+                value = overview.unread.toString(),
                 modifier = Modifier.weight(1f),
                 valueColor = MaterialTheme.tacit.accent,
                 selected = selectedFilter == DmFilter.UNREAD,
@@ -497,12 +497,6 @@ internal fun DmOverview(
             )
         }
     }
-}
-
-internal enum class DmFilter {
-    ALL,
-    ONLINE,
-    UNREAD,
 }
 
 @Composable

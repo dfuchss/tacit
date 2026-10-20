@@ -50,25 +50,30 @@ import org.fuchss.matrix.tacit.generated.resources.Res
 import org.fuchss.matrix.tacit.generated.resources.tacit
 import org.fuchss.matrix.tacit.ui.TacitShapes
 import org.fuchss.matrix.tacit.ui.TacitSpacing
+import org.fuchss.matrix.tacit.viewmodel.room.list.TacitGuildRailState
 import org.fuchss.matrix.tacit.viewmodel.room.list.entry.GuildEntry
+import org.fuchss.matrix.tacit.viewmodel.room.list.guildDropHintIndex
+import org.fuchss.matrix.tacit.viewmodel.room.list.guildDropIndex
+import org.fuchss.matrix.tacit.viewmodel.room.list.isMove
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 import org.jetbrains.compose.resources.painterResource
-import kotlin.math.roundToInt
 
 private val guildPillSize: Dp = 52.dp
 private val guildPillSpacing: Dp = 10.dp
 
 @Composable
 internal fun GuildRail(
-    guilds: List<GuildEntry>,
-    guildAvatars: Map<String, ByteArray?>,
-    selectedGuild: GuildEntry?,
-    dmUnreadCount: Int,
-    guildUnreadCounts: Map<String, Int>,
+    state: TacitGuildRailState,
     onSelectGuild: (GuildEntry?) -> Unit,
     onReorderGuild: (fromIndex: Int, toIndex: Int) -> Unit,
     onCreateGuild: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
+    val guilds = state.guilds
+    val selectedGuild = state.selectedGuild
+    // The drag gestures outlive list changes (they are keyed on the guild only), so they read the latest values.
+    val currentGuildCount by rememberUpdatedState(guilds.size)
+    val currentOnReorderGuild by rememberUpdatedState(onReorderGuild)
     val density = LocalDensity.current
     val guildStepPx = remember(density) { with(density) { (guildPillSize + guildPillSpacing).toPx() } }
     var draggingGuildKey by remember { mutableStateOf<String?>(null) }
@@ -83,16 +88,10 @@ internal fun GuildRail(
         dragOffsetY = 0f
     }
 
-    val hintBeforeIndex = remember(dragFromIndex, dropIndex, guilds) {
-        val from = dragFromIndex
-        val to = dropIndex
-        if (from == null || to == null || guilds.isEmpty() || from !in guilds.indices || to !in guilds.indices || from == to) null
-        else if (to > from) (to + 1).coerceAtMost(guilds.size)
-        else to
-    }
+    val hintBeforeIndex = guildDropHintIndex(dragFromIndex, dropIndex, guilds.size)
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxHeight()
             .width(TacitSizes.guildRailWidth)
             .clip(TacitShapes.rail)
@@ -111,7 +110,7 @@ internal fun GuildRail(
             onClick = { onSelectGuild(null) },
             dmIndicator = false, // No small icon at the bottom right for now :D
             isTacitHome = true,
-            unreadCount = dmUnreadCount,
+            unreadCount = state.dmUnreadCount,
         )
 
         Spacer(Modifier.height(TacitSpacing.paneGap))
@@ -125,6 +124,7 @@ internal fun GuildRail(
                 val guildKey = guild.key()
                 val guildName = guild.displayName?.ifBlank { null } ?: guild.roomId.full
                 val pillInteractionSource = remember(guildKey) { MutableInteractionSource() }
+                val currentIndex by rememberUpdatedState(index)
                 if (hintBeforeIndex == index) {
                     GuildDropHint()
                 }
@@ -150,20 +150,20 @@ internal fun GuildRail(
                         // Drag-to-reorder has no static cue of its own: at least offer the hand
                         // cursor over the whole pill.
                         .buttonPointerModifier()
-                        .pointerInput(guilds, guildKey, index) {
+                        .pointerInput(guildKey) {
                             detectDragGestures(
                                 onDragStart = {
                                     draggingGuildKey = guildKey
-                                    dragFromIndex = index
-                                    dropIndex = index
+                                    dragFromIndex = currentIndex
+                                    dropIndex = currentIndex
                                     dragOffsetY = 0f
                                 },
                                 onDragEnd = {
                                     val from = dragFromIndex
                                     val to = dropIndex
                                     resetDragState()
-                                    if (from != null && to != null && from in guilds.indices && to in guilds.indices && from != to) {
-                                        onReorderGuild(from, to)
+                                    if (isMove(from, to, currentGuildCount)) {
+                                        currentOnReorderGuild(from!!, to!!)
                                     }
                                 },
                                 onDragCancel = {
@@ -175,8 +175,7 @@ internal fun GuildRail(
                                     dragOffsetY += dragAmount.y
 
                                     val from = dragFromIndex ?: return@detectDragGestures
-                                    val newDropIndex = (from + (dragOffsetY / guildStepPx).roundToInt())
-                                        .coerceIn(0, guilds.lastIndex)
+                                    val newDropIndex = guildDropIndex(from, dragOffsetY, guildStepPx, currentGuildCount)
                                     if (dropIndex != newDropIndex) {
                                         dropIndex = newDropIndex
                                     }
@@ -188,8 +187,8 @@ internal fun GuildRail(
                         label = guild.guildLabel(),
                         selected = selectedGuild?.roomId == guild.roomId && selectedGuild.userId == guild.userId,
                         onClick = null,
-                        avatarImage = guildAvatars[guild.key()],
-                        unreadCount = guildUnreadCounts[guild.key()] ?: 0,
+                        avatarImage = state.guildAvatars[guildKey],
+                        unreadCount = state.guildUnreadCounts[guildKey] ?: 0,
                         interactionSource = pillInteractionSource,
                         showDragAffordance = guilds.size > 1 && draggingGuildKey == null,
                     )

@@ -11,7 +11,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
-import de.connect2x.trixnity.core.model.RoomId
 import de.connect2x.trixnity.messenger.compose.view.DI
 import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.roomlist.RoomListView
@@ -25,7 +24,6 @@ import org.fuchss.matrix.tacit.ui.TacitPaneSurface
 import org.fuchss.matrix.tacit.ui.TacitShapes
 import org.fuchss.matrix.tacit.ui.TacitSpacing
 import org.fuchss.matrix.tacit.viewmodel.room.list.*
-import org.fuchss.matrix.tacit.viewmodel.room.list.entry.GuildEntry
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 import org.fuchss.matrix.tacit.views.room.list.dialogs.browse.BrowseChannelsDialogContainer
 import org.fuchss.matrix.tacit.views.room.list.dialogs.create.CreateCategoryDialogContainer
@@ -40,206 +38,93 @@ private const val ERROR_AUTO_DISMISS_MS = 8_000L
 class TacitRoomListView : RoomListView {
     @Composable
     override fun create(roomListViewModel: RoomListViewModel) {
-        val tacitRoomListViewModel = roomListViewModel as? TacitRoomListViewModel
+        val viewModel = roomListViewModel as? TacitRoomListViewModel
             ?: error("TacitRoomListView requires RoomListViewModelFactory to provide TacitRoomListViewModel.")
         val i18n = DI.get<TacitI18nView>()
         LaunchedEffect(Unit) {
             roomListViewModel.showSearch.value = false
         }
 
-        val tacitRooms = tacitRoomListViewModel.typedElements.collectAsState().value
-        val guilds = tacitRoomListViewModel.guilds.collectAsState().value
-        val guildAvatars = tacitRoomListViewModel.guildAvatars.collectAsState().value
-        val mode = tacitRoomListViewModel.mode.collectAsState().value
-        val visibleRooms = tacitRoomListViewModel.visibleRooms.collectAsState().value
-        val guildChannelGroups = tacitRoomListViewModel.guildChannelGroups.collectAsState().value
-        val inviteRooms = tacitRoomListViewModel.inviteRooms.collectAsState().value
-        val dmUnreadCount = tacitRoomListViewModel.dmUnreadCount.collectAsState().value
-        val guildUnreadCounts = tacitRoomListViewModel.guildUnreadCounts.collectAsState().value
-        val browseChannels = tacitRoomListViewModel.browseChannelsViewModel.channels.collectAsState().value
-        val selectedGuild = tacitRoomListViewModel.selectedGuild.collectAsState().value
-        val selectedGuildInviteFallback =
-            selectedGuild?.takeIf { guild -> guild.isInvite && inviteRooms.none { it.roomId == guild.roomId } }
-        val selectedRoomId = roomListViewModel.selectedRoomId.collectAsState().value
-        val canCreateNewRoomWithAccount = roomListViewModel.canCreateNewRoomWithAccount.collectAsState().value
-        val searchResultsEmpty = roomListViewModel.searchResultsEmpty.collectAsState().value
-        val error = tacitRoomListViewModel.error.collectAsState().value
-        val errorType = tacitRoomListViewModel.errorType.collectAsState().value
-        val canUseSelectedGuildAccount = tacitRoomListViewModel.canUseSelectedGuildAccount.collectAsState().value
-        val canUsePreferredCreationAccount =
-            tacitRoomListViewModel.canUsePreferredCreationAccount.collectAsState().value
-        val reorderCategoriesInProgress = tacitRoomListViewModel.reorderCategoriesInProgress.collectAsState().value
-        val guildInviteActionInProgress = tacitRoomListViewModel.guildInviteActionInProgress.collectAsState().value
-        val syncStates = roomListViewModel.syncStates.collectAsState().value
+        val state by viewModel.uiState.collectAsState()
+        val dialogs = remember { RoomListDialogState() }
+        val actions = remember(viewModel, i18n, dialogs) { TacitRoomListViewActions(viewModel, i18n, dialogs) }
 
-        var createGuildDialogOpen by remember { mutableStateOf(false) }
-        var createChannelDialogOpen by remember { mutableStateOf(false) }
-        var browseChannelsDialogOpen by remember { mutableStateOf(false) }
-        var inviteToGuildDialogOpen by remember { mutableStateOf(false) }
-        var createDirectMessageDialogOpen by remember { mutableStateOf(false) }
-        var createGroupChannelDialogOpen by remember { mutableStateOf(false) }
-        var createCategoryDialogOpen by remember { mutableStateOf(false) }
+        AutoDismissError(state.error.message, state.error.type, actions::dismissError)
 
-        AutoDismissError(error, errorType) {
-            roomListViewModel.errorDismiss()
+        LaunchedEffect(state.selectedGuild, state.rail.guilds) {
+            viewModel.refreshSelectedGuild(state.rail.guilds)
         }
 
-        LaunchedEffect(selectedGuild, guilds) {
-            if (selectedGuild == null) return@LaunchedEffect
-            val refreshedSelectedGuild = guilds.firstOrNull { guild ->
-                guild.roomId == selectedGuild.roomId && guild.userId == selectedGuild.userId
-            }
-            if (refreshedSelectedGuild == null) {
-                tacitRoomListViewModel.selectGuild(null)
-            } else if (refreshedSelectedGuild != selectedGuild) {
-                tacitRoomListViewModel.selectGuild(refreshedSelectedGuild)
-            }
-        }
-
-        RoomListContent(
-            roomListViewModel = roomListViewModel,
-            i18n = i18n,
-            guilds = guilds,
-            guildAvatars = guildAvatars,
-            mode = mode,
-            selectedRoomId = selectedRoomId,
-            visibleRooms = visibleRooms,
-            guildChannelGroups = guildChannelGroups,
-            inviteRooms = inviteRooms,
-            allRoomsEmpty = tacitRooms.isEmpty(),
-            canCreateNewRoomWithAccount = canCreateNewRoomWithAccount,
-            searchResultsEmpty = searchResultsEmpty,
-            dmUnreadCount = dmUnreadCount,
-            guildUnreadCounts = guildUnreadCounts,
-            selectedGuildAccountAvailable = canUseSelectedGuildAccount,
-            error = error,
-            errorType = errorType,
-            onDismissError = { roomListViewModel.errorDismiss() },
-            syncStates = syncStates,
-            selectedGuildInviteFallback = selectedGuildInviteFallback,
-            onAcceptSelectedGuildInvite = {
-                val targetGuild = selectedGuildInviteFallback
-                if (targetGuild == null) {
-                    tacitRoomListViewModel.reportError(i18n.tacitNoAccountForGuildInviteError())
-                    return@RoomListContent
-                }
-                if (guildInviteActionInProgress) return@RoomListContent
-                tacitRoomListViewModel.acceptGuildInvite(targetGuild)
-            },
-            onDeclineSelectedGuildInvite = {
-                val targetGuild = selectedGuildInviteFallback
-                if (targetGuild == null) {
-                    tacitRoomListViewModel.reportError(i18n.tacitNoAccountForGuildInviteError())
-                    return@RoomListContent
-                }
-                if (guildInviteActionInProgress) return@RoomListContent
-                tacitRoomListViewModel.declineGuildInvite(targetGuild)
-            },
-            onSelectGuild = { tacitRoomListViewModel.selectGuild(it) },
-            onReorderGuild = tacitRoomListViewModel::reorderGuild,
-            onOpenCreateGuild = {
-                roomListViewModel.errorDismiss()
-                createGuildDialogOpen = true
-            },
-            onCreateRoom = {
-                roomListViewModel.errorDismiss()
-                when (mode) {
-                    is RoomListMode.DirectMessages -> {
-                        createDirectMessageDialogOpen = true
-                    }
-
-                    is RoomListMode.GuildChannels -> createChannelDialogOpen = true
-                }
-            },
-            onOpenCreateCategory = {
-                roomListViewModel.errorDismiss()
-                createCategoryDialogOpen = true
-            },
-            onCreateGroupChannel = {
-                roomListViewModel.errorDismiss()
-                createGroupChannelDialogOpen = true
-            },
-            onOpenBrowseChannels = {
-                roomListViewModel.errorDismiss()
-                browseChannelsDialogOpen = true
-            },
-            onOpenInviteToGuild = {
-                roomListViewModel.errorDismiss()
-                inviteToGuildDialogOpen = true
-            },
-            onOpenGuildSettings = selectedGuild?.let { guild ->
-                { tacitRoomListViewModel.openSpaceSettings(guild.roomId) }
-            },
-            onReorderCategory = { fromIndex, toIndex ->
-                val guild = selectedGuild ?: return@RoomListContent
-                if (reorderCategoriesInProgress) return@RoomListContent
-                val ordered = guildChannelGroups.map { it.categoryRoomId }.toMutableList()
-                if (fromIndex !in ordered.indices || toIndex !in ordered.indices || fromIndex == toIndex) {
-                    return@RoomListContent
-                }
-                val moved = ordered.removeAt(fromIndex)
-                ordered.add(toIndex, moved)
-                tacitRoomListViewModel.reorderCategories(guild, ordered)
-            },
-            onOpenCategorySettings = tacitRoomListViewModel::openSpaceSettings,
-        )
-
-        CreateGuildDialogContainer(
-            open = createGuildDialogOpen,
-            viewModel = tacitRoomListViewModel.createGuildViewModel,
-            canCreateGuild = canUsePreferredCreationAccount,
-            onSetOpen = { createGuildDialogOpen = it },
-        )
-
-        CreateChannelDialogContainer(
-            open = createChannelDialogOpen,
-            viewModel = tacitRoomListViewModel.createChannelViewModel,
-            selectedGuild = selectedGuild,
-            canCreateChannel = canUseSelectedGuildAccount,
-            onSetOpen = { createChannelDialogOpen = it },
-        )
-
-        BrowseChannelsDialogContainer(
-            open = browseChannelsDialogOpen,
-            viewModel = tacitRoomListViewModel.browseChannelsViewModel,
-            selectedGuild = selectedGuild,
-            browseChannels = browseChannels,
-            canJoinChannels = canUseSelectedGuildAccount,
-            onSetOpen = { browseChannelsDialogOpen = it },
-        )
-
-        InviteToGuildDialogContainer(
-            open = inviteToGuildDialogOpen,
-            viewModel = tacitRoomListViewModel.inviteToGuildViewModel,
-            selectedGuild = selectedGuild,
-            canInviteMember = canUseSelectedGuildAccount,
-            canSearchUsers = canUseSelectedGuildAccount,
-            onSetOpen = { inviteToGuildDialogOpen = it },
-        )
-
-        CreateDirectMessageDialogContainer(
-            open = createDirectMessageDialogOpen,
-            viewModel = tacitRoomListViewModel.createDirectMessageViewModel,
-            canStartDirectMessage = canUsePreferredCreationAccount,
-            canSearchUsers = canUsePreferredCreationAccount,
-            onSetOpen = { createDirectMessageDialogOpen = it },
-        )
-
-        CreateGroupChannelDialogContainer(
-            open = createGroupChannelDialogOpen,
-            viewModel = tacitRoomListViewModel.createGroupChannelViewModel,
-            canCreateGroupChannel = canUsePreferredCreationAccount,
-            onSetOpen = { createGroupChannelDialogOpen = it },
-        )
-
-        CreateCategoryDialogContainer(
-            open = createCategoryDialogOpen,
-            viewModel = tacitRoomListViewModel.createCategoryViewModel,
-            selectedGuild = selectedGuild,
-            canCreateCategory = canUseSelectedGuildAccount,
-            onSetOpen = { createCategoryDialogOpen = it },
-        )
+        RoomListContent(state = state, actions = actions)
+        RoomListDialogs(viewModel = viewModel, state = state, dialogs = dialogs)
     }
+}
+
+@Composable
+private fun RoomListDialogs(
+    viewModel: TacitRoomListViewModel,
+    state: TacitRoomListUiState,
+    dialogs: RoomListDialogState,
+) {
+    val selectedGuild = state.selectedGuild
+    val canUseSelectedGuildAccount = state.status.canUseSelectedGuildAccount
+    val canUsePreferredCreationAccount = state.status.canUsePreferredCreationAccount
+
+    CreateGuildDialogContainer(
+        open = dialogs.createGuild,
+        viewModel = viewModel.createGuildViewModel,
+        canCreateGuild = canUsePreferredCreationAccount,
+        onSetOpen = { dialogs.createGuild = it },
+    )
+
+    CreateChannelDialogContainer(
+        open = dialogs.createChannel,
+        viewModel = viewModel.createChannelViewModel,
+        selectedGuild = selectedGuild,
+        canCreateChannel = canUseSelectedGuildAccount,
+        onSetOpen = { dialogs.createChannel = it },
+    )
+
+    BrowseChannelsDialogContainer(
+        open = dialogs.browseChannels,
+        viewModel = viewModel.browseChannelsViewModel,
+        selectedGuild = selectedGuild,
+        browseChannels = state.browseChannels,
+        canJoinChannels = canUseSelectedGuildAccount,
+        onSetOpen = { dialogs.browseChannels = it },
+    )
+
+    InviteToGuildDialogContainer(
+        open = dialogs.inviteToGuild,
+        viewModel = viewModel.inviteToGuildViewModel,
+        selectedGuild = selectedGuild,
+        canInviteMember = canUseSelectedGuildAccount,
+        canSearchUsers = canUseSelectedGuildAccount,
+        onSetOpen = { dialogs.inviteToGuild = it },
+    )
+
+    CreateDirectMessageDialogContainer(
+        open = dialogs.createDirectMessage,
+        viewModel = viewModel.createDirectMessageViewModel,
+        canStartDirectMessage = canUsePreferredCreationAccount,
+        canSearchUsers = canUsePreferredCreationAccount,
+        onSetOpen = { dialogs.createDirectMessage = it },
+    )
+
+    CreateGroupChannelDialogContainer(
+        open = dialogs.createGroupChannel,
+        viewModel = viewModel.createGroupChannelViewModel,
+        canCreateGroupChannel = canUsePreferredCreationAccount,
+        onSetOpen = { dialogs.createGroupChannel = it },
+    )
+
+    CreateCategoryDialogContainer(
+        open = dialogs.createCategory,
+        viewModel = viewModel.createCategoryViewModel,
+        selectedGuild = selectedGuild,
+        canCreateCategory = canUseSelectedGuildAccount,
+        onSetOpen = { dialogs.createCategory = it },
+    )
 }
 
 @Composable
@@ -257,55 +142,23 @@ private fun AutoDismissError(
 
 @Composable
 private fun RoomListContent(
-    roomListViewModel: RoomListViewModel,
-    i18n: TacitI18nView,
-    guilds: List<GuildEntry>,
-    guildAvatars: Map<String, ByteArray?>,
-    mode: RoomListMode,
-    selectedRoomId: RoomId?,
-    visibleRooms: List<TacitRoomListElementViewModel>,
-    guildChannelGroups: List<TacitGuildChannelGroup>,
-    inviteRooms: List<TacitRoomListElementViewModel>,
-    allRoomsEmpty: Boolean,
-    canCreateNewRoomWithAccount: Boolean,
-    searchResultsEmpty: Boolean,
-    dmUnreadCount: Int,
-    guildUnreadCounts: Map<String, Int>,
-    selectedGuildAccountAvailable: Boolean,
-    error: String?,
-    errorType: ErrorType,
-    onDismissError: () -> Unit,
-    syncStates: UserSyncStates,
-    selectedGuildInviteFallback: GuildEntry?,
-    onAcceptSelectedGuildInvite: () -> Unit,
-    onDeclineSelectedGuildInvite: () -> Unit,
-    onSelectGuild: (GuildEntry?) -> Unit,
-    onReorderGuild: (fromIndex: Int, toIndex: Int) -> Unit,
-    onOpenCreateGuild: () -> Unit,
-    onCreateRoom: () -> Unit,
-    onOpenCreateCategory: () -> Unit,
-    onCreateGroupChannel: () -> Unit,
-    onOpenBrowseChannels: () -> Unit,
-    onOpenInviteToGuild: () -> Unit,
-    onOpenGuildSettings: (() -> Unit)?,
-    onReorderCategory: (fromIndex: Int, toIndex: Int) -> Unit,
-    onOpenCategorySettings: (RoomId) -> Unit,
+    state: TacitRoomListUiState,
+    actions: RoomListActions,
+    modifier: Modifier = Modifier,
 ) {
+    val i18n = DI.get<TacitI18nView>()
+    val mode = state.mode
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.tacit.background)
             .padding(TacitSpacing.appPadding)
     ) {
         GuildRail(
-            guilds = guilds,
-            guildAvatars = guildAvatars,
-            selectedGuild = mode.selectedGuildOrNull,
-            dmUnreadCount = dmUnreadCount,
-            guildUnreadCounts = guildUnreadCounts,
-            onSelectGuild = onSelectGuild,
-            onReorderGuild = onReorderGuild,
-            onCreateGuild = onOpenCreateGuild,
+            state = state.rail,
+            onSelectGuild = actions::selectGuild,
+            onReorderGuild = actions::reorderGuild,
+            onCreateGuild = actions::openCreateGuild,
         )
 
         Spacer(Modifier.width(TacitSpacing.paneGap))
@@ -319,31 +172,31 @@ private fun RoomListContent(
                 GuildHero(
                     i18n = i18n,
                     selectedGuild = mode.selectedGuildOrNull,
-                    visibleRoomsCount = visibleRooms.size,
+                    visibleRoomsCount = state.rooms.visibleRooms.size,
                 )
 
                 when (mode) {
                     is RoomListMode.DirectMessages -> {
                         DmChannelToolbar(
                             i18n = i18n,
-                            roomListViewModel = roomListViewModel,
-                            canCreateRoom = canCreateNewRoomWithAccount,
-                            onCreateRoom = onCreateRoom,
-                            onCreateGroupChannel = onCreateGroupChannel,
+                            searchTerm = actions.searchTerm,
+                            canCreateRoom = state.status.canCreateNewRoomWithAccount,
+                            onCreateRoom = actions::openCreateRoom,
+                            onCreateGroupChannel = actions::openCreateGroupChannel,
                         )
                     }
 
                     is RoomListMode.GuildChannels -> {
                         GuildChannelToolbar(
                             i18n = i18n,
-                            roomListViewModel = roomListViewModel,
-                            canCreateRoom = canCreateNewRoomWithAccount,
-                            onCreateRoom = onCreateRoom,
-                            onCreateCategory = onOpenCreateCategory,
-                            onBrowseChannels = onOpenBrowseChannels,
-                            onInviteToGuild = onOpenInviteToGuild,
-                            canInviteToGuild = selectedGuildAccountAvailable,
-                            onOpenGuildSettings = onOpenGuildSettings,
+                            searchTerm = actions.searchTerm,
+                            canCreateRoom = state.status.canCreateNewRoomWithAccount,
+                            onCreateRoom = actions::openCreateRoom,
+                            onCreateCategory = actions::openCreateCategory,
+                            onBrowseChannels = actions::openBrowseChannels,
+                            onInviteToGuild = actions::openInviteToGuild,
+                            canInviteToGuild = state.status.canUseSelectedGuildAccount,
+                            onOpenGuildSettings = { actions.openSpaceSettings(mode.guild.roomId) },
                             // Deliberately not gated on power levels: guild settings is also where members see the
                             // member list and leave the guild; the editable fields inside gate themselves.
                             canEditGuildSettings = true,
@@ -351,32 +204,18 @@ private fun RoomListContent(
                     }
                 }
 
-                OfflineWarningBanner(i18n, syncStates)
+                OfflineWarningBanner(i18n, state.status.syncStates)
                 RoomListErrors(
-                    error = error,
-                    errorType = errorType,
-                    onDismissError = onDismissError,
+                    error = state.error.message,
+                    errorType = state.error.type,
+                    onDismissError = actions::dismissError,
                 )
                 HorizontalDivider(color = MaterialTheme.tacit.border)
 
                 RoomListBody(
-                    roomListViewModel = roomListViewModel,
                     i18n = i18n,
-                    mode = mode,
-                    selectedRoomId = selectedRoomId,
-                    visibleRooms = visibleRooms,
-                    guildChannelGroups = guildChannelGroups,
-                    inviteRooms = inviteRooms,
-                    allRoomsEmpty = allRoomsEmpty,
-                    canCreateNewRoomWithAccount = canCreateNewRoomWithAccount,
-                    searchResultsEmpty = searchResultsEmpty,
-                    onBrowseRooms = onOpenBrowseChannels,
-                    onReorderCategory = onReorderCategory,
-                    onOpenCategorySettings = onOpenCategorySettings,
-                    selectedGuildInviteRoomId = selectedGuildInviteFallback?.roomId,
-                    selectedGuildInviteName = selectedGuildInviteFallback?.displayName,
-                    onAcceptSelectedGuildInvite = onAcceptSelectedGuildInvite,
-                    onDeclineSelectedGuildInvite = onDeclineSelectedGuildInvite,
+                    state = state,
+                    actions = actions,
                 )
             }
         }
@@ -387,6 +226,7 @@ private fun RoomListContent(
 private fun OfflineWarningBanner(
     i18n: TacitI18nView,
     syncStates: UserSyncStates,
+    modifier: Modifier = Modifier,
 ) {
     if (syncStates.failedFor.isEmpty()) return
     val title = i18n.tacitOfflineTitle()
@@ -396,7 +236,7 @@ private fun OfflineWarningBanner(
         i18n.tacitOfflineSomeDescription(syncStates.joinFailedToString())
     }
     Column(
-        modifier = Modifier
+        modifier = modifier
             .padding(horizontal = 12.dp, vertical = 8.dp)
             .fillMaxWidth()
             .clip(TacitShapes.compact)
@@ -423,11 +263,12 @@ private fun RoomListErrors(
     error: String?,
     errorType: ErrorType,
     onDismissError: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     AutoDismissError(error, errorType, onDismissError)
     if (error != null) {
         TacitCardSurface(
-            modifier = Modifier
+            modifier = modifier
                 .padding(horizontal = 12.dp, vertical = 8.dp)
                 .fillMaxWidth(),
             shape = TacitShapes.compact,
