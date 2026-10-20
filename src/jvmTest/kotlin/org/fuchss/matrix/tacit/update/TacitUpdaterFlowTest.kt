@@ -91,7 +91,8 @@ class TacitUpdaterFlowTest {
         location: TacitInstallLocation = install,
         updateAsset: TacitUpdateAsset? = asset,
         clock: () -> Long = System::currentTimeMillis,
-    ) = TacitUpdater(current, location, updateAsset, appData, source, force = false, clock = clock)
+        prepareHelper: (TacitUpdateHelperParams) -> ProcessBuilder = TacitUpdateHelper::prepare,
+    ) = TacitUpdater(current, location, updateAsset, appData, source, force = false, clock = clock, prepareHelper = prepareHelper)
 
     @Test
     fun `no update when the latest release is not newer`() = runBlocking {
@@ -221,6 +222,99 @@ class TacitUpdaterFlowTest {
         assertFalse(updater.autoCheck.value)
         assertFalse(updater.shouldNotify("v26.9.2-tacit.3"))
         assertEquals(RELEASES_PAGE, updater.releaseUrl)
+    }
+
+    @Test
+    fun `the notice is announced once per version even from concurrent callers`() {
+        val updater = updater(FakeSource { error("no check expected") })
+        val results = java.util.concurrent.Executors.newFixedThreadPool(8).let { pool ->
+            val futures = (1..64).map { pool.submit<Boolean> { updater.shouldNotify("26.9.2-tacit.3") } }
+            futures.map { it.get() }.also { pool.shutdown() }
+        }
+        assertEquals(1, results.count { it })
+        assertFalse(updater.shouldNotify("26.9.2-tacit.3"))
+        assertTrue(updater.shouldNotify("26.9.2-tacit.4"))
+        // Persisted: a new instance does not announce it again.
+        assertFalse(updater(FakeSource { error("no check expected") }).shouldNotify("26.9.2-tacit.4"))
+    }
+
+    private val inertHelper = ProcessBuilder("/bin/sh", "-c", "exit 0")
+
+    /** Stages 26.9.2-tacit.3; [events] records the helper preparation to check the order. */
+    private fun stagedUpdater(events: MutableList<String> = mutableListOf()): TacitUpdater = runBlocking {
+        val newer = release("v26.9.2-tacit.3")
+        val source = FakeSource { ReleaseFetch.Fetched(newer, null) }.apply { serve(newer) }
+        Files.createDirectories(install.root)
+        updater(source, prepareHelper = { params ->
+            events += "prepare"
+            TacitUpdateHelper.prepare(params) // validates and writes the real script, but is never started
+            inertHelper
+        }).also { it.check() }
+    }
+
+    @Test
+    fun `restart to update stages, exits, then launches the helper and leaves the install alone`() = runBlocking {
+        val events = mutableListOf<String>()
+        val updater = stagedUpdater(events)
+        assertEquals(TacitUpdateState.ReadyToRestart("26.9.2-tacit.3"), updater.state.value)
+        assertTrue(updater.exitRequests.replayCache.isEmpty())
+        assertFalse(updater.launchPendingUpdate(), "nothing is pending before a restart is requested")
+
+        updater.restartToUpdate()
+        assertEquals(listOf("prepare"), events)
+        assertEquals(1, updater.exitRequests.replayCache.size)
+        assertEquals(TacitUpdateState.ReadyToRestart("26.9.2-tacit.3"), updater.state.value)
+        assertEquals(0, Files.list(install.root).use { it.count() }, "the install is untouched before the swap")
+
+        assertTrue(updater.launchPendingUpdate())
+    }
+
+    @Test
+    fun `restart to update does nothing unless an update is ready`() = runBlocking {
+        val events = mutableListOf<String>()
+        val idle = updater(FakeSource { error("no check expected") }, prepareHelper = { events += "prepare"; inertHelper })
+        idle.restartToUpdate()
+        assertTrue(idle.exitRequests.replayCache.isEmpty())
+        assertTrue(events.isEmpty())
+        assertFalse(idle.launchPendingUpdate())
+
+        val upToDate = updater(FakeSource { ReleaseFetch.Fetched(release("v26.9.2-tacit.2"), null) })
+        upToDate.check()
+        upToDate.restartToUpdate()
+        assertTrue(upToDate.exitRequests.replayCache.isEmpty())
+    }
+
+    @Test
+    fun `a failed helper preparation keeps the app running`() = runBlocking {
+        val updater = stagedUpdater()
+        // The staged copy vanishes, so the real helper preparation refuses.
+        TacitUpdateStaging.deleteRecursively(appData.resolve("updates/v26.9.2-tacit.3"))
+        val failing = updater(FakeSource { error("no check expected") })
+        failing.cleanUp()
+        assertTrue(failing.state.value is TacitUpdateState.Idle)
+
+        val newer = release("v26.9.2-tacit.3")
+        val source = FakeSource { ReleaseFetch.Fetched(newer, null) }.apply { serve(newer) }
+        val real = updater(source)
+        real.check()
+        TacitUpdateStaging.deleteRecursively(appData.resolve("updates/v26.9.2-tacit.3"))
+        real.restartToUpdate()
+        assertTrue(real.state.value is TacitUpdateState.Failed, "${real.state.value}")
+        assertTrue(real.exitRequests.replayCache.isEmpty(), "no exit is requested")
+        assertFalse(real.launchPendingUpdate(), "nothing is launched")
+    }
+
+    @Test
+    fun `a failed check keeps an already staged update offered`() = runBlocking {
+        val newer = release("v26.9.2-tacit.3")
+        var fail = false
+        val source = FakeSource { if (fail) throw IOException("GitHub answered 500") else ReleaseFetch.Fetched(newer, null) }
+            .apply { serve(newer) }
+        val updater = updater(source)
+        updater.check()
+        fail = true
+        updater.check()
+        assertEquals(TacitUpdateState.ReadyToRestart("26.9.2-tacit.3"), updater.state.value)
     }
 
     @Test

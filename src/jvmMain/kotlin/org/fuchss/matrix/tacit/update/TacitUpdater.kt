@@ -41,6 +41,8 @@ class TacitUpdater internal constructor(
     private val source: ReleaseSource,
     private val force: Boolean,
     private val clock: () -> Long = System::currentTimeMillis,
+    /** Test hook: builds the swap helper; the default writes and validates the real script. */
+    private val prepareHelper: (TacitUpdateHelperParams) -> ProcessBuilder = TacitUpdateHelper::prepare,
 ) : TacitUpdateController {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     /** Serializes checks and the start-up clean-up; held during network I/O, so the store has its own lock. */
@@ -128,7 +130,7 @@ class TacitUpdater internal constructor(
         updaterLog.info { "restart to update to ${update.version} requested" }
         // Prepare and validate the helper before exiting: if that fails, Tacit stays running.
         val helper = try {
-            TacitUpdateHelper.prepare(helperParams(location, update))
+            prepareHelper(helperParams(location, update))
         } catch (e: Exception) {
             updaterLog.error(e) { "could not prepare the update helper" }
             _state.value = TacitUpdateState.Failed(e.message ?: e::class.simpleName.orEmpty())
@@ -140,9 +142,13 @@ class TacitUpdater internal constructor(
 
     /** Whether the tray should still announce [version]; marks it as announced. */
     fun shouldNotify(version: String): Boolean {
-        if (store.current.notifiedTag == version) return false
-        scope.launch { store.update { it.copy(notifiedTag = version) } }
-        return true
+        var notify = false
+        // Check and set inside one store update, so concurrent callers cannot both see an unannounced version.
+        store.update {
+            notify = it.notifiedTag != version
+            if (notify) it.copy(notifiedTag = version) else it
+        }
+        return notify
     }
 
     private fun helperParams(location: TacitInstallLocation.SelfUpdatable, update: TacitStagedUpdate) = TacitUpdateHelperParams(
