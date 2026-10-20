@@ -50,16 +50,32 @@ internal const val MAIN_LOGGING_CONFIG = "/lognity.json"
 /** Log of a launch that only hands its arguments to the running instance and exits. */
 internal const val LAUNCHER_LOGGING_CONFIG = "/lognity-launcher.json"
 
+/** The logging config resource for this launch and why it was chosen, logged once logging is set up. */
+internal data class LoggingConfigChoice(val resource: String, val reason: String)
+
 /**
  * The logging config for this launch. A launch that will only hand its arguments to an already running instance
  * logs to its own small file, so it no longer writes into (and clobbers) the running instance's log.
+ *
+ * Edge case: the decision is made before upstream's handshake and only by the existence of `port.lock` (see
+ * [singleInstanceLockExists]). A crashed instance leaves the file behind, the next launch then cannot reach it and
+ * becomes the running instance itself, but keeps logging to `logs/launcher.log` for that whole session. The line
+ * `Main` logs at start-up with [LoggingConfigChoice.reason] makes such a session traceable there; the next start
+ * logs to the main log again because a clean exit removes the lock file.
  */
-internal fun loggingConfigResource(os: TacitOs?, appDataDir: Path): String =
-    if (usesSingleInstanceLock(os) && singleInstanceLockExists(appDataDir.resolve(SINGLE_INSTANCE_LOCK_FILE))) {
-        LAUNCHER_LOGGING_CONFIG
-    } else {
-        MAIN_LOGGING_CONFIG
-    }
+internal fun loggingConfigChoice(os: TacitOs?, appDataDir: Path): LoggingConfigChoice = when {
+    !usesSingleInstanceLock(os) -> LoggingConfigChoice(MAIN_LOGGING_CONFIG, "no single-instance handover on $os")
+    singleInstanceLockExists(appDataDir.resolve(SINGLE_INSTANCE_LOCK_FILE)) -> LoggingConfigChoice(
+        LAUNCHER_LOGGING_CONFIG,
+        "$SINGLE_INSTANCE_LOCK_FILE exists, expecting to hand over to the running instance " +
+            "(if this session keeps running, that instance had crashed and left the file behind)",
+    )
+
+    else -> LoggingConfigChoice(MAIN_LOGGING_CONFIG, "no $SINGLE_INSTANCE_LOCK_FILE, this is the running instance")
+}
+
+/** The resource of [loggingConfigChoice]. */
+internal fun loggingConfigResource(os: TacitOs?, appDataDir: Path): String = loggingConfigChoice(os, appDataDir).resource
 
 /**
  * Starts the launcher at [appPath] (`jpackage.app-path`) again once this process has exited, for a launch that the

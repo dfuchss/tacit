@@ -11,6 +11,7 @@ import kotlin.io.path.readText
 import kotlin.io.path.writeText
 import kotlin.test.AfterTest
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -76,6 +77,14 @@ class TacitSingleInstanceTest {
         assertEquals(LAUNCHER_LOGGING_CONFIG, loggingConfigResource(TacitOs.LINUX, dir))
         assertEquals(MAIN_LOGGING_CONFIG, loggingConfigResource(TacitOs.MACOS, dir))
         assertFalse(singleInstanceLockExists(dir.resolve("missing.lock")))
+    }
+
+    @Test
+    fun theLoggingChoiceSaysWhy() {
+        assertContains(loggingConfigChoice(TacitOs.LINUX, dir).reason, "no $SINGLE_INSTANCE_LOCK_FILE")
+        lock()
+        assertContains(loggingConfigChoice(TacitOs.LINUX, dir).reason, "crashed")
+        assertContains(loggingConfigChoice(TacitOs.MACOS, dir).reason, "no single-instance handover")
     }
 
     /** The probe must leave upstream's lock alone; a shared lock held like upstream's survives it untouched. */

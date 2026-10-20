@@ -34,10 +34,11 @@ object Main {
         SerializableConfig uses ConfigExtension {
             registerProvider("MESSENGER_DIR") { messengerDir }
         }
-        val config = loggingConfigResource(TacitOs.current, Paths.get(messengerDir))
-        checkNotNull(this::class.java.getResourceAsStream(config)).use { stream ->
+        val choice = loggingConfigChoice(TacitOs.current, Paths.get(messengerDir))
+        checkNotNull(this::class.java.getResourceAsStream(choice.resource)).use { stream ->
             Backend.setDefaultConfig(stream.asSource().buffered())
         }
+        mainLog.info { "logging config ${choice.resource}: ${choice.reason}" }
     }
 
     @JvmStatic
