@@ -7,6 +7,7 @@ import org.fuchss.matrix.tacit.update.TacitOs
 import java.io.RandomAccessFile
 import java.nio.file.Files
 import java.nio.file.Path
+import kotlin.io.path.readText
 import kotlin.io.path.writeText
 import kotlin.test.AfterTest
 import kotlin.test.Test
@@ -67,17 +68,28 @@ class TacitSingleInstanceTest {
     }
 
     @Test
-    fun aLockHeldLikeUpstreamsIsDetected() {
+    fun aLockFileMeansTheLaunchHandsOver() {
+        assertEquals(MAIN_LOGGING_CONFIG, loggingConfigResource(TacitOs.WINDOWS, dir), "a first instance")
+        lock()
+        assertTrue(singleInstanceLockExists(dir.resolve(SINGLE_INSTANCE_LOCK_FILE)))
+        assertEquals(LAUNCHER_LOGGING_CONFIG, loggingConfigResource(TacitOs.WINDOWS, dir))
+        assertEquals(LAUNCHER_LOGGING_CONFIG, loggingConfigResource(TacitOs.LINUX, dir))
+        assertEquals(MAIN_LOGGING_CONFIG, loggingConfigResource(TacitOs.MACOS, dir))
+        assertFalse(singleInstanceLockExists(dir.resolve("missing.lock")))
+    }
+
+    /** The probe must leave upstream's lock alone; a shared lock held like upstream's survives it untouched. */
+    @Test
+    fun theProbeDoesNotTouchUpstreamsLock() {
         lock()
         val lockFile = dir.resolve(SINGLE_INSTANCE_LOCK_FILE)
-        // Upstream's running instance: a shared lock over the whole file.
         RandomAccessFile(lockFile.toFile(), "rw").use { file ->
             val held = file.channel.tryLock(0, Long.MAX_VALUE, true)
-            assertTrue(isSingleInstanceLockHeld(lockFile))
+            assertEquals(LAUNCHER_LOGGING_CONFIG, loggingConfigResource(TacitOs.WINDOWS, dir))
+            assertTrue(held.isValid)
             held.release()
         }
-        assertFalse(isSingleInstanceLockHeld(lockFile), "a lock file left behind by a crashed instance")
-        assertFalse(isSingleInstanceLockHeld(dir.resolve("missing.lock")))
+        assertEquals("2424", lockFile.readText(), "the probe does not write the lock file")
     }
 
     @Test
@@ -90,14 +102,14 @@ class TacitSingleInstanceTest {
             .start()
         try {
             assertEquals("locked", holder.inputReader().readLine())
-            assertTrue(isSingleInstanceLockHeld(lockFile))
             assertEquals(LAUNCHER_LOGGING_CONFIG, loggingConfigResource(TacitOs.WINDOWS, dir))
             assertEquals(MAIN_LOGGING_CONFIG, loggingConfigResource(TacitOs.MACOS, dir))
         } finally {
             holder.destroyForcibly().waitFor()
         }
-        assertFalse(isSingleInstanceLockHeld(lockFile))
-        assertEquals(MAIN_LOGGING_CONFIG, loggingConfigResource(TacitOs.WINDOWS, dir))
+        // A crashed instance leaves its lock file behind; that launch still counts as a handover (see
+        // loggingConfigResource). Only the file's existence is checked, so no wait for the OS to drop the lock.
+        assertEquals(LAUNCHER_LOGGING_CONFIG, loggingConfigResource(TacitOs.WINDOWS, dir))
     }
 }
 

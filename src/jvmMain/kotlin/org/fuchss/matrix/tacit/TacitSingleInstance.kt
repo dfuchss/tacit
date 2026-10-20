@@ -1,10 +1,7 @@
 package org.fuchss.matrix.tacit
 
 import org.fuchss.matrix.tacit.update.TacitOs
-import java.nio.channels.FileChannel
-import java.nio.channels.OverlappingFileLockException
 import java.nio.file.Path
-import java.nio.file.StandardOpenOption
 import kotlin.io.path.exists
 
 /** Name of upstream's single-instance lock file in the app data directory; it holds the running instance's port. */
@@ -27,29 +24,19 @@ internal fun usesSingleInstanceLock(os: TacitOs?): Boolean = os == TacitOs.WINDO
  */
 internal fun singleInstanceArgs(args: Array<String>, appUri: String, os: TacitOs?, appDataDir: Path): Array<String> {
     if (!args.firstOrNull().isNullOrBlank()) return args
-    if (!usesSingleInstanceLock(os) || !appDataDir.resolve(SINGLE_INSTANCE_LOCK_FILE).exists()) return args
+    if (!usesSingleInstanceLock(os) || !singleInstanceLockExists(appDataDir.resolve(SINGLE_INSTANCE_LOCK_FILE))) return args
     return arrayOf(activationUri(appUri))
 }
 
 /**
- * Whether a running instance holds [lockFile]. Upstream's running instance keeps a shared lock on it, so an
- * exclusive lock cannot be taken then; a lock file left behind by a crashed instance is not held. Any error counts as
- * "not held", which keeps the normal behaviour.
+ * Whether [lockFile] exists, i.e. upstream's URI handler will hand this launch over to the instance named in it.
+ *
+ * This deliberately neither locks nor reads nor connects: upstream's running instance keeps a shared lock on the file,
+ * a starting primary writes and locks it, and a concurrent launch reads it. Any lock taken here, even briefly, can
+ * make those fail (mandatory locks on Windows, a failed shared `tryLock` on Linux). The price: a lock file left behind
+ * by a crashed instance also counts, see [loggingConfigResource].
  */
-internal fun isSingleInstanceLockHeld(lockFile: Path): Boolean {
-    if (!lockFile.exists()) return false
-    return try {
-        FileChannel.open(lockFile, StandardOpenOption.READ, StandardOpenOption.WRITE).use { channel ->
-            val lock = channel.tryLock() ?: return true
-            lock.release()
-            false
-        }
-    } catch (_: OverlappingFileLockException) {
-        true // held within this JVM
-    } catch (_: Exception) {
-        false
-    }
-}
+internal fun singleInstanceLockExists(lockFile: Path): Boolean = runCatching { lockFile.exists() }.getOrDefault(false)
 
 /** Main log of the running instance; read by `Main` before logging is set up. */
 internal const val MAIN_LOGGING_CONFIG = "/lognity.json"
@@ -62,7 +49,7 @@ internal const val LAUNCHER_LOGGING_CONFIG = "/lognity-launcher.json"
  * logs to its own small file, so it no longer writes into (and clobbers) the running instance's log.
  */
 internal fun loggingConfigResource(os: TacitOs?, appDataDir: Path): String =
-    if (usesSingleInstanceLock(os) && isSingleInstanceLockHeld(appDataDir.resolve(SINGLE_INSTANCE_LOCK_FILE))) {
+    if (usesSingleInstanceLock(os) && singleInstanceLockExists(appDataDir.resolve(SINGLE_INSTANCE_LOCK_FILE))) {
         LAUNCHER_LOGGING_CONFIG
     } else {
         MAIN_LOGGING_CONFIG
