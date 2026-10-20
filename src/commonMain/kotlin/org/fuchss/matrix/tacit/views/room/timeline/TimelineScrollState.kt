@@ -68,10 +68,24 @@ internal fun rememberTimelineScrollRequests(timelineViewModel: TimelineViewModel
 
 /**
  * Scroll position logic of the (reversed) timeline list: whether it is pinned to its end, the
- * initial anchor, and following new messages while pinned. Plain fields where only effects read them.
+ * initial anchor, and following new messages while pinned.
+ *
+ * `@Stable` holds because everything composition can observe is snapshot state ([listState],
+ * [isPinnedToEnd], [canScrollToEnd]). The private bookkeeping fields ([initialAnchorApplied],
+ * [wasPinnedToEnd], [previousNewestKey]) are plain `var`s on purpose: only the effects of
+ * [rememberTimelineScrollState] and [TimelineFollowEffects] read and write them -- never composition,
+ * so a change must not trigger a recomposition -- and those effects all run on the composition's
+ * (single-threaded UI) dispatcher, so the fields need no synchronisation either.
+ *
+ * [scrollToAnchor] performs the initial anchor scroll (a seam for tests).
  */
 @Stable
-internal class TimelineScrollState(val listState: LazyListState) {
+internal class TimelineScrollState(
+    val listState: LazyListState,
+    private val scrollToAnchor: suspend (index: Int) -> Unit = { index ->
+        if (index == 0) listState.scrollToItem(0) else listState.safeScrollIntoView(index)
+    },
+) {
     val isPinnedToEnd: State<Boolean> = derivedStateOf {
         val newestVisibleItem = listState.layoutInfo.visibleItemsInfo.firstOrNull()
         isPinnedToEnd(newestVisibleItem?.index, newestVisibleItem?.offset)
@@ -85,7 +99,7 @@ internal class TimelineScrollState(val listState: LazyListState) {
     /** Scrolls to the initial position [index] once (the list may have been laid out without it). */
     suspend fun applyInitialAnchor(index: Int) {
         if (initialAnchorApplied) return
-        if (index == 0) listState.scrollToItem(0) else listState.safeScrollIntoView(index)
+        scrollToAnchor(index)
         initialAnchorApplied = true
     }
 
