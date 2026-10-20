@@ -52,7 +52,7 @@ import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.messag
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.message.bubble.ReferencedMessagePillView
 import de.connect2x.trixnity.messenger.compose.view.theme.components
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedIconButton
-import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedUserAvatar
+import org.fuchss.matrix.tacit.views.common.TacitUserAvatar
 import de.connect2x.trixnity.messenger.compose.view.theme.messengerColors
 import de.connect2x.trixnity.messenger.viewmodel.UserInfoElement
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.InputAreaViewModel
@@ -211,7 +211,7 @@ internal class TacitReferencedMessagePillView : ReferencedMessagePillView {
                     tint = senderColor.copy(alpha = 0.8f),
                 )
                 if (sender != null) {
-                    ThemedUserAvatar(
+                    TacitUserAvatar(
                         initials = sender.initials,
                         image = senderImage,
                         size = 16.dp,

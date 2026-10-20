@@ -16,7 +16,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedUserAvatar
+import org.fuchss.matrix.tacit.views.common.TacitUserAvatar
 import org.fuchss.matrix.tacit.*
 import org.fuchss.matrix.tacit.ui.TacitCardSurface
 import org.fuchss.matrix.tacit.ui.TacitShapes
@@ -100,7 +100,7 @@ internal fun TacitUserDirectoryRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            ThemedUserAvatar(
+            TacitUserAvatar(
                 initials = initialsOf(user.displayName, singleWordLength = 1),
                 image = null,
                 size = 24.dp,

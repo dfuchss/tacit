@@ -19,7 +19,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.TypingIndicatorView
-import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedUserAvatar
+import org.fuchss.matrix.tacit.views.common.TacitUserAvatar
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.TimelineViewModel
 import org.fuchss.matrix.tacit.tacit
 import org.fuchss.matrix.tacit.ui.TacitShapes
@@ -56,7 +56,7 @@ class TacitTypingIndicatorView : TypingIndicatorView {
                 ) {
                     if (typingMembers.isNotEmpty()) {
                         typingMembers.take(3).forEach { member ->
-                            ThemedUserAvatar(
+                            TacitUserAvatar(
                                 initials = initialsOf(member.displayName),
                                 image = member.avatarImage,
                                 size = 20.dp,

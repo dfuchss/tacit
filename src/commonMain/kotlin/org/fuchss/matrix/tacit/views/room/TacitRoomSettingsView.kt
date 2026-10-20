@@ -27,7 +27,7 @@ import de.connect2x.trixnity.messenger.compose.view.theme.components
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedButton
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedDropdownMenu
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedDropdownMenuItem
-import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedUserAvatar
+import org.fuchss.matrix.tacit.views.common.TacitUserAvatar
 import de.connect2x.trixnity.messenger.viewmodel.room.settings.RoomSettingsViewModel
 import org.fuchss.matrix.tacit.*
 import org.fuchss.matrix.tacit.ui.TacitCardSurface
@@ -516,7 +516,7 @@ private fun DmUserVerificationSection(
                 contentPadding = PaddingValues(horizontal = 10.dp, vertical = 10.dp),
             ) {
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    ThemedUserAvatar(
+                    TacitUserAvatar(
                         initials = entry.initials,
                         image = entry.image,
                         size = 30.dp,

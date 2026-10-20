@@ -18,7 +18,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import de.connect2x.trixnity.messenger.compose.view.DI
 import de.connect2x.trixnity.messenger.compose.view.get
-import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedUserAvatar
+import org.fuchss.matrix.tacit.views.common.TacitUserAvatar
 import org.fuchss.matrix.tacit.*
 import org.fuchss.matrix.tacit.ui.TacitCardSurface
 import org.fuchss.matrix.tacit.ui.TacitShapes
@@ -123,7 +123,7 @@ private fun MemberRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            ThemedUserAvatar(
+            TacitUserAvatar(
                 initials = initialsOf(member.displayName),
                 image = member.avatarImage,
                 size = TacitSizes.avatarCompact,

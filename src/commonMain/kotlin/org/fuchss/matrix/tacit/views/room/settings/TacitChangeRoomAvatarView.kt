@@ -25,7 +25,7 @@ import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.room.settings.ChangeRoomAvatarView
 import de.connect2x.trixnity.messenger.compose.view.theme.components
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedIconButton
-import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedUserAvatar
+import org.fuchss.matrix.tacit.views.common.TacitUserAvatar
 import de.connect2x.trixnity.messenger.viewmodel.room.settings.ChangeRoomAvatarViewModel
 import org.fuchss.matrix.tacit.viewmodel.room.settings.TacitChangeRoomAvatarViewModel
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
@@ -43,10 +43,9 @@ class TacitChangeRoomAvatarView : ChangeRoomAvatarView {
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             Box(Modifier.align(Alignment.Center)) {
                 Box {
-                    ThemedUserAvatar(
+                    TacitUserAvatar(
                         initials = initials,
                         image = avatar,
-                        presence = null,
                         size = this@BoxWithConstraints.maxWidth.coerceAtMost(200.dp),
                     ) {
                         if (canChangeAvatar) {

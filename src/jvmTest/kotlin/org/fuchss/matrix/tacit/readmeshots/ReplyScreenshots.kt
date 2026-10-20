@@ -18,6 +18,12 @@ class ReplyScreenshots : DevScreenshotTest("REPLY", "tacit-reply-screenshots") {
         runDevScreenshots(
             seed = { users ->
                 val hike = seedDemoConversations(users)
+                // A member without a profile picture: the quote header then shows generated initials.
+                val rex = users.mira.registerUser("rex", DEMO_PASSWORD, "Element (Web)").apply { setDisplayName("Rex Ridge") }
+                users.mira.invite(hike, rex.userId)
+                rex.join(hike)
+                val question = rex.sendText(hike, "Can I bring my dog along?")
+                users.mira.sendReply(hike, "Of course, the more the merrier!", replyTo = question)
                 hike to users.mira.findMessageEventId(hike, "ridge trail")
             },
         ) { session ->
@@ -31,6 +37,7 @@ class ReplyScreenshots : DevScreenshotTest("REPLY", "tacit-reply-screenshots") {
             }
             waitForText("Saturday works")
             waitForText("good camera")
+            waitForText("the more the merrier")
             settleForCapture()
             capture("timeline")
 

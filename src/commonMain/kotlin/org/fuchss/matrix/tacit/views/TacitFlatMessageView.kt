@@ -56,7 +56,7 @@ import de.connect2x.trixnity.messenger.compose.view.theme.MaterialThemeComponent
 import de.connect2x.trixnity.messenger.compose.view.theme.ThemeComponents
 import de.connect2x.trixnity.messenger.compose.view.theme.components
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedProgressIndicator
-import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedUserAvatar
+import org.fuchss.matrix.tacit.views.common.TacitUserAvatar
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.BaseTimelineElementHolderViewModel
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.OutboxElementHolderViewModel
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.TimelineElementHolderViewModel
@@ -282,7 +282,7 @@ private fun TacitFlatMessageContainer(
                         // hover-revealed one in this gutter would only duplicate it.
                         Spacer(Modifier.width(AvatarGutterWidth))
                     } else {
-                        ThemedUserAvatar(
+                        TacitUserAvatar(
                             initials = uiState.senderInitials ?: "?",
                             image = uiState.senderAvatar,
                             size = 30.dp,

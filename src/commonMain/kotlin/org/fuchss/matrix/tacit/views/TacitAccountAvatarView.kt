@@ -25,7 +25,7 @@ import de.connect2x.trixnity.messenger.compose.view.roomlist.header.*
 import de.connect2x.trixnity.messenger.compose.view.theme.components
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedButton
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedDropdownMenu
-import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedUserAvatar
+import org.fuchss.matrix.tacit.views.common.TacitUserAvatar
 import de.connect2x.trixnity.messenger.viewmodel.AccountInfo
 import de.connect2x.trixnity.messenger.viewmodel.roomlist.AccountViewModel
 import kotlinx.coroutines.flow.map
@@ -122,7 +122,7 @@ private fun AvatarAreaWithoutBadge(accountInfo: AccountInfo) {
             },
         verticalAlignment = Alignment.CenterVertically
     ) {
-        ThemedUserAvatar(accountInfo.initials, accountInfo.avatar)
+        TacitUserAvatar(accountInfo.initials, accountInfo.avatar)
         Spacer(Modifier.size(10.dp))
         Column {
             Tooltip({ Text(accountInfo.displayName) }) {

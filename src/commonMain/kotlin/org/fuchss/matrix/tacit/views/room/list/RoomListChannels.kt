@@ -39,7 +39,7 @@ import de.connect2x.trixnity.messenger.compose.view.common.Tooltip
 import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ButtonStyle
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedButton
-import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedUserAvatar
+import org.fuchss.matrix.tacit.views.common.TacitUserAvatar
 import org.fuchss.matrix.tacit.*
 import org.fuchss.matrix.tacit.ui.TacitShapes
 import org.fuchss.matrix.tacit.viewmodel.room.list.DmFilter
@@ -156,14 +156,14 @@ internal fun ChannelRow(
                                 .semantics { contentDescription = presenceLabel },
                             contentAlignment = Alignment.Center,
                         ) {
-                            ThemedUserAvatar(
+                            TacitUserAvatar(
                                 initials = roomImageInitials ?: initialsOf(channelTitle, singleWordLength = 1),
                                 image = roomImage,
                                 size = TacitSizes.avatarCompact,
                             )
                         }
                     } else {
-                        ThemedUserAvatar(
+                        TacitUserAvatar(
                             initials = roomImageInitials ?: initialsOf(channelTitle, singleWordLength = 1),
                             image = roomImage,
                             size = TacitSizes.avatarCompact,

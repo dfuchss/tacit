@@ -94,6 +94,14 @@ internal class MatrixSession(private val http: MatrixHttp, val userId: String, v
     fun createRoom(body: JsonObject): String =
         call("POST", "/_matrix/client/v3/createRoom", body).getValue("room_id").jsonPrimitive.content
 
+    /** Registers another user on the same homeserver. */
+    fun registerUser(username: String, password: String, deviceName: String): MatrixSession =
+        http.register(username, password, deviceName)
+
+    fun invite(roomId: String, userId: String) {
+        call("POST", "/_matrix/client/v3/rooms/${encodePath(roomId)}/invite", buildJsonObject { put("user_id", userId) })
+    }
+
     /** Joins a room. Retries for a while because invites/space memberships propagate asynchronously. */
     fun join(roomId: String, attempts: Int = 40): Unit = repeat(attempts) { attempt ->
         val result = runCatching {
