@@ -1,6 +1,6 @@
 package org.fuchss.matrix.tacit.views.room.timeline
 
-import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -15,7 +15,6 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.graphics.Color
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.first
 import org.fuchss.matrix.tacit.tacit
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -62,25 +61,27 @@ internal fun rememberJumpHighlightState(): JumpHighlightState {
 }
 
 /**
- * The accent tint a row draws while it is the target of a jump ([isJumpTarget]), fading out
- * afterwards; `null` while there is nothing to draw, so only a row that is (or just was) the target
- * pays for the animation and the extra layer.
+ * The accent tint a row draws while it is the target of a jump ([isJumpTarget]): it fades in from
+ * transparent (150 ms) and out again afterwards (700 ms). `null` while there is nothing to draw, so
+ * only a row that is (or just was) the target pays for the animation and the extra layer.
+ *
+ * The animation state lives behind the early return: it is created -- at [Color.Transparent] -- when
+ * a row becomes the target, and dropped together with the layer once the fade-out has finished.
  */
 @Composable
 internal fun rememberJumpHighlightTint(isJumpTarget: Boolean): Color? {
-    var fadingOut by remember { mutableStateOf(false) }
-    if (!isJumpTarget && !fadingOut) return null
-    val tint by animateColorAsState(
-        targetValue = if (isJumpTarget) MaterialTheme.tacit.accent.copy(alpha = 0.18f) else Color.Transparent,
-        animationSpec = tween(durationMillis = if (isJumpTarget) 150 else 700),
-    )
-    LaunchedEffect(isJumpTarget) {
+    var active by remember { mutableStateOf(false) }
+    if (!isJumpTarget && !active) return null
+    val accent = MaterialTheme.tacit.accent.copy(alpha = 0.18f)
+    val tint = remember { Animatable(Color.Transparent) }
+    LaunchedEffect(isJumpTarget, accent) {
         if (isJumpTarget) {
-            fadingOut = true
+            active = true
+            tint.animateTo(accent, tween(durationMillis = 150))
         } else {
-            snapshotFlow { tint.alpha }.first { it == 0f }
-            fadingOut = false
+            tint.animateTo(Color.Transparent, tween(durationMillis = 700))
+            active = false
         }
     }
-    return tint
+    return tint.value
 }
