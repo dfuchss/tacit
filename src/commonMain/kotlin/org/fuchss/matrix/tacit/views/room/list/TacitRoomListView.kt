@@ -205,11 +205,7 @@ private fun RoomListContent(
                 }
 
                 OfflineWarningBanner(i18n, state.status.syncStates)
-                RoomListErrors(
-                    error = state.error.message,
-                    errorType = state.error.type,
-                    onDismissError = actions::dismissError,
-                )
+                RoomListErrors(error = state.error.message)
                 HorizontalDivider(color = MaterialTheme.tacit.border)
 
                 RoomListBody(
@@ -261,11 +257,9 @@ private fun OfflineWarningBanner(
 @Composable
 private fun RoomListErrors(
     error: String?,
-    errorType: ErrorType,
-    onDismissError: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    AutoDismissError(error, errorType, onDismissError)
+    // Auto-dismissed by the single AutoDismissError at the top of the room list.
     if (error != null) {
         TacitCardSurface(
             modifier = modifier
