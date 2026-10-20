@@ -14,7 +14,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+## 26.9.2-tacit.6
+
+Based on Tammy 26.9.2.
+
+### Changed
+
+- Tacit always uses its dark theme, including Tammy's dialogs and context menus
+- Sender name colours are tuned to Tacit's dark palette and the message cards they sit on
+- The first window opens sized to the usable screen area
+- The Tacit logo in the guild rail is sharp on displays at 100% scaling instead of speckled
+- Picking a user from a search keeps the other results instead of searching again
+
+### Fixed
+
 - On macOS, notifications and the Dock badge no longer stay after the message was read right away
+- Completing a shortcode or slash command replaces the whole word around the cursor, also for non-ASCII shortcodes
+- Opening a room no longer moves the focus past the newest message
+- A message right after a room event starts a new sender block with name and avatar
+- The highlight after jumping to a message fades in instead of flashing
+- A dialog shows the same error again when it happens a second time
+- Dragging a guild drops the guild that was dragged, even if the list changed meanwhile
+- Generated avatar initials are centred at small sizes
 
 ## 26.9.2-tacit.5
 
