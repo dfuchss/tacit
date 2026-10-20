@@ -1,10 +1,12 @@
 package org.fuchss.matrix.tacit.viewmodel.room
 
 import de.connect2x.trixnity.core.model.RoomId
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 /**
  * One-shot hand-over of "open this space in guild/category settings mode" from the room list view model to the
@@ -44,5 +46,33 @@ internal class TacitSpaceSettingsRequests {
      */
     fun discardUnlessFor(roomId: RoomId) {
         pending.update { if (it == roomId) it else null }
+    }
+}
+
+/**
+ * The room view model's side of [TacitSpaceSettingsRequests] for [roomId]: on creation it drops a request for any
+ * other room, then consumes every request for its own room, switching [settingsMode] to SPACE and calling
+ * [openRoomSettings]. It keeps listening while the room is shown, since requesting the settings of the already open
+ * space reuses its view model (the room router brings the same configuration to the front).
+ */
+internal class TacitSpaceSettingsHandOver(
+    private val roomId: RoomId,
+    private val requests: TacitSpaceSettingsRequests,
+    scope: CoroutineScope,
+    private val openRoomSettings: () -> Unit,
+) {
+    private val _settingsMode = MutableStateFlow(TacitRoomSettingsMode.ROOM)
+    val settingsMode: StateFlow<TacitRoomSettingsMode> = _settingsMode.asStateFlow()
+
+    init {
+        requests.discardUnlessFor(roomId)
+        scope.launch {
+            requests.pendingRoomId.collect { pendingRoomId ->
+                if (pendingRoomId == roomId && requests.consume(roomId)) {
+                    _settingsMode.value = TacitRoomSettingsMode.SPACE
+                    openRoomSettings()
+                }
+            }
+        }
     }
 }

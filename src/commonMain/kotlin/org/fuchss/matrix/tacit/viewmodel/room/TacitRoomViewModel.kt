@@ -9,11 +9,8 @@ import de.connect2x.trixnity.messenger.viewmodel.room.RoomViewModel
 import de.connect2x.trixnity.messenger.viewmodel.room.RoomViewModelFactory
 import de.connect2x.trixnity.messenger.viewmodel.room.settings.OpenAvatarCutterCallback
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.OpenMentionCallback
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import org.koin.core.component.get
 
 /** How the room settings pane of a room is presented. */
@@ -66,23 +63,13 @@ private class TacitRoomViewModelImpl(
     private val onOpenRoom: (UserId, RoomId) -> Unit,
 ) : TacitRoomViewModel, RoomViewModel by delegate, MatrixClientViewModelContext by viewModelContext {
 
-    private val _settingsMode = MutableStateFlow(TacitRoomSettingsMode.ROOM)
-    override val settingsMode: StateFlow<TacitRoomSettingsMode> = _settingsMode.asStateFlow()
-
-    init {
-        val spaceSettingsRequests = get<TacitSpaceSettingsRequests>()
-        spaceSettingsRequests.discardUnlessFor(roomId)
-        coroutineScope.launch {
-            // Keeps listening while this room is shown: requesting the settings of the already open space reuses
-            // this view model (the room router brings the same configuration to the front).
-            spaceSettingsRequests.pendingRoomId.collect { pendingRoomId ->
-                if (pendingRoomId == roomId && spaceSettingsRequests.consume(roomId)) {
-                    _settingsMode.value = TacitRoomSettingsMode.SPACE
-                    delegate.openRoomSettings()
-                }
-            }
-        }
-    }
+    private val spaceSettings = TacitSpaceSettingsHandOver(
+        roomId = roomId,
+        requests = get<TacitSpaceSettingsRequests>(),
+        scope = coroutineScope,
+        openRoomSettings = { delegate.openRoomSettings() },
+    )
+    override val settingsMode: StateFlow<TacitRoomSettingsMode> = spaceSettings.settingsMode
 
     override suspend fun openRoomWhenJoined(roomId: RoomId) {
         matrixClient.room.getById(roomId).first { it?.membership == Membership.JOIN }
