@@ -15,7 +15,7 @@ internal fun CreateDirectMessageDialogContainer(
 ) {
     if (!open) return
     val inProgress = viewModel.isCreating.collectAsState().value
-    val submission = rememberTacitDialogSubmission(viewModel.error.collectAsState().value)
+    val submission = rememberTacitDialogSubmission(viewModel.failure.collectAsState().value)
 
     CreateDirectMessageDialog(
         isStartingDirectMessage = inProgress,

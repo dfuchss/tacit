@@ -17,7 +17,7 @@ internal fun CreateCategoryDialogContainer(
     val guild = selectedGuild ?: return
     if (!open) return
     val inProgress = viewModel.isCreating.collectAsState().value
-    val submission = rememberTacitDialogSubmission(viewModel.error.collectAsState().value)
+    val submission = rememberTacitDialogSubmission(viewModel.failure.collectAsState().value)
 
     CreateCategoryDialog(
         guildName = guild.displayName ?: guild.roomId.full,

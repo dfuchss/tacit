@@ -15,6 +15,8 @@ import org.fuchss.matrix.tacit.viewmodel.room.list.entry.GuildEntry
 import org.fuchss.matrix.tacit.viewmodel.room.list.entry.SpaceChannelEntry
 import org.fuchss.matrix.tacit.viewmodel.space.TacitGuildLayout
 import org.fuchss.matrix.tacit.viewmodel.util.TacitErrorSource
+import org.fuchss.matrix.tacit.viewmodel.util.TacitErrorState
+import org.fuchss.matrix.tacit.viewmodel.util.TacitFailure
 import org.fuchss.matrix.tacit.viewmodel.util.joinRoom
 import org.fuchss.matrix.tacit.viewmodel.util.launchExclusive
 import org.fuchss.matrix.tacit.viewmodel.util.tacitWhileSubscribed
@@ -53,20 +55,19 @@ internal class TacitBrowseChannelsViewModel(
         combine(rooms, candidates, guildLayout, hierarchyNames, memberships, ::browseChannelEntries)
             .stateIn(coroutineScope, tacitWhileSubscribed, emptyList())
 
+    private val errors = TacitErrorState()
+    override val error: StateFlow<String?> = errors.error
+    override val failure: StateFlow<TacitFailure?> = errors.failure
+
+    override fun errorDismiss() = errors.clear()
+
     private val _joiningRoomId = MutableStateFlow<RoomId?>(null)
     val joiningRoomId: StateFlow<RoomId?> = _joiningRoomId.asStateFlow()
-
-    private val _error = MutableStateFlow<String?>(null)
-    override val error: StateFlow<String?> = _error.asStateFlow()
-
-    override fun errorDismiss() {
-        _error.value = null
-    }
 
     fun joinChannel(guild: GuildEntry, channel: SpaceChannelEntry, onSuccess: () -> Unit) {
         if (!channel.isJoinable || channel.isJoined) return
         coroutineScope.launchExclusive(_joiningRoomId, idle = null, busy = channel.roomId) {
-            _error.value = null
+            errors.clear()
             val result = guildClient(guild)?.joinRoom(roomId = channel.roomId, viaServers = channel.via)
                 ?: Result.failure(IllegalStateException(tacitI18n.tacitNoAccountForGuild()))
             result.fold(
@@ -75,7 +76,7 @@ internal class TacitBrowseChannelsViewModel(
                     onSuccess()
                 },
                 onFailure = { throwable ->
-                    _error.value = tacitI18n.tacitJoinRoomFailed(tacitI18n.tacitErrorMessage(throwable))
+                    errors.fail(tacitI18n.tacitJoinRoomFailed(tacitI18n.tacitErrorMessage(throwable)))
                 },
             )
         }

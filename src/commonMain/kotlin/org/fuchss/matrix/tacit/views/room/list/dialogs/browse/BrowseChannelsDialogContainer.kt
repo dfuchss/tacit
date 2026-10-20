@@ -19,7 +19,7 @@ internal fun BrowseChannelsDialogContainer(
     val guild = selectedGuild ?: return
     if (!open) return
     val joiningRoomId = viewModel.joiningRoomId.collectAsState().value
-    val submission = rememberTacitDialogSubmission(viewModel.error.collectAsState().value)
+    val submission = rememberTacitDialogSubmission(viewModel.failure.collectAsState().value)
 
     BrowseChannelsDialog(
         guildName = guild.displayName ?: guild.roomId.full,

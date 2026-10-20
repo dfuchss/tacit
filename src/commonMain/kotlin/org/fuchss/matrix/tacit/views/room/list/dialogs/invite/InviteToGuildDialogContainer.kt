@@ -18,7 +18,7 @@ internal fun InviteToGuildDialogContainer(
     val guild = selectedGuild ?: return
     if (!open) return
     val inProgress = viewModel.isCreating.collectAsState().value
-    val submission = rememberTacitDialogSubmission(viewModel.error.collectAsState().value)
+    val submission = rememberTacitDialogSubmission(viewModel.failure.collectAsState().value)
 
     InviteToGuildDialog(
         guildName = guild.displayName ?: guild.roomId.full,

@@ -20,6 +20,7 @@ import org.fuchss.matrix.tacit.views.common.TacitUserAvatar
 import org.fuchss.matrix.tacit.*
 import org.fuchss.matrix.tacit.ui.TacitCardSurface
 import org.fuchss.matrix.tacit.ui.TacitShapes
+import org.fuchss.matrix.tacit.viewmodel.util.TacitFailure
 import org.fuchss.matrix.tacit.viewmodel.util.UserDirectoryEntry
 import org.fuchss.matrix.tacit.viewmodel.util.UserSearchState
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
@@ -205,9 +206,13 @@ internal class TacitDialogSubmission {
     }
 }
 
+/**
+ * Keyed on the view model's [failure], not its message: a retry that fails with the same message is a new failure
+ * (see [TacitFailure.attempt]), so the dialog shows it again after [TacitDialogSubmission.submit] cleared it.
+ */
 @Composable
-internal fun rememberTacitDialogSubmission(error: String?): TacitDialogSubmission {
+internal fun rememberTacitDialogSubmission(failure: TacitFailure?): TacitDialogSubmission {
     val submission = remember { TacitDialogSubmission() }
-    LaunchedEffect(error) { submission.onError(error) }
+    LaunchedEffect(failure) { submission.onError(failure?.message) }
     return submission
 }

@@ -9,6 +9,7 @@ import org.fuchss.matrix.tacit.viewmodel.i18n.TacitI18n
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -58,6 +59,25 @@ class TacitActionTest {
         action.launch(TacitI18n::tacitCreateGuildFailed) { Result.failure<Unit>(IllegalStateException("again")) }
         action.errorDismiss()
         assertNull(action.error.value)
+    }
+
+    @Test
+    fun `a repeated identical failure is a new failure`() = runTest(UnconfinedTestDispatcher()) {
+        val action = action()
+        val fail = { action.launch(TacitI18n::tacitCreateGuildFailed) { Result.failure<Unit>(IllegalStateException("boom")) } }
+
+        fail()
+        val first = action.failure.value
+        fail()
+        val second = action.failure.value
+
+        assertEquals("Could not create guild: boom", first?.message)
+        assertEquals(first?.message, second?.message)
+        assertNotEquals(first, second)
+        assertEquals("Could not create guild: boom", action.error.value)
+
+        action.errorDismiss()
+        assertNull(action.failure.value)
     }
 
     @Test

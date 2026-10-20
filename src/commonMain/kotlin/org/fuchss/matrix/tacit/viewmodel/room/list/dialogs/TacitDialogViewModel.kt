@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.StateFlow
 import org.fuchss.matrix.tacit.viewmodel.i18n.TacitI18n
 import org.fuchss.matrix.tacit.viewmodel.util.TacitAction
 import org.fuchss.matrix.tacit.viewmodel.util.TacitErrorSource
+import org.fuchss.matrix.tacit.viewmodel.util.TacitFailure
 import org.koin.core.component.get
 
 /**
@@ -20,6 +21,7 @@ internal abstract class TacitDialogViewModel(
 
     val isCreating: StateFlow<Boolean> = action.isCreating
     override val error: StateFlow<String?> = action.error
+    override val failure: StateFlow<TacitFailure?> = action.failure
 
     override fun errorDismiss() = action.errorDismiss()
 }

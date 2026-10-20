@@ -14,7 +14,7 @@ internal fun CreateGroupChannelDialogContainer(
 ) {
     if (!open) return
     val inProgress = viewModel.isCreating.collectAsState().value
-    val submission = rememberTacitDialogSubmission(viewModel.error.collectAsState().value)
+    val submission = rememberTacitDialogSubmission(viewModel.failure.collectAsState().value)
 
     CreateGroupChannelDialog(
         isCreating = inProgress,

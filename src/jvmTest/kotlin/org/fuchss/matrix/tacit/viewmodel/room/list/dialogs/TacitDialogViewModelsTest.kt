@@ -23,6 +23,7 @@ import org.koin.dsl.module
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
 /** The dialog view models on a real view-model context and Koin, without an account to act with. */
@@ -77,6 +78,20 @@ class TacitDialogViewModelsTest {
         viewModel.startDirectMessage("alice") {}
 
         assertEquals("Could not start direct message: No valid userId provided: 'alice'", viewModel.error.value)
+    }
+
+    @Test
+    fun `submitting the same invalid user ID twice reports a new failure each time`() = runTest(UnconfinedTestDispatcher()) {
+        val viewModel = TacitCreateDirectMessageViewModel(viewModelContext().childContext("dm"), { null }) {}
+
+        viewModel.startDirectMessage("foo") {}
+        val first = viewModel.failure.value
+        viewModel.startDirectMessage("foo") {}
+        val second = viewModel.failure.value
+
+        assertEquals("Could not start direct message: No valid userId provided: 'foo'", second?.message)
+        assertEquals(first?.message, second?.message)
+        assertNotEquals(first, second)
     }
 
     @Test
