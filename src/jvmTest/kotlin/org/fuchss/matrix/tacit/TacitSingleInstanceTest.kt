@@ -24,7 +24,11 @@ class TacitSingleInstanceTest {
 
     @AfterTest
     fun cleanUp() {
-        dir.toFile().deleteRecursively()
+        // On Windows a killed lock holder's handle can outlive destroyForcibly().waitFor() briefly; retry the delete.
+        repeat(20) {
+            if (dir.toFile().deleteRecursively()) return
+            Thread.sleep(100)
+        }
     }
 
     private fun lock() = dir.resolve(SINGLE_INSTANCE_LOCK_FILE).writeText("2424")
