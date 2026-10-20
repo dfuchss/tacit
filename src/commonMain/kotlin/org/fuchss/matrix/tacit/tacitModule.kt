@@ -38,6 +38,7 @@ import de.connect2x.trixnity.messenger.viewmodel.roomlist.RoomListViewModelFacto
 import de.connect2x.trixnity.messenger.viewmodel.settings.AppearanceSettingsViewModelFactory
 import de.connect2x.trixnity.messenger.viewmodel.settings.UserSettingsViewModelFactory
 import org.fuchss.matrix.tacit.notification.TacitAppleNotificationCleaner
+import org.fuchss.matrix.tacit.settings.TacitDarkThemeMode
 import org.fuchss.matrix.tacit.viewmodel.i18n.TacitI18n
 import org.fuchss.matrix.tacit.viewmodel.room.TacitRoomViewModelFactory
 import org.fuchss.matrix.tacit.viewmodel.room.TacitSpaceSettingsRequests
@@ -135,6 +136,9 @@ fun tacitViewModelModule() = module {
     single<UserSettingsViewModelFactory> { TacitUserSettingsViewModelFactory }
     single { TacitMarkAllAsRead(get(), get(), get()) }
     single { TacitAppleNotificationCleaner(get(), get()) }.bind<Worker>()
+    // Messenger level only: the multi-messenger settings holder shares settings.json with upstream's own
+    // multi-messenger holder, so writing it there could race and revert or break the profile settings.
+    single { TacitDarkThemeMode(get()) }.bind<Worker>()
     single<RoomSettingsViewModelFactory> { TacitRoomSettingsViewModelFactory }
     single<ChangeRoomAvatarViewModelFactory> { TacitChangeRoomAvatarViewModelFactory }
     single<RoomViewModelFactory> { TacitRoomViewModelFactory }
