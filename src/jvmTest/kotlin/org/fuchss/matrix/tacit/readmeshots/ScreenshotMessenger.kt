@@ -26,6 +26,7 @@ import de.connect2x.trixnity.messenger.MatrixClients
 import de.connect2x.trixnity.messenger.MatrixMessenger
 import de.connect2x.trixnity.messenger.MatrixMessengerSettingsBase
 import de.connect2x.trixnity.messenger.MatrixMessengerSettingsHolder
+import de.connect2x.trixnity.messenger.ThemeMode
 import de.connect2x.trixnity.messenger.createRoot
 import de.connect2x.trixnity.messenger.multi.MatrixMultiMessenger
 import de.connect2x.trixnity.messenger.multi.MatrixMultiMessengerConfiguration
@@ -146,7 +147,9 @@ internal class ScreenshotMessenger(
             val multi = createScreenshotMultiMessenger(rootDir, updates)
             val messenger = multi.singleModeMatrixMessenger().first()
             messenger.di.get<MatrixMessengerSettingsHolder>().update<MatrixMessengerSettingsBase> {
-                it.copy(preferredLang = "en") // the README is English, regardless of the machine's locale
+                // The README is English and dark, regardless of the machine's locale and appearance: an explicit
+                // theme mode keeps upstream's ThemeSettings.isDarkMode() from following the OS setting.
+                it.copy(preferredLang = "en", themeMode = ThemeMode.DARK)
             }
             val root = messenger.createRoot(DefaultComponentContext(LifecycleRegistry().apply { resume() }))
             return ScreenshotMessenger(multi, messenger, root, updates)
