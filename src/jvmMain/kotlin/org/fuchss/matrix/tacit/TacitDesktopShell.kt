@@ -302,6 +302,9 @@ private fun DesktopTaskbarIcon(unreadMessages: Int) {
     }
 }
 
+/** Windows and Linux get pre-sized window icons; macOS keeps the Compose painter (Dock and minimised tile). */
+private val usesSizedIconImages: Boolean = TacitOs.current != TacitOs.MACOS
+
 @Composable
 private fun TacitDesktopWindow(
     state: TacitDesktopShellState,
@@ -320,7 +323,8 @@ private fun TacitDesktopWindow(
     Window(
         onCloseRequest = onCloseRequest,
         visible = visible,
-        icon = icon,
+        // Windows/Linux get a list of pre-sized images below; Compose's single 192 px icon would be shrunk speckled.
+        icon = if (usesSizedIconImages) null else icon,
         title = state.appName,
         state = state.windowState,
         onPreviewKeyEvent = { event ->
@@ -339,6 +343,14 @@ private fun TacitDesktopWindow(
                 minTacitWindowWidth.value.roundToInt(),
                 minTacitWindowHeight.value.roundToInt(),
             )
+        }
+        if (usesSizedIconImages) {
+            // Compose's icon = null has already reset the window's icons at this point (it runs when the window is
+            // created, before effects), and an unchanged null never touches them again.
+            LaunchedEffect(window, drawnUnread) {
+                val images = withContext(Dispatchers.Default) { TacitIconImages.forUnread(drawnUnread > 0) }
+                if (images.isNotEmpty()) window.iconImages = images
+            }
         }
         LaunchedEffect(state.activation.activationRequest) {
             val requested = state.activation.activationRequest > 0
