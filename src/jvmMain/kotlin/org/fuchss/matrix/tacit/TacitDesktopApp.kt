@@ -19,6 +19,7 @@ import de.connect2x.trixnity.messenger.multi.MatrixMultiMessenger
 import de.connect2x.trixnity.messenger.multi.MatrixMultiMessengerConfiguration
 import de.connect2x.trixnity.messenger.multi.create
 import de.connect2x.trixnity.messenger.util.defaultDragAndDropHandler
+import de.connect2x.trixnity.messenger.util.RootPath
 import de.connect2x.trixnity.messenger.util.defaultUriHandler
 import de.connect2x.trixnity.messenger.viewmodel.RootViewModel
 import kotlinx.coroutines.Dispatchers
@@ -27,6 +28,7 @@ import kotlinx.coroutines.runBlocking
 import okio.FileSystem
 import org.fuchss.matrix.tacit.settings.TacitWindowCloseBehavior
 import org.fuchss.matrix.tacit.settings.readTacitWindowCloseBehavior
+import org.fuchss.matrix.tacit.update.TacitOs
 import org.fuchss.matrix.tacit.update.TacitUpdateController
 import org.fuchss.matrix.tacit.update.TacitUpdater
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
@@ -54,7 +56,9 @@ fun startTacitMultiMessenger(
         modulesFactories += updateModule
         messengerConfiguration { modulesFactories += updateModule }
     }
-    matrixMultiMessenger.defaultUriHandler.start(args)
+    val config = matrixMultiMessenger.di.get<MatrixMultiMessengerConfiguration>()
+    val appDataDir = matrixMultiMessenger.di.get<RootPath>().path.toNioPath()
+    matrixMultiMessenger.defaultUriHandler.start(singleInstanceArgs(args, config.appUri, TacitOs.current, appDataDir))
     updater.start()
     tacitMessengerApp(matrixMultiMessenger, lifecycle, updater, activeMessengerOnce)
 
@@ -121,6 +125,14 @@ private fun tacitMessengerApp(
 
         DesktopReopenEffect(shell.activation)
 
+        // A URI, also the activation URI of a bare relaunch (see singleInstanceArgs), shows the window; on the
+        // profile screen as well as with an active messenger.
+        LaunchedEffect(matrixMultiMessenger) {
+            matrixMultiMessenger.defaultUriHandler.collect {
+                shell.activation.requestOpen()
+            }
+        }
+
         WithProfileSelection(
             matrixMultiMessenger = matrixMultiMessenger,
             componentContext = DefaultComponentContext(lifecycle),
@@ -136,12 +148,6 @@ private fun tacitMessengerApp(
                 val i18n = remember(matrixMessenger) { matrixMessenger.di.get<TacitI18nView>() }
                 val settings by messengerSettings.collectAsState()
                 LaunchedEffect(closeBehavior) { lastCloseBehavior = closeBehavior }
-
-                LaunchedEffect(matrixMessenger) {
-                    matrixMultiMessenger.defaultUriHandler.collect {
-                        shell.activation.requestOpen()
-                    }
-                }
 
                 TacitDesktopShell(
                     state = shell,

@@ -28,6 +28,7 @@ import de.connect2x.trixnity.messenger.compose.view.PlatformType
 import de.connect2x.trixnity.messenger.compose.view.theme.MessengerTheme
 import kotlinx.coroutines.flow.MutableSharedFlow
 import org.fuchss.matrix.tacit.settings.TacitWindowCloseBehavior
+import org.fuchss.matrix.tacit.update.TacitOs
 import org.fuchss.matrix.tacit.update.TacitUpdateCard
 import org.fuchss.matrix.tacit.update.TacitUpdateState
 import org.fuchss.matrix.tacit.update.TacitUpdater
@@ -340,6 +341,16 @@ private fun TacitDesktopWindow(
             )
         }
         LaunchedEffect(state.activation.activationRequest) {
+            val requested = state.activation.activationRequest > 0
+            // An explicit open (tray, relaunch, URI) also restores a minimised window.
+            if (requested) state.windowState.isMinimized = false
+            if (requested && TacitOs.current == TacitOs.WINDOWS) {
+                // Windows only flashes the taskbar button when a background process calls toFront(); briefly
+                // making the window topmost brings it to the front.
+                window.isAlwaysOnTop = true
+                window.toFront()
+                window.isAlwaysOnTop = false
+            }
             window.toFront()
             window.requestFocus()
             window.rootPane.requestFocus()
