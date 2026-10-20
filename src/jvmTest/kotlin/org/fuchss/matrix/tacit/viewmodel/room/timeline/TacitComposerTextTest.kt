@@ -72,6 +72,22 @@ class TacitComposerTextTest {
     }
 
     @Test
+    fun replaceShortcodeReplacesRestOfTokenAfterCursor() {
+        val match = shortcode(":joy", cursor = 3)!!
+        assertEquals(TacitComposerEdit("X ", 2), replaceEmojiShortcode(":joy", match, "X"))
+        val inText = shortcode("a :sweat_smile b", cursor = 6)!!
+        assertEquals(TacitComposerEdit("a X b", 3), replaceEmojiShortcode("a :sweat_smile b", inText, "X"))
+    }
+
+    @Test
+    fun replaceShortcodeStopsAtNonTokenCharacter() {
+        val match = shortcode(":jo!", cursor = 3)!!
+        assertEquals(TacitComposerEdit("X!", 1), replaceEmojiShortcode(":jo!", match, "X"))
+        val colon = shortcode(":joy:", cursor = 3)!!
+        assertEquals(TacitComposerEdit("X:", 1), replaceEmojiShortcode(":joy:", colon, "X"))
+    }
+
+    @Test
     fun emojiSuggestionsPrefixAndCaseInsensitive() {
         val suggestions = emojiShortcodeSuggestions("JOY")
         assertTrue(suggestions.isNotEmpty())
@@ -134,7 +150,27 @@ class TacitComposerTextTest {
     @Test
     fun replaceSlashCommandKeepsTextAfterCursor() {
         val match = slash("/spo rest", cursor = 4)!!
-        assertEquals(TacitComposerEdit("/spoiler  rest", 9), replaceSlashCommand("/spo rest", match, "/spoiler "))
+        assertEquals(TacitComposerEdit("/spoiler rest", 8), replaceSlashCommand("/spo rest", match, "/spoiler "))
+    }
+
+    @Test
+    fun replaceSlashCommandReplacesRestOfTokenAfterCursor() {
+        val match = slash("/spoiler x", cursor = 3)!!
+        assertEquals(TacitComposerEdit("/spoiler x", 8), replaceSlashCommand("/spoiler x", match, "/spoiler "))
+        val atEnd = slash("/spo", cursor = 2)!!
+        assertEquals(TacitComposerEdit("/spoiler ", 9), replaceSlashCommand("/spo", atEnd, "/spoiler "))
+    }
+
+    @Test
+    fun replaceSlashCommandAtEndAppendsSpace() {
+        val match = slash("/spo")!!
+        assertEquals(TacitComposerEdit("/spoiler ", 9), replaceSlashCommand("/spo", match, "/spoiler "))
+    }
+
+    @Test
+    fun replaceSlashCommandKeepsNewlineAfterToken() {
+        val match = slash("/m\nnext", cursor = 2)!!
+        assertEquals(TacitComposerEdit("/me\nnext", 3), replaceSlashCommand("/m\nnext", match, "/me "))
     }
 
     @Test
