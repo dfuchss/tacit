@@ -298,7 +298,9 @@ private fun TimelineElement(
             onToggle = onToggle,
         )
     } else {
-        TimelineElementHolder(viewModel, index)
+        CompositionLocalProvider(LocalTacitFollowsSystemEvent provides groups.followsSystemEvent(viewModel.key)) {
+            TimelineElementHolder(viewModel, index)
+        }
     }
 }
 

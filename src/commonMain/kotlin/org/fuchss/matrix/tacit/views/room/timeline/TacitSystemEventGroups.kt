@@ -34,6 +34,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
@@ -82,6 +83,13 @@ import kotlin.time.Duration.Companion.seconds
 /** Test tag of a collapsed/expandable system event group header (used by the screenshot tooling). */
 internal const val TacitSystemEventGroupTestTag = "tacitSystemEventGroup"
 
+/**
+ * `true` around a timeline element that directly follows a system event (see
+ * [TacitSystemEventGroups.followsSystemEvent]): TacitFlatMessageView then starts a new sender block
+ * (avatar, regular spacing) instead of continuing the previous message's. Provided by TacitTimelineView.
+ */
+internal val LocalTacitFollowsSystemEvent = compositionLocalOf { false }
+
 /** Minimum number of consecutive system events that collapse into one row. */
 private const val MinGroupSize = 2
 
@@ -106,11 +114,18 @@ internal class TacitSystemEventGroup(
 internal class TacitSystemEventGroups(
     private val byKey: Map<String, TacitSystemEventGroup>,
     private val quietKeys: Set<String>,
+    private val followerKeys: Set<String> = emptySet(),
 ) {
     operator fun get(key: String): TacitSystemEventGroup? = byKey[key]
 
     /** Whether [key] is a groupable system event (grouped or isolated); those use [TacitSystemEventHolder]. */
     fun isSystemEvent(key: String): Boolean = key in quietKeys
+
+    /**
+     * Whether [key] directly follows a system event (see [SystemEventRuns.followers]): such a message
+     * starts a new sender block even if the system event was sent by the same user.
+     */
+    fun followsSystemEvent(key: String): Boolean = key in followerKeys
 
     companion object {
         val Empty = TacitSystemEventGroups(emptyMap(), emptySet())
@@ -122,18 +137,18 @@ internal enum class SystemEventRole {
     /** Renders nothing (unsupported or ignored event): neither joins nor breaks a run. */
     Transparent,
 
-    /** Anything that is not a groupable state event: ends the current run. */
+    /** Anything that is not a state event (messages, redacted elements, ...): ends the current run. */
     Breaking,
 
-    /** A groupable state event. */
+    /** A state event; groupable unless [SystemEventGroupingInfo.standalone]. */
     Groupable,
 }
 
 /**
  * Per-element state that is only known asynchronously and affects grouping: the element's [role]
- * (elements load, get redacted, ...); [standalone] system events never join a group (they carry
- * extra UI with an action, the "rejoin" prompt), and the unread marker drawn below an event ends a
- * run right after it ([breakAfter]). [undecryptableHistoryInfo] is the member event's "history is
+ * (elements load, get redacted, ...); [standalone] system events never join a group (a room upgrade
+ * is too important to fold away; the "rejoin" prompt carries extra UI with an action), and the
+ * unread marker drawn below an event ends a run right after it ([breakAfter]). [undecryptableHistoryInfo] is the member event's "history is
  * not decryptable" notice; it does not keep the event out of a group (the group shows it instead).
  */
 internal data class SystemEventGroupingInfo(
@@ -145,18 +160,21 @@ internal data class SystemEventGroupingInfo(
     companion object {
         val Transparent = SystemEventGroupingInfo(SystemEventRole.Transparent)
         val Breaking = SystemEventGroupingInfo(SystemEventRole.Breaking)
+
+        /** A state event that never joins a group (room upgrade). */
+        val StandaloneState = SystemEventGroupingInfo(SystemEventRole.Groupable, standalone = true)
     }
 }
 
-private fun TimelineElementViewModel<*>?.isGroupableState(): Boolean =
-    this is TimelineElementViewModel.State<*> && this !is TombstoneStateTimelineElementViewModel
+private fun TimelineElementViewModel<*>?.isState(): Boolean = this is TimelineElementViewModel.State<*>
 
 @OptIn(ExperimentalCoroutinesApi::class)
 private fun BaseTimelineElementHolderViewModel.groupingInfo(): Flow<SystemEventGroupingInfo> =
     element.flatMapLatest { element ->
         when {
             element is TimelineElementViewModel.Empty -> flowOf(SystemEventGroupingInfo.Transparent)
-            this !is TimelineElementHolderViewModel || !element.isGroupableState() -> flowOf(SystemEventGroupingInfo.Breaking)
+            this !is TimelineElementHolderViewModel || !element.isState() -> flowOf(SystemEventGroupingInfo.Breaking)
+            element is TombstoneStateTimelineElementViewModel -> flowOf(SystemEventGroupingInfo.StandaloneState)
             element is MemberStateTimelineElementViewModel ->
                 combine(showUnreadMarker, element.showRejoinRoomInfo, element.undecryptableHistoryInfo) { unread, rejoin, undecryptable ->
                     SystemEventGroupingInfo(
@@ -176,7 +194,8 @@ private fun BaseTimelineElementHolderViewModel.currentGroupingInfo(): SystemEven
     val element = element.value
     return when {
         element is TimelineElementViewModel.Empty -> SystemEventGroupingInfo.Transparent
-        this !is TimelineElementHolderViewModel || !element.isGroupableState() -> SystemEventGroupingInfo.Breaking
+        this !is TimelineElementHolderViewModel || !element.isState() -> SystemEventGroupingInfo.Breaking
+        element is TombstoneStateTimelineElementViewModel -> SystemEventGroupingInfo.StandaloneState
         else -> SystemEventGroupingInfo(
             role = SystemEventRole.Groupable,
             standalone = element is MemberStateTimelineElementViewModel && element.showRejoinRoomInfo.value == true,
@@ -191,11 +210,13 @@ private fun BaseTimelineElementHolderViewModel.currentGroupingInfo(): SystemEven
  *
  * Works on the *unfiltered* upstream elements (newest first) so that redacted elements -- which
  * Tacit hides from the rendered list -- still break a run. A run is broken by anything that is not a
- * groupable state event: messages, outbox elements, redacted or not yet loaded elements, tombstones
- * (a room upgrade is too important to fold away) and standalone member events (rejoin prompt); by a date change
- * (the date separator sits between two events exactly when their dates differ); and right after an
- * event that carries the unread marker. Empty elements (unsupported or ignored events, which render
- * nothing) are transparent: they neither join nor break a run.
+ * groupable state event: messages, outbox elements, redacted or not yet loaded elements and
+ * standalone state events (tombstones -- a room upgrade is too important to fold away -- and member
+ * events with the rejoin prompt); by a date change (the date separator sits between two events
+ * exactly when their dates differ); and right after an event that carries the unread marker. Empty
+ * elements (unsupported or ignored events, which render nothing) are transparent: they neither join
+ * nor break a run. The same pass marks the messages that directly follow a system event
+ * ([TacitSystemEventGroups.followsSystemEvent]).
  *
  * Everything that decides this is reactive: every loaded element gets one collector of its
  * [groupingInfo] (element type and flags) for as long as it stays loaded. Collectors are started and
@@ -255,7 +276,11 @@ private fun computeGroups(
         )
         group.members.forEach { byKey[it.key] = group }
     }
-    return TacitSystemEventGroups(byKey, runs.quiet.mapTo(HashSet()) { it.key })
+    return TacitSystemEventGroups(
+        byKey = byKey,
+        quietKeys = runs.quiet.mapTo(HashSet()) { it.key },
+        followerKeys = runs.followers.mapTo(HashSet()) { it.key },
+    )
 }
 
 /** Result of [groupSystemEventRuns]. */
@@ -264,6 +289,13 @@ internal class SystemEventRuns<T>(
     val groups: List<SystemEventRun<T>>,
     /** Every event rendered in Tacit's quieter system event style (grouped or isolated). */
     val quiet: List<T>,
+    /**
+     * Every non-state element (message, ...) whose older neighbour -- skipping transparent ones -- is
+     * a state event, grouped or not. Upstream's `isFirstInUserSequence` only compares senders, so a
+     * message right after its sender's own join would otherwise continue a "sender run" that has no
+     * visible message in it (no avatar, tight spacing).
+     */
+    val followers: List<T> = emptyList(),
 )
 
 /** One group: its [members] (oldest first) and the notice of the oldest member that has one. */
@@ -285,6 +317,8 @@ internal fun <T> groupSystemEventRuns(
     val groups = ArrayList<SystemEventRun<T>>()
     val quiet = ArrayList<T>()
     val run = ArrayList<Pair<T, SystemEventGroupingInfo>>()
+    val followers = ArrayList<T>()
+    var previousIsState = false
     fun closeRun() {
         if (run.size >= MinGroupSize) {
             groups += SystemEventRun(run.map { it.first }, run.firstNotNullOfOrNull { it.second.undecryptableHistoryInfo })
@@ -297,8 +331,11 @@ internal fun <T> groupSystemEventRuns(
     for (item in items) {
         val info = infoOf(item)
         when (info.role) {
-            SystemEventRole.Transparent -> Unit
-            SystemEventRole.Breaking -> closeRun()
+            SystemEventRole.Transparent -> continue
+            SystemEventRole.Breaking -> {
+                closeRun()
+                if (previousIsState) followers += item
+            }
             SystemEventRole.Groupable -> if (info.standalone) {
                 closeRun()
             } else {
@@ -307,9 +344,10 @@ internal fun <T> groupSystemEventRuns(
                 if (info.breakAfter) closeRun()
             }
         }
+        previousIsState = info.role == SystemEventRole.Groupable
     }
     closeRun()
-    return SystemEventRuns(groups, quiet)
+    return SystemEventRuns(groups, quiet, followers)
 }
 
 /**

@@ -64,6 +64,7 @@ import kotlinx.coroutines.launch
 import org.fuchss.matrix.tacit.*
 import org.fuchss.matrix.tacit.ui.TacitShapes
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
+import org.fuchss.matrix.tacit.views.room.timeline.LocalTacitFollowsSystemEvent
 import org.fuchss.matrix.tacit.views.room.timeline.LocalTacitJumpHighlightKey
 import org.fuchss.matrix.tacit.views.room.timeline.rememberJumpHighlightTint
 
@@ -123,8 +124,10 @@ private fun TacitFlatMessageContainer(
     val timelineElementHolder = uiState.timelineElementHolder
     val isOwnMessage = holder.isByMe
     // Previews (e.g. the quoted element of a reply) are rendered out of timeline context, so the
-    // grouping signal of the original position must not strip their avatar.
-    val isContinuation = uiState.isContinuation && !isPreview
+    // grouping signal of the original position must not strip their avatar. Upstream's signal only
+    // compares senders, so a message right after a system event (e.g. its sender's own join, which
+    // may be folded into a collapsed group) starts a new block too.
+    val isContinuation = uiState.isContinuation && !isPreview && !LocalTacitFollowsSystemEvent.current
     val canReact = timelineElementHolder?.canBeReactedTo?.collectAsState()?.value == true
 
     BoxWithConstraints(
