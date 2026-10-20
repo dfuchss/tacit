@@ -58,12 +58,14 @@ fun startTacitMultiMessenger(
     }
     val config = matrixMultiMessenger.di.get<MatrixMultiMessengerConfiguration>()
     val appDataDir = matrixMultiMessenger.di.get<RootPath>().path.toNioPath()
-    matrixMultiMessenger.defaultUriHandler.start(singleInstanceArgs(args, config.appUri, TacitOs.current, appDataDir))
-    updater.start()
-    tacitMessengerApp(matrixMultiMessenger, lifecycle, updater, activeMessengerOnce)
-
-    desktopLog.info { "Shutting down client gracefully.." }
-    shutDownGracefully(matrixMultiMessenger)
+    runThenShutDown(
+        app = {
+            matrixMultiMessenger.defaultUriHandler.start(singleInstanceArgs(args, config.appUri, TacitOs.current, appDataDir))
+            updater.start()
+            tacitMessengerApp(matrixMultiMessenger, lifecycle, updater, activeMessengerOnce)
+        },
+        shutDown = { shutDownGracefully(matrixMultiMessenger) },
+    )
 }
 
 /**

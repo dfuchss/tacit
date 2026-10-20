@@ -5,6 +5,7 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.milliseconds
@@ -63,5 +64,23 @@ class TacitShutdownTest {
         // trixnity's sync retry back-off is capped at 5 s; the loop only reports STOPPED after it.
         assertTrue(SYNC_STOP_TIMEOUT > 5.seconds)
         assertTrue(CLOSE_TIMEOUT > 0.seconds)
+    }
+
+    @Test
+    fun anAppThatThrowsIsStillShutDown() = runBlocking {
+        var shutDown = false
+        val error = assertFailsWith<IllegalStateException> {
+            runThenShutDown(app = { error("composition failed") }, shutDown = { shutDown = true })
+        }
+        assertEquals("composition failed", error.message)
+        assertTrue(shutDown)
+    }
+
+    @Test
+    fun aFailingShutdownDoesNotHideTheAppsError() = runBlocking {
+        val error = assertFailsWith<IllegalStateException> {
+            runThenShutDown(app = { error("composition failed") }, shutDown = { error("close failed") })
+        }
+        assertEquals("composition failed", error.message)
     }
 }

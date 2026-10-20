@@ -1,12 +1,15 @@
 package org.fuchss.matrix.tacit
 
 import de.connect2x.lognity.api.logger.Logger
+import de.connect2x.lognity.api.logger.error
 import de.connect2x.lognity.api.logger.warn
 import de.connect2x.trixnity.messenger.MatrixClients
 import de.connect2x.trixnity.messenger.multi.MatrixMultiMessenger
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
@@ -52,4 +55,24 @@ internal suspend fun shutDownGracefully(matrixMultiMessenger: MatrixMultiMesseng
         stopSyncs = clients.map { client -> suspend { client.stopSync() } },
         close = matrixMultiMessenger::closeSuspending,
     )
+}
+
+/**
+ * Runs [app] and then always [shutDown], also when [app] throws, so the databases are closed before `Main` exits the
+ * process. [shutDown] is expected to be bounded (see [shutDownGracefully]); an error in it is logged and never hides
+ * the error of [app].
+ */
+internal suspend fun runThenShutDown(app: suspend () -> Unit, shutDown: suspend () -> Unit) {
+    try {
+        app()
+    } finally {
+        shutdownLog.info { "Shutting down client gracefully.." }
+        withContext(NonCancellable) {
+            try {
+                shutDown()
+            } catch (e: Exception) {
+                shutdownLog.error(e) { "shutdown failed" }
+            }
+        }
+    }
 }
