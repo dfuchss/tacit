@@ -33,7 +33,6 @@ internal data class TacitRoomListStatus(
     val searchResultsEmpty: Boolean = false,
     val canUseSelectedGuildAccount: Boolean = false,
     val canUsePreferredCreationAccount: Boolean = false,
-    val reorderCategoriesInProgress: Boolean = false,
     val guildInviteActionInProgress: Boolean = false,
     val syncStates: UserSyncStates = UserSyncStates(emptySet(), emptySet()),
 )

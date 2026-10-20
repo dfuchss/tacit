@@ -11,9 +11,8 @@ import org.fuchss.matrix.tacit.viewmodel.util.TacitAction
 import org.fuchss.matrix.tacit.viewmodel.util.TacitErrorSource
 import org.fuchss.matrix.tacit.viewmodel.util.acceptRoomInvite
 import org.fuchss.matrix.tacit.viewmodel.util.declineRoomInvite
-import org.fuchss.matrix.tacit.viewmodel.util.moveRoomToCategory
 
-/** The room list's guild actions that are not dialogs: answering a guild invite and dragging a room into a category. */
+/** The room list's guild actions that are not dialogs: answering a guild invite. */
 internal class TacitRoomListActions(
     scope: CoroutineScope,
     private val i18n: TacitI18n,
@@ -23,11 +22,9 @@ internal class TacitRoomListActions(
     private val spaceSettingsRequests: TacitSpaceSettingsRequests,
 ) {
     private val guildInviteAction = TacitAction(scope, i18n)
-    private val moveRoomAction = TacitAction(scope, i18n)
 
     val guildInviteActionInProgress: StateFlow<Boolean> = guildInviteAction.isCreating
-    val moveRoomInProgress: StateFlow<Boolean> = moveRoomAction.isCreating
-    val errorSources: List<TacitErrorSource> = listOf(guildInviteAction, moveRoomAction)
+    val errorSources: List<TacitErrorSource> = listOf(guildInviteAction)
 
     private fun noAccountForGuildInvite() =
         Result.failure<Nothing>(IllegalStateException(i18n.tacitNoAccountForGuildInvite()))
@@ -48,24 +45,6 @@ internal class TacitRoomListActions(
         spaceSettingsRequests.discard(guild.roomId)
         guildInviteAction.launch(TacitI18n::tacitDeclineInviteFailed, onSuccess = { _: Any? -> onGuildSelected(null) }) {
             guildClient(guild)?.declineRoomInvite(roomId = guild.roomId) ?: noAccountForGuildInvite()
-        }
-    }
-
-    fun moveRoomToCategory(
-        guild: GuildEntry,
-        roomId: RoomId,
-        targetCategoryRoomId: RoomId,
-        currentCategoryRoomIds: Set<RoomId>,
-    ) {
-        moveRoomAction.launch(TacitI18n::tacitMoveRoomToCategoryFailed) {
-            guildClient(guild)?.let { client ->
-                moveRoomToCategory(
-                    matrixClient = client,
-                    roomId = roomId,
-                    targetCategoryRoomId = targetCategoryRoomId,
-                    currentCategoryRoomIds = currentCategoryRoomIds,
-                )
-            } ?: Result.failure(IllegalStateException(i18n.tacitNoGuildContext()))
         }
     }
 }

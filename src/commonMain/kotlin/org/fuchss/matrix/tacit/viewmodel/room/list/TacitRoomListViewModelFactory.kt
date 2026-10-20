@@ -31,21 +31,8 @@ import org.koin.core.component.get
 
 internal interface TacitRoomListViewModel : RoomListViewModel {
     val selectedGuild: StateFlow<GuildEntry?>
-    val mode: StateFlow<RoomListMode>
-    val typedElements: StateFlow<List<TacitRoomListElementViewModel>>
-    val guilds: StateFlow<List<GuildEntry>>
-    val guildAvatars: StateFlow<Map<String, ByteArray?>>
-    val visibleRooms: StateFlow<List<TacitRoomListElementViewModel>>
-    val guildChannelGroups: StateFlow<List<TacitGuildChannelGroup>>
-    val inviteRooms: StateFlow<List<TacitRoomListElementViewModel>>
-    val dmUnreadCount: StateFlow<Int>
-    val guildUnreadCounts: StateFlow<Map<String, Int>>
-    val canUseSelectedGuildAccount: StateFlow<Boolean>
-    val canUsePreferredCreationAccount: StateFlow<Boolean>
-    val reorderCategoriesInProgress: StateFlow<Boolean>
-    val guildInviteActionInProgress: StateFlow<Boolean>
 
-    /** Everything the room list view renders, combined from the flows above. */
+    /** Everything the room list view renders. */
     val uiState: StateFlow<TacitRoomListUiState>
 
     /** Scroll positions of the room list per account and guild; outlives the view's composition. */
@@ -62,7 +49,6 @@ internal interface TacitRoomListViewModel : RoomListViewModel {
     fun selectGuild(guild: GuildEntry?)
     fun reportError(message: String?, errorType: ErrorType = ErrorType.JUST_DISMISS)
     fun reorderCategories(guild: GuildEntry, orderedCategoryRoomIds: List<RoomId>)
-    fun moveRoomToCategory(guild: GuildEntry, roomId: RoomId, targetCategoryRoomId: RoomId)
     fun acceptGuildInvite(guild: GuildEntry)
     fun declineGuildInvite(guild: GuildEntry)
     /**
@@ -143,10 +129,6 @@ private class TacitRoomListViewModelImpl(
         _selectedGuild.update { guild }
     }
 
-    override val mode: StateFlow<RoomListMode> = selectedGuild
-        .map { guild -> guild?.let { RoomListMode.GuildChannels(it) } ?: RoomListMode.DirectMessages }
-        .stateInScope(RoomListMode.DirectMessages)
-
     private val selectedMatrixClientUserIds: StateFlow<List<UserId>> =
         combine(matrixClients, accountViewModel.activeAccount) { clients, activeAccount ->
             if (activeAccount == null) clients.keys.toList()
@@ -170,10 +152,10 @@ private class TacitRoomListViewModelImpl(
             activeAccount?.takeIf { clients.containsKey(it) } ?: clients.keys.firstOrNull()
         }.stateInScope(null)
 
-    override val canUseSelectedGuildAccount: StateFlow<Boolean> =
+    private val canUseSelectedGuildAccount: StateFlow<Boolean> =
         selectedGuildUserId.map { it != null }.stateInScope(false)
 
-    override val canUsePreferredCreationAccount: StateFlow<Boolean> =
+    private val canUsePreferredCreationAccount: StateFlow<Boolean> =
         preferredCreationUserId.map { it != null }.stateInScope(false)
 
     private fun guildClient(guild: GuildEntry): MatrixClient? =
@@ -199,13 +181,13 @@ private class TacitRoomListViewModelImpl(
         .flatMapLatest { clients -> spaceHierarchy.spaceGraphs(clients) }
         .stateInScope(emptyMap())
 
-    override val guilds: StateFlow<List<GuildEntry>> =
+    private val guilds: StateFlow<List<GuildEntry>> =
         combine(spaceGraphs, guildOrder) { graphs, order ->
             val discovered = graphs.flatMap { (userId, graph) -> graph.topLevelGuilds(userId) }
             orderGuilds(discovered, order)
         }.stateInScope(emptyList())
 
-    override val guildAvatars: StateFlow<Map<String, ByteArray?>> =
+    private val guildAvatars: StateFlow<Map<String, ByteArray?>> =
         combine(guilds, selectedMatrixClients) { allGuilds, clients ->
             if (clients.isEmpty()) emptyList()
             else allGuilds.map { guild -> GuildAvatarInput(guild.key(), clients.find { it.userId == guild.userId }, guild.avatarUri) }
@@ -244,7 +226,7 @@ private class TacitRoomListViewModelImpl(
 
     // ---- rooms ----
 
-    override val typedElements: StateFlow<List<TacitRoomListElementViewModel>> = delegate.elements
+    private val typedElements: StateFlow<List<TacitRoomListElementViewModel>> = delegate.elements
         .map { elements ->
             elements.map { element ->
                 element as? TacitRoomListElementViewModel
@@ -262,12 +244,12 @@ private class TacitRoomListViewModelImpl(
             if (guild == null) emptyList() else guildRooms(rooms, roomIdsByGuild[guild.key()].orEmpty())
         }
 
-    override val visibleRooms: StateFlow<List<TacitRoomListElementViewModel>> =
+    private val visibleRooms: StateFlow<List<TacitRoomListElementViewModel>> =
         combine(roomDerived, selectedGuild, selectedGuildRooms, placedRoomIds) { rooms, guild, guildRooms, placed ->
             (if (guild == null) directMessageRooms(rooms, placed) else guildRooms).map { it.room }
         }.stateInScope(emptyList())
 
-    override val guildChannelGroups: StateFlow<List<TacitGuildChannelGroup>> =
+    private val guildChannelGroups: StateFlow<List<TacitGuildChannelGroup>> =
         combine(
             roomDerived,
             selectedGuildRooms,
@@ -277,15 +259,15 @@ private class TacitRoomListViewModelImpl(
             ::guildChannelGroups,
         ).stateInScope(emptyList())
 
-    override val inviteRooms: StateFlow<List<TacitRoomListElementViewModel>> =
+    private val inviteRooms: StateFlow<List<TacitRoomListElementViewModel>> =
         combine(roomDerived, selectedGuild, selectedGuildLayout, placedRoomIds) { rooms, guild, layout, placed ->
             (if (guild == null) directMessageInvites(rooms, placed) else guildInvites(rooms, guild.roomId, layout)).map { it.room }
         }.stateInScope(emptyList())
 
-    override val dmUnreadCount: StateFlow<Int> =
+    private val dmUnreadCount: StateFlow<Int> =
         combine(roomDerived, placedRoomIds, ::directMessagesUnreadCount).stateInScope(0)
 
-    override val guildUnreadCounts: StateFlow<Map<String, Int>> =
+    private val guildUnreadCounts: StateFlow<Map<String, Int>> =
         combine(roomDerived, guilds, roomIdsByGuild, ::guildUnreadCounts).stateInScope(emptyMap())
 
     // ---- dialogs and actions ----
@@ -321,20 +303,11 @@ private class TacitRoomListViewModelImpl(
         spaceSettingsRequests = spaceSettingsRequests,
     )
 
-    override val reorderCategoriesInProgress: StateFlow<Boolean> = actions.moveRoomInProgress
-    override val guildInviteActionInProgress: StateFlow<Boolean> = actions.guildInviteActionInProgress
+    private val guildInviteActionInProgress: StateFlow<Boolean> = actions.guildInviteActionInProgress
 
     override fun acceptGuildInvite(guild: GuildEntry) = actions.acceptGuildInvite(guild)
 
     override fun declineGuildInvite(guild: GuildEntry) = actions.declineGuildInvite(guild)
-
-    override fun moveRoomToCategory(guild: GuildEntry, roomId: RoomId, targetCategoryRoomId: RoomId) {
-        // Drag-and-drop only targets categories of the selected guild, whose layout is tracked here.
-        if (guild.roomId != selectedGuild.value?.roomId) return
-        val currentCategoryRoomIds = selectedGuildLayout.value.categories.filterValues { roomId in it }.keys
-        if (currentCategoryRoomIds == setOf(targetCategoryRoomId)) return
-        actions.moveRoomToCategory(guild, roomId, targetCategoryRoomId, currentCategoryRoomIds)
-    }
 
     override fun reorderCategories(guild: GuildEntry, orderedCategoryRoomIds: List<RoomId>) {
         val guildKey = guild.key()
@@ -345,7 +318,6 @@ private class TacitRoomListViewModelImpl(
 
     override fun reorderCategory(fromIndex: Int, toIndex: Int) {
         val guild = selectedGuild.value ?: return
-        if (reorderCategoriesInProgress.value) return
         val ordered = categoryOrderAfterMove(guildChannelGroups.value, fromIndex, toIndex) ?: return
         reorderCategories(guild, ordered)
     }
@@ -438,15 +410,14 @@ private class TacitRoomListViewModelImpl(
     private val statusState: Flow<TacitRoomListStatus> =
         combine(
             combine(selectedRoomId, canCreateNewRoomWithAccount, searchResultsEmpty, syncStates, ::Quadruple),
-            combine(canUseSelectedGuildAccount, canUsePreferredCreationAccount, reorderCategoriesInProgress, guildInviteActionInProgress, ::Quadruple),
-        ) { (selectedRoomId, canCreateRoom, searchResultsEmpty, syncStates), (selectedGuildAccount, creationAccount, reordering, answeringInvite) ->
+            combine(canUseSelectedGuildAccount, canUsePreferredCreationAccount, guildInviteActionInProgress, ::Triple),
+        ) { (selectedRoomId, canCreateRoom, searchResultsEmpty, syncStates), (selectedGuildAccount, creationAccount, answeringInvite) ->
             TacitRoomListStatus(
                 selectedRoomId = selectedRoomId,
                 canCreateNewRoomWithAccount = canCreateRoom,
                 searchResultsEmpty = searchResultsEmpty,
                 canUseSelectedGuildAccount = selectedGuildAccount,
                 canUsePreferredCreationAccount = creationAccount,
-                reorderCategoriesInProgress = reordering,
                 guildInviteActionInProgress = answeringInvite,
                 syncStates = syncStates,
             )
