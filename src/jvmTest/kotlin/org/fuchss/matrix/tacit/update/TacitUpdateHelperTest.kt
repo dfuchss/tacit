@@ -134,4 +134,32 @@ class TacitUpdateHelperTest {
         assertContains(TacitUpdateHelper.powerShellScript(fixture), "\$Install = '/Users/O''Brien/Tacit ’’x’’'")
         assertContains(TacitUpdateHelper.shScript(fixture), "INSTALL='/Users/O'\\''Brien/Tacit ’x’'")
     }
+
+    @Test
+    fun relaunchesOnlyAfterTheAppHasExited() {
+        assumeTrue("needs a Unix sh", isUnix)
+        val base = Files.createTempDirectory("tacit relaunch").also(tempDirs::add)
+        val marker = base.resolve("it's relaunched")
+        val app = ProcessBuilder("sleep", "2").start()
+        val launch = listOf("/bin/sh", "-c", "echo \"\$1\" > \"\$2\"", "sh", "relaunched", marker.toString())
+        val waiter = TacitUpdateHelper.relaunchAfterExit(TacitOs.LINUX, app.pid(), launch)
+
+        // Genuinely timing-based: give the waiter time to (wrongly) launch while the app is still alive.
+        Thread.sleep(800)
+        assertTrue(app.isAlive)
+        assertFalse(marker.exists(), "nothing is started while the app runs")
+        assertTrue(waiter.waitFor(20, TimeUnit.SECONDS))
+        awaitFile(marker)
+        assertEquals("relaunched", marker.readText().trim())
+    }
+
+    @Test
+    fun theWindowsRelaunchWaitsForThePidAndQuotesTheLauncher() {
+        val command = TacitUpdateHelper.relaunchAfterExitCommand(TacitOs.WINDOWS, 42, listOf("C:\\Users\\O'Brien\\Tacit\\Tacit.exe"))
+        assertEquals("-EncodedCommand", command[command.size - 2])
+        val script = String(java.util.Base64.getDecoder().decode(command.last()), Charsets.UTF_16LE)
+        assertContains(script, "Wait-Process -Id 42 -Timeout ${TacitUpdateHelper.RELAUNCH_WAIT_SECONDS}")
+        assertContains(script, "if (-not (Get-Process -Id 42 -ErrorAction SilentlyContinue))")
+        assertContains(script, "Start-Process -FilePath 'C:\\Users\\O''Brien\\Tacit\\Tacit.exe' }")
+    }
 }

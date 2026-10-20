@@ -1,6 +1,9 @@
 package org.fuchss.matrix.tacit
 
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
@@ -82,5 +85,53 @@ class TacitShutdownTest {
             runThenShutDown(app = { error("composition failed") }, shutDown = { error("close failed") })
         }
         assertEquals("composition failed", error.message)
+    }
+
+    @Test
+    fun aLaunchDuringTheShutdownIsReported() = runBlocking(Dispatchers.Default) {
+        // Like upstream's URI handler: the start-up URI is replayed to every new collector.
+        val uris = MutableSharedFlow<String>(replay = 1).apply { tryEmit("tacit:/sso?state=startup") }
+        val launchedAgain = runThenShutDown(
+            app = { uris.emit("tacit:/tacit-activate") }, // handled by the window, not a late launch
+            shutDown = { uris.emit("tacit:/tacit-activate"); delay(100) },
+            uris = uris,
+        )
+        assertTrue(launchedAgain)
+    }
+
+    @Test
+    fun launchesWhileTheWindowIsOpenAreNotReported() = runBlocking(Dispatchers.Default) {
+        val uris = MutableSharedFlow<String>(replay = 1).apply { tryEmit("tacit:/tacit-activate") }
+        val launchedAgain = runThenShutDown(
+            app = { uris.emit("tacit:/tacit-activate"); delay(100) },
+            shutDown = { delay(100) },
+            uris = uris,
+        )
+        assertFalse(launchedAgain, "neither the replayed nor the handled URI counts")
+    }
+
+    @Test
+    fun aLaunchAfterTheWindowIsGoneIsReported() = runBlocking(Dispatchers.Default) {
+        val uris = MutableSharedFlow<String>(replay = 1)
+        val launchedAgain = runThenShutDown(
+            app = { windowGone -> windowGone(); uris.emit("tacit:/tacit-activate"); delay(100) },
+            shutDown = {},
+            uris = uris,
+        )
+        assertTrue(launchedAgain)
+    }
+
+    @Test
+    fun anAppErrorWinsOverALateLaunch() = runBlocking(Dispatchers.Default) {
+        val uris = MutableSharedFlow<String>(replay = 1)
+        var launchedAgain: Boolean? = null
+        assertFailsWith<IllegalStateException> {
+            launchedAgain = runThenShutDown(
+                app = { error("composition failed") },
+                shutDown = { uris.emit("tacit:/tacit-activate"); delay(100) },
+                uris = uris,
+            )
+        }
+        assertEquals(null, launchedAgain, "the error wins; Main exits with 1")
     }
 }

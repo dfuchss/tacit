@@ -4,6 +4,7 @@ import java.io.File
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.Base64
 import kotlin.io.path.isDirectory
 import kotlin.io.path.writeText
 
@@ -69,20 +70,57 @@ object TacitUpdateHelper {
             .redirectErrorStream(true)
     }
 
-    /** Starts the installed app again, for when the helper could not be started and Tacit would just vanish. */
-    fun relaunch(os: TacitOs, installRoot: Path): Process {
-        val command = when (os) {
-            TacitOs.MACOS -> listOf("open", installRoot.toString())
-            TacitOs.LINUX -> listOf(installRoot.resolve("bin/Tacit").toString())
-            TacitOs.WINDOWS -> listOf(installRoot.resolve("Tacit.exe").toString())
-        }
-        return ProcessBuilder(command)
+    /** Longest wait of [relaunchAfterExit] for Tacit to exit; it exits right after starting it. */
+    const val RELAUNCH_WAIT_SECONDS = 60
+
+    /** The command that starts the app installed at [installRoot]. */
+    fun launchCommand(os: TacitOs, installRoot: Path): List<String> = when (os) {
+        TacitOs.MACOS -> listOf("open", installRoot.toString())
+        TacitOs.LINUX -> listOf(installRoot.resolve("bin/Tacit").toString())
+        TacitOs.WINDOWS -> listOf(installRoot.resolve("Tacit.exe").toString())
+    }
+
+    /**
+     * Runs [launch] (e.g. [launchCommand]) from a detached process once the process [pid] has exited, and not at all
+     * when it is still running after [RELAUNCH_WAIT_SECONDS]. Starting Tacit while it still runs does nothing: on
+     * Windows and Linux the new launch hands over to the exiting instance, on macOS `open` activates it.
+     */
+    fun relaunchAfterExit(os: TacitOs, pid: Long, launch: List<String>): Process =
+        ProcessBuilder(relaunchAfterExitCommand(os, pid, launch))
             .apply { removeUpdateEnvironment(environment()) }
-            .directory(neutralDirectory(installRoot))
+            .directory(neutralDirectory(Path.of(launch.first()).toAbsolutePath()))
             .redirectInput(ProcessBuilder.Redirect.from(nullDevice()))
             .redirectOutput(ProcessBuilder.Redirect.DISCARD)
             .redirectErrorStream(true)
             .start()
+
+    /** The command line of [relaunchAfterExit]; the waiting script never contains [launch], it gets it as arguments. */
+    internal fun relaunchAfterExitCommand(os: TacitOs, pid: Long, launch: List<String>): List<String> {
+        require(launch.isNotEmpty()) { "nothing to launch" }
+        return when (os) {
+            TacitOs.WINDOWS -> {
+                val arguments = launch.drop(1).takeIf { it.isNotEmpty() }
+                    ?.joinToString(",", prefix = " -ArgumentList ") { psQuote(it) }.orEmpty()
+                val script = "try { Wait-Process -Id $pid -Timeout $RELAUNCH_WAIT_SECONDS -ErrorAction SilentlyContinue } catch { }; " +
+                    "if (-not (Get-Process -Id $pid -ErrorAction SilentlyContinue)) { " +
+                    "Start-Process -FilePath ${psQuote(launch.first())}$arguments }"
+                // Encoded, so no quoting of the script survives Windows' command line parsing.
+                val encoded = Base64.getEncoder().encodeToString(script.toByteArray(Charsets.UTF_16LE))
+                listOf(
+                    windowsPowerShell(), "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
+                    "-WindowStyle", "Hidden", "-EncodedCommand", encoded,
+                )
+            }
+
+            TacitOs.MACOS, TacitOs.LINUX -> {
+                val polls = RELAUNCH_WAIT_SECONDS * 10
+                val script = "pid=\$1; shift; i=0; " +
+                    "while kill -0 \"\$pid\" 2>/dev/null; do i=\$((i + 1)); [ \"\$i\" -gt $polls ] && exit 1; sleep 0.1; done; " +
+                    "exec \"\$@\""
+                val setsid = listOf("/usr/bin/setsid", "/bin/setsid").firstOrNull { File(it).canExecute() }
+                listOfNotNull(setsid, "nohup", "/bin/sh", "-c", script, "tacit-relaunch", pid.toString()) + launch
+            }
+        }
     }
 
     /** A working directory that is neither the staging folder nor the install, both of which get replaced. */

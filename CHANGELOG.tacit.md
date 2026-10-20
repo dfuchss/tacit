@@ -21,6 +21,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - On Windows and Linux, starting Tacit again while it runs now brings its window back from the tray or taskbar, also on the profile screen; opening it from the tray also restores a minimised window
 - On Windows and Linux, a launch that only hands over to the running Tacit now logs to `logs/launcher.log` instead of writing into the running instance's log
 - If Tacit stops with an error, it now still stops the sync and closes its databases before exiting
+- On Windows and Linux, starting Tacit while it is still quitting now starts it again once it has quit, instead of doing nothing
+- When "Restart to update" cannot start the update, Tacit now really starts the current version again instead of just quitting
 
 ## 26.9.2-tacit.6
 

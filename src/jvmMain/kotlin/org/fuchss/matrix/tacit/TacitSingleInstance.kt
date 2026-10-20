@@ -1,8 +1,14 @@
 package org.fuchss.matrix.tacit
 
+import de.connect2x.lognity.api.logger.Logger
+import de.connect2x.lognity.api.logger.error
+import de.connect2x.lognity.api.logger.warn
 import org.fuchss.matrix.tacit.update.TacitOs
+import org.fuchss.matrix.tacit.update.TacitUpdateHelper
 import java.nio.file.Path
 import kotlin.io.path.exists
+
+private val singleInstanceLog: Logger = Logger("org.fuchss.matrix.tacit.TacitSingleInstance")
 
 /** Name of upstream's single-instance lock file in the app data directory; it holds the running instance's port. */
 internal const val SINGLE_INSTANCE_LOCK_FILE = "port.lock"
@@ -54,3 +60,19 @@ internal fun loggingConfigResource(os: TacitOs?, appDataDir: Path): String =
     } else {
         MAIN_LOGGING_CONFIG
     }
+
+/**
+ * Starts the launcher at [appPath] (`jpackage.app-path`) again once this process has exited, for a launch that the
+ * shutting-down instance swallowed (see [runThenShutDown]). Windows and Linux only; without a packaged launcher (a
+ * development run) nothing is started.
+ */
+internal fun relaunchAfterExit(os: TacitOs?, appPath: String?) {
+    if (os == null || !usesSingleInstanceLock(os)) return
+    if (appPath.isNullOrBlank()) {
+        singleInstanceLog.warn { "launched again while shutting down, but not running from a packaged app" }
+        return
+    }
+    singleInstanceLog.info { "launched again while shutting down, starting $appPath after exit" }
+    runCatching { TacitUpdateHelper.relaunchAfterExit(os, ProcessHandle.current().pid(), listOf(appPath)) }
+        .onFailure { singleInstanceLog.error(it) { "could not start Tacit again" } }
+}

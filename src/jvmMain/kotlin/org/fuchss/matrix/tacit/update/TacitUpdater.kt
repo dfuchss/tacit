@@ -164,7 +164,8 @@ class TacitUpdater internal constructor(
     /**
      * Called by `Main` after the app has shut down. Starts the prepared detached helper if a restart to update
      * was requested and returns whether the caller must exit the process right away. When the helper cannot be
-     * started, the failure is recorded for the next start and the current install is launched again.
+     * started, the failure is recorded for the next start and the current install is launched again once this
+     * process has exited.
      */
     fun launchPendingUpdate(): Boolean {
         val pending = pendingRestart ?: return false
@@ -177,7 +178,10 @@ class TacitUpdater internal constructor(
             updaterLog.error(e) { "could not start the update helper" }
             runCatching { store.writeFailure(pending.update.version.toString(), "could not start the update helper") }
         }
-        return runCatching { TacitUpdateHelper.relaunch(pending.location.os, pending.location.root) }
+        val location = pending.location
+        return runCatching {
+            TacitUpdateHelper.relaunchAfterExit(location.os, ProcessHandle.current().pid(), TacitUpdateHelper.launchCommand(location.os, location.root))
+        }
             .onFailure { updaterLog.error(it) { "could not relaunch Tacit" } }
             .isSuccess
     }

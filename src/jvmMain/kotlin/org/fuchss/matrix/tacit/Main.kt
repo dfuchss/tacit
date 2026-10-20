@@ -44,8 +44,9 @@ object Main {
     fun main(args: Array<String>) {
         configureLogging()
         val updater = TacitUpdater.create()
+        var launchedAgain = false
         val exitCode = try {
-            startTacitMultiMessenger(args, updater) {
+            launchedAgain = startTacitMultiMessenger(args, updater) {
                 tammyConfiguration()
             }
             0
@@ -55,7 +56,9 @@ object Main {
         }
         // The app (windows, tray, databases) is shut down here. The helper waits for this process to exit
         // before it swaps the install, so nothing under the install is touched while Tacit still runs.
-        updater.launchPendingUpdate()
+        // It starts Tacit again itself, so a launch during the shutdown needs no relaunch of its own then.
+        val updating = updater.launchPendingUpdate()
+        if (launchedAgain && !updating) relaunchAfterExit(TacitOs.current, System.getProperty("jpackage.app-path"))
         // Always end the process explicitly: on Windows and Linux upstream's single-instance listener keeps its
         // server socket open on a non-daemon thread, so returning from main would leave a windowless process that
         // holds the port and port.lock (removed by a shutdown hook) and swallows every later launch.
