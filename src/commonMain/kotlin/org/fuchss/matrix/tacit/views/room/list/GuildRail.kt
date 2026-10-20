@@ -30,6 +30,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -56,7 +57,7 @@ import org.fuchss.matrix.tacit.viewmodel.room.list.guildDropHintIndex
 import org.fuchss.matrix.tacit.viewmodel.room.list.guildDropIndex
 import org.fuchss.matrix.tacit.viewmodel.room.list.isMove
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
-import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.imageResource
 
 private val guildPillSize: Dp = 52.dp
 private val guildPillSpacing: Dp = 10.dp
@@ -345,9 +346,10 @@ private fun GuildPill(
             ) {
                 if (isTacitHome) {
                     Image(
-                        painter = painterResource(Res.drawable.tacit),
+                        bitmap = imageResource(Res.drawable.tacit),
                         contentDescription = i18n.tacitAppName(),
                         contentScale = ContentScale.Crop,
+                        filterQuality = FilterQuality.Medium,
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(2.dp)
