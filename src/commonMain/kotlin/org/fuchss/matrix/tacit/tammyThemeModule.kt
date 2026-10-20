@@ -36,8 +36,12 @@ fun tammyThemeModule() = module {
             }
         }
     }
-    single<ThemeLightMessengerColors> { TacitThemeLightMessengerColors() }
-    single<ThemeDarkMessengerColors> { TacitThemeDarkMessengerColors() }
+    // Tacit only has its dark palette, so the "light" bindings resolve to it as well; otherwise a system in
+    // light mode would hand upstream's light user/link colours (meant for white bubbles) to Tacit's dark UI.
+    single<ThemeHighContrastLightColorScheme> { ThemeHighContrastDarkColorSchemeImpl(get<ThemeDarkColorScheme>()).asLight() }
+    single { TacitMessengerColors() }
+    single<ThemeLightMessengerColors> { get<TacitMessengerColors>() }
+    single<ThemeDarkMessengerColors> { get<TacitMessengerColors>() }
     single<ThemeComponents> { TacitThemeComponents() }
     single<Theme> { TacitTheme() }
 }
@@ -48,25 +52,18 @@ private fun tacitReadableLink(accentColor: Color): Color = Color(0xFF9AF7C2).der
     lightness = 0.76f,
 )
 
-private class TacitThemeLightMessengerColors(
-    private val delegate: ThemeLightMessengerColors = ThemeLightMessengerColorsImpl(),
-) : ThemeLightMessengerColors {
-    @Composable
-    override fun create(accentColor: Color): MessengerColors {
-        val base = delegate.create(accentColor)
-        val readableLink = tacitReadableLink(accentColor)
-        return base.copy(
-            link = readableLink,
-            linkByMe = readableLink,
-            // Upstream draws a solid 3.dp border from this; TacitFlatMessageView paints a soft glow instead.
-            mentionBorder = Color.Transparent,
-        )
+private fun ThemeHighContrastDarkColorScheme.asLight(): ThemeHighContrastLightColorScheme =
+    object : ThemeHighContrastLightColorScheme {
+        override fun create(accentColor: Color): ColorScheme = this@asLight.create(accentColor)
     }
-}
 
-private class TacitThemeDarkMessengerColors(
+/**
+ * Upstream's dark messenger colours with Tacit's readable link colour, bound for both system modes: upstream
+ * picks the light or dark set from the system appearance, but Tacit always draws its dark UI.
+ */
+private class TacitMessengerColors(
     private val delegate: ThemeDarkMessengerColors = ThemeDarkMessengerColorsImpl(),
-) : ThemeDarkMessengerColors {
+) : ThemeLightMessengerColors, ThemeDarkMessengerColors {
     @Composable
     override fun create(accentColor: Color): MessengerColors {
         val base = delegate.create(accentColor)

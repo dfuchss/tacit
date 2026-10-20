@@ -24,6 +24,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
@@ -50,6 +51,9 @@ import de.connect2x.trixnity.messenger.compose.view.room.timeline.RedactionWarni
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.TimelineElementViewSelector
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.message.bubble.MessageBubbleContent
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.message.bubble.MessageBubbleView
+import de.connect2x.trixnity.messenger.compose.view.theme.ComponentStyles
+import de.connect2x.trixnity.messenger.compose.view.theme.MaterialThemeComponents
+import de.connect2x.trixnity.messenger.compose.view.theme.ThemeComponents
 import de.connect2x.trixnity.messenger.compose.view.theme.components
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedProgressIndicator
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedUserAvatar
@@ -153,6 +157,15 @@ private fun TacitFlatMessageContainer(
             isOwnMessage -> MaterialTheme.tacit.surfaceAlt.copy(alpha = 0.88f)
             else -> MaterialTheme.tacit.surfaceAlt.copy(alpha = 0.78f)
         }
+        // Upstream's MessageBubbleContent colours the sender name for contrast against the bubble style's
+        // colour, which upstream fills with the accent. The row draws Tacit's own card instead, so the
+        // contrast base is the resting card over the timeline surface (not the hover state, so the name
+        // does not change colour under the pointer).
+        val senderNameContrastBase = when {
+            uiState.hasSendError -> MaterialTheme.tacit.errorBg
+            uiState.isSending -> MaterialTheme.tacit.warningBg
+            else -> MaterialTheme.tacit.surfaceAlt.copy(alpha = 0.3f)
+        }.compositeOver(MaterialTheme.tacit.surface)
         val rowBorderColor = when {
             uiState.hasSendError -> MaterialTheme.tacit.errorBorder
             uiState.isSending -> MaterialTheme.tacit.warningBorder
@@ -300,19 +313,21 @@ private fun TacitFlatMessageContainer(
                             // (`Icon` tints with LocalContentColor) drawing in the Material
                             // default. Pin it so the icon is actually legible on the dark row.
                             CompositionLocalProvider(LocalContentColor provides MaterialTheme.tacit.text) {
-                                MessageBubbleContent(
-                                    holder = holder,
-                                    // Always full width: upstream then puts the time/edited/read info on a
-                                    // line of its own at the row's trailing edge, i.e. in the card's
-                                    // bottom-right corner for every message. (With `false` it sits
-                                    // right behind short text instead, so the corner is not consistent.)
-                                    needsMaxWidth = true,
-                                    isMentioned = isMentioned,
-                                    showActionMenu = menuState::openActionMenu,
-                                    content = { showMenu ->
-                                        Box(Modifier.fillMaxWidth()) { content(showMenu) }
-                                    },
-                                )
+                                WithMessageBubbleColor(senderNameContrastBase) {
+                                    MessageBubbleContent(
+                                        holder = holder,
+                                        // Always full width: upstream then puts the time/edited/read info on a
+                                        // line of its own at the row's trailing edge, i.e. in the card's
+                                        // bottom-right corner for every message. (With `false` it sits
+                                        // right behind short text instead, so the corner is not consistent.)
+                                        needsMaxWidth = true,
+                                        isMentioned = isMentioned,
+                                        showActionMenu = menuState::openActionMenu,
+                                        content = { showMenu ->
+                                            Box(Modifier.fillMaxWidth()) { content(showMenu) }
+                                        },
+                                    )
+                                }
                             }
                         }
                         if (uiState.isUploading) {
@@ -544,4 +559,27 @@ private fun TacitFlatMessageHoverActions(
             }
         }
     }
+}
+
+/**
+ * Runs [content] with upstream's message bubble styles coloured [color], the background the row actually
+ * draws. Upstream only reads the colour as the contrast base of the sender name in MessageBubbleContent.
+ */
+@Composable
+private fun WithMessageBubbleColor(color: Color, content: @Composable () -> Unit) {
+    val base = MaterialTheme.components
+    val styles = remember(base, color) {
+        base.copy(
+            messageBubbleOwn = base.messageBubbleOwn.copy(color = color),
+            messageBubbleOther = base.messageBubbleOther.copy(color = color),
+            messageBubbleError = base.messageBubbleError.copy(color = color),
+        )
+    }
+    val components = remember(styles) {
+        object : ThemeComponents {
+            @Composable
+            override fun create(): ComponentStyles = styles
+        }
+    }
+    MaterialThemeComponents(components, content)
 }
