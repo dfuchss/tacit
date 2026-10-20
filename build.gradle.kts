@@ -761,6 +761,8 @@ val zipDistributionDir = distributionDir.map { it.dir("zip").also { it.asFile.mk
 val packageReleasePlatformZip by tasks.registering(Zip::class) {
     group = "compose desktop"
     from(appDistributionDir)
+    // Gradle 9 archives default to 0644 files, which made bin/Tacit and jspawnhelper non-executable after unzipping.
+    useFileSystemPermissions()
 
     archiveFileName.set(platformZipDistribution.originalFileName)
     destinationDirectory.set(zipDistributionDir)

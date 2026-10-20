@@ -23,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - If Tacit stops with an error, it now still stops the sync and closes its databases before exiting
 - On Windows and Linux, starting Tacit while it is still quitting now starts it again once it has quit, instead of doing nothing
 - When "Restart to update" cannot start the update, Tacit now really starts the current version again instead of just quitting
+- The Linux zip keeps the executable bit of `bin/Tacit` again, so the unzipped app starts without a `chmod`
 
 ## 26.9.2-tacit.6
 
