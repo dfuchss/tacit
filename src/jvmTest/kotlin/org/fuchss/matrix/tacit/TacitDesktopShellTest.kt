@@ -22,6 +22,16 @@ class TacitDesktopShellTest {
     }
 
     @Test
+    fun initialSizeFitsUsableAreaWithoutTaskbarOrDock() {
+        // MacBook Pro 14": 1470 x 956 bounds minus 33 menu bar and 90 Dock.
+        assertEquals(DpSize(1470.dp, 833.dp), initialTacitWindowSize(1470, 956 - 33 - 90))
+        // Windows 1920 x 1080 minus a 40 px taskbar.
+        assertEquals(DpSize(1600.dp, 1000.dp), initialTacitWindowSize(1920, 1080 - 40))
+        // Windows 1366 x 768 minus a 40 px taskbar.
+        assertEquals(DpSize(1366.dp, 728.dp), initialTacitWindowSize(1366, 768 - 40))
+    }
+
+    @Test
     fun closeHidesToTrayOnlyWithTrayAndBackgroundBehavior() {
         assertEquals(
             TacitWindowCloseAction.HIDE_TO_TRAY,

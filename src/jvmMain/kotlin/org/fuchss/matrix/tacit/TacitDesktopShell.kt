@@ -36,6 +36,7 @@ import java.awt.Desktop
 import java.awt.Dimension
 import java.awt.GraphicsEnvironment
 import java.awt.Taskbar
+import java.awt.Toolkit
 import java.awt.desktop.AppForegroundEvent
 import java.awt.desktop.AppForegroundListener
 import java.awt.desktop.AppReopenedEvent
@@ -57,7 +58,7 @@ internal const val DISPOSE_WINDOW_WHEN_HIDDEN = true
 internal val preferredTacitWindowSize = DpSize(1600.dp, 1000.dp)
 
 /**
- * Initial window size for a screen of [screenWidth] x [screenHeight] AWT user-space units.
+ * Initial window size for a usable screen area of [screenWidth] x [screenHeight] AWT user-space units (bounds minus taskbar/Dock/menu bar insets).
  *
  * Compose Desktop maps 1 dp to 1 AWT user-space unit (it uses the screen's scale as density), so the screen size
  * must come from [java.awt.GraphicsConfiguration.getBounds], not from `DisplayMode`, which reports device pixels on
@@ -125,8 +126,14 @@ internal class TacitDesktopShellState(
 @Composable
 internal fun rememberTacitDesktopShellState(appName: String, updater: TacitUpdater): TacitDesktopShellState {
     val initialSize = remember {
-        val bounds = GraphicsEnvironment.getLocalGraphicsEnvironment().defaultScreenDevice.defaultConfiguration.bounds
-        initialTacitWindowSize(bounds.width, bounds.height)
+        val config = GraphicsEnvironment.getLocalGraphicsEnvironment().defaultScreenDevice.defaultConfiguration
+        val bounds = config.bounds
+        // Taskbar, Dock and menu bar are screen insets; the window should fit what is left.
+        val insets = Toolkit.getDefaultToolkit().getScreenInsets(config)
+        initialTacitWindowSize(
+            screenWidth = bounds.width - insets.left - insets.right,
+            screenHeight = bounds.height - insets.top - insets.bottom,
+        )
     }
     val windowState = rememberWindowState(size = initialSize)
     val trayState = rememberTrayState()
