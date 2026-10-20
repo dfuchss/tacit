@@ -61,16 +61,20 @@ class TacitAppleNotificationCleaner(
         if (clients.isEmpty()) flowOf(0)
         else combine(clients.map { it.notification.getCount() }) { it.sum() }
 
-    private suspend fun clearLeftovers() {
-        for (account in matrixClients.value.keys) {
-            try {
-                val handler = notificationHandlers[account]
-                if (handler.needsLeftoverCleanup()) handler.clearAll()
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                log.warn(e) { "failed to clear leftover notifications of $account" }
-            }
+    private suspend fun clearLeftovers() =
+        clearLeftoverNotifications(matrixClients.value.keys) { notificationHandlers[it] }
+}
+
+/** Clears the leftovers of every account whose handler needs it; one failing account never stops the others. */
+internal suspend fun <A> clearLeftoverNotifications(accounts: Collection<A>, handlerOf: (A) -> NotificationHandler) {
+    for (account in accounts) {
+        try {
+            val handler = handlerOf(account)
+            if (handler.needsLeftoverCleanup()) handler.clearAll()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            log.warn(e) { "failed to clear leftover notifications of $account" }
         }
     }
 }

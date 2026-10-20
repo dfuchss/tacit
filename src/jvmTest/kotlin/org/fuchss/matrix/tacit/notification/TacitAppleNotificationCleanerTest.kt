@@ -1,5 +1,11 @@
 package org.fuchss.matrix.tacit.notification
 
+import de.connect2x.sysnotify.Notification
+import de.connect2x.sysnotify.NotificationCapabilities
+import de.connect2x.sysnotify.NotificationHandle
+import de.connect2x.sysnotify.NotificationHandler
+import de.connect2x.sysnotify.NotificationPlatform
+import de.connect2x.sysnotify.NotificationPriority
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.time.Duration.Companion.seconds
@@ -55,4 +61,53 @@ class TacitAppleNotificationCleanerTest {
 
     @Test
     fun nonZeroBeforeDebounceElapsesSuppresses() = runTest { assertEquals(0, fired(script(0L to 2, 100L to 0, 500L to 1))) }
+
+    private class FakeHandler(
+        override val platform: NotificationPlatform,
+        private val failOnClear: Boolean = false,
+    ) : NotificationHandler {
+        var cleared = 0
+        override val name = "fake"
+        override val id = "fake"
+        override val appId = "fake"
+        override val capabilities = NotificationCapabilities(true, true, true, true, true, true, true, true, true, true)
+        override val hasPermissions = true
+        override val priority = NotificationPriority.DEFAULT
+        override val contributesToCounter = true
+        override suspend fun push(notification: Notification, tag: String): NotificationHandle = error("unused")
+        override suspend fun pop(handle: NotificationHandle) = error("unused")
+        override suspend fun clearAll() {
+            cleared++
+            if (failOnClear) error("boom")
+        }
+        override suspend fun unregister() = Unit
+        override fun close() = Unit
+    }
+
+    @Test
+    fun cleanupIsOnlyNeededOnApple() {
+        NotificationPlatform.entries.forEach {
+            assertEquals(it == NotificationPlatform.APPLE, FakeHandler(it).needsLeftoverCleanup(), "$it")
+        }
+    }
+
+    @Test
+    fun onlyAppleHandlersAreCleared() = runTest {
+        val handlers = mapOf("a" to FakeHandler(NotificationPlatform.APPLE), "b" to FakeHandler(NotificationPlatform.LINUX))
+        clearLeftoverNotifications(handlers.keys) { handlers.getValue(it) }
+        assertEquals(1, handlers.getValue("a").cleared)
+        assertEquals(0, handlers.getValue("b").cleared)
+    }
+
+    @Test
+    fun aFailingAccountDoesNotStopTheOthers() = runTest {
+        val handlers = mapOf(
+            "lookup" to null,
+            "fails" to FakeHandler(NotificationPlatform.APPLE, failOnClear = true),
+            "ok" to FakeHandler(NotificationPlatform.APPLE),
+        )
+        clearLeftoverNotifications(handlers.keys) { handlers.getValue(it) ?: error("no handler") }
+        assertEquals(1, handlers.getValue("fails")!!.cleared)
+        assertEquals(1, handlers.getValue("ok")!!.cleared)
+    }
 }
