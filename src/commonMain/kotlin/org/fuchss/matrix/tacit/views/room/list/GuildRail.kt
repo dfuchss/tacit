@@ -62,6 +62,9 @@ import org.jetbrains.compose.resources.imageResource
 private val guildPillSize: Dp = 52.dp
 private val guildPillSpacing: Dp = 10.dp
 
+/** How far the unread badge pokes out above its pill; the guild list reserves it so its clip does not cut the badge. */
+private val unreadBadgeOverhang: Dp = 1.dp
+
 @Composable
 internal fun GuildRail(
     state: TacitGuildRailState,
@@ -118,10 +121,11 @@ internal fun GuildRail(
             unreadCount = state.dmUnreadCount,
         )
 
-        Spacer(Modifier.height(TacitSpacing.paneGap))
+        Spacer(Modifier.height(TacitSpacing.paneGap - unreadBadgeOverhang))
 
         LazyColumn(
             modifier = Modifier.weight(1f),
+            contentPadding = PaddingValues(top = unreadBadgeOverhang),
             verticalArrangement = Arrangement.spacedBy(guildPillSpacing),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
@@ -409,7 +413,7 @@ private fun GuildPill(
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .offset(x = 1.dp, y = (-1).dp)
+                        .offset(x = 1.dp, y = -unreadBadgeOverhang)
                         .clip(CircleShape)
                         .background(MaterialTheme.tacit.accent)
                         .padding(horizontal = 6.dp, vertical = 1.dp),
