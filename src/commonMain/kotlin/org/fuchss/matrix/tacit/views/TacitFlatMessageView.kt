@@ -1,8 +1,6 @@
 package org.fuchss.matrix.tacit.views
 
 import org.fuchss.matrix.tacit.ui.TacitSizes
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -16,11 +14,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -66,6 +61,7 @@ import org.fuchss.matrix.tacit.*
 import org.fuchss.matrix.tacit.ui.TacitShapes
 import org.fuchss.matrix.tacit.views.i18n.TacitI18nView
 import org.fuchss.matrix.tacit.views.room.timeline.LocalTacitJumpHighlightKey
+import org.fuchss.matrix.tacit.views.room.timeline.rememberJumpHighlightTint
 
 /** Width of the avatar gutter: avatar (30.dp) + the spacer that separates it from the text column. */
 private val AvatarGutterWidth = 40.dp
@@ -176,19 +172,7 @@ private fun TacitFlatMessageContainer(
         // The target of a jump from a reply quote flashes an accent tint that fades out again.
         val isJumpTarget = !isPreview && LocalTacitJumpHighlightKey.current == holder.key
         // Only a row that is (or just was) the target pays for the animation and the extra layer.
-        var wasJumpTarget by remember { mutableStateOf(false) }
-        if (isJumpTarget) wasJumpTarget = true
-        val jumpTint =
-            if (wasJumpTarget) {
-                val tint by animateColorAsState(
-                    targetValue = if (isJumpTarget) MaterialTheme.tacit.accent.copy(alpha = 0.18f) else Color.Transparent,
-                    animationSpec = tween(durationMillis = if (isJumpTarget) 150 else 700),
-                )
-                if (!isJumpTarget && tint.alpha == 0f) wasJumpTarget = false
-                tint
-            } else {
-                Color.Transparent
-            }
+        val jumpTint = rememberJumpHighlightTint(isJumpTarget)
 
         Column(
             modifier = Modifier
@@ -210,7 +194,7 @@ private fun TacitFlatMessageContainer(
                         if (hasMentionGlow) Modifier.background(MaterialTheme.tacit.accent.copy(alpha = if (isRowActive) 0.12f else 0.09f), TacitShapes.card)
                         else Modifier
                     )
-                    .then(if (wasJumpTarget) Modifier.background(jumpTint, TacitShapes.card) else Modifier)
+                    .then(if (jumpTint != null) Modifier.background(jumpTint, TacitShapes.card) else Modifier)
                     .border(TacitSizes.borderWidth, if (isJumpTarget) MaterialTheme.tacit.accent.copy(alpha = 0.7f) else rowBorderColor, TacitShapes.card)
                     .hoverable(menuState.messageInteractionSource)
                     .pointerInput(holder) {

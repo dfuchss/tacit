@@ -338,11 +338,12 @@ internal fun TacitSystemEventHolder(
     expanded: Boolean,
     snapOpen: Boolean,
     onToggle: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val showUnreadMarker by holder.showUnreadMarker.collectAsState()
     val showLoadingIndicatorBefore by holder.showLoadingIndicatorBefore.collectAsState()
     val showLoadingIndicatorAfter by holder.showLoadingIndicatorAfter.collectAsState()
-    Column {
+    Column(modifier) {
         AnimatedVisibility(showLoadingIndicatorBefore) { LoadingSpinner() }
         if (group == null) {
             QuietSystemEvent(holder, index, grouped = false)
@@ -381,10 +382,10 @@ private fun QuietSystemEvent(holder: TimelineElementHolderViewModel, index: Int,
     val quietScheme = remember(colorScheme, tokens) {
         colorScheme.copy(tertiary = tokens.surfaceAlt.copy(alpha = 0.7f), onTertiary = tokens.textMuted)
     }
+    val element = holder.element.collectAsState().value
     MaterialTheme(colorScheme = quietScheme) {
         // The pill's tooltip only repeats its text.
         WithoutTooltips {
-            val element = holder.element.collectAsState().value
             if (grouped && element is MemberStateTimelineElementViewModel) {
                 DI.get<TimelineElementViewSelector>().createAsPreview(holder, element, index)
             } else {
@@ -401,7 +402,12 @@ private fun List<TimelineElementHolderViewModel>.currentSenderNames(): List<Stri
     mapNotNull { it.sender.value }.distinctBy { it.userId }.map { it.name }.distinct()
 
 @Composable
-private fun SystemEventGroupHeader(group: TacitSystemEventGroup, expanded: Boolean, onToggle: () -> Unit) {
+private fun SystemEventGroupHeader(
+    group: TacitSystemEventGroup,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val i18n = DI.get<TacitI18nView>()
     // Distinct senders in chronological order. Names resolve asynchronously, but only the first two
     // and the number of distinct senders are shown: look the senders up one after the other (each a
@@ -429,7 +435,7 @@ private fun SystemEventGroupHeader(group: TacitSystemEventGroup, expanded: Boole
     )
     val chevronRotation by animateFloatAsState(if (expanded) 180f else 0f)
 
-    Box(Modifier.fillMaxWidth().padding(top = 10.dp), contentAlignment = Alignment.Center) {
+    Box(modifier.fillMaxWidth().padding(top = 10.dp), contentAlignment = Alignment.Center) {
         Row(
             modifier = Modifier
                 .widthIn(max = 520.dp)
