@@ -12,24 +12,30 @@ import de.connect2x.trixnity.messenger.util.getAppPath
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.io.asSource
 import kotlinx.io.buffered
+import org.fuchss.matrix.tacit.update.TacitOs
 import org.fuchss.matrix.tacit.update.TacitUpdater
+import java.nio.file.Paths
 import kotlin.system.exitProcess
 
 private val mainLog: Logger = Logger("org.fuchss.matrix.tacit.Main")
 
 @OptIn(ExperimentalCoroutinesApi::class)
 object Main {
+    /** The app data directory, as upstream's `RootPath` resolves it (see `getDevRootPath`). */
+    private fun messengerDir(): String =
+        if (System.getenv("TAMMY_ROOT_PATH") == null && BuildConfig.flavor == Flavor.DEV) {
+            "./app-data"
+        } else getAppPath(BuildConfig.appId).toString()
+
     private fun configureLogging() {
+        val messengerDir = messengerDir()
         Backend.set(DefaultBackend)
         SerializableConfig uses CoreConfigExtension
         SerializableConfig uses ConfigExtension {
-            registerProvider("MESSENGER_DIR") {
-                if (System.getenv("TAMMY_ROOT_PATH") == null && BuildConfig.flavor == Flavor.DEV) {
-                    "./app-data"
-                } else getAppPath(BuildConfig.appId).toString()
-            }
+            registerProvider("MESSENGER_DIR") { messengerDir }
         }
-        checkNotNull(this::class.java.getResourceAsStream("/lognity.json")).use { stream ->
+        val config = loggingConfigResource(TacitOs.current, Paths.get(messengerDir))
+        checkNotNull(this::class.java.getResourceAsStream(config)).use { stream ->
             Backend.setDefaultConfig(stream.asSource().buffered())
         }
     }

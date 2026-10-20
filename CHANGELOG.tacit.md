@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Quitting or "Restart to update" no longer leaves Tacit running without a window when the sync was busy or retrying; the update now installs
 - On Windows and Linux, Tacit's process now always ends after quitting, so it no longer keeps the single-instance port and swallows later launches
 - On Windows and Linux, starting Tacit again while it runs now brings its window back from the tray or taskbar, also on the profile screen; opening it from the tray also restores a minimised window
+- On Windows and Linux, a launch that only hands over to the running Tacit now logs to `logs/launcher.log` instead of writing into the running instance's log
 
 ## 26.9.2-tacit.6
 
