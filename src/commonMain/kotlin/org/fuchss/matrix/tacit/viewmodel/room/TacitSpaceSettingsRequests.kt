@@ -31,6 +31,14 @@ internal class TacitSpaceSettingsRequests {
     fun consume(roomId: RoomId): Boolean = pending.compareAndSet(roomId, null)
 
     /**
+     * Drops a pending request for [roomId]. Called when that room is reached by another path than a room view model
+     * (answering a guild invite), so the request must not fire when the space is opened later.
+     */
+    fun discard(roomId: RoomId) {
+        pending.compareAndSet(roomId, null)
+    }
+
+    /**
      * Drops a pending request for any room other than [roomId]. Called when a room is opened: the request belongs to a
      * navigation that has been superseded, so it must not fire later when that space happens to be opened normally.
      */

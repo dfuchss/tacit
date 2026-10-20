@@ -4,6 +4,7 @@ import de.connect2x.trixnity.client.MatrixClient
 import de.connect2x.trixnity.core.model.RoomId
 import de.connect2x.trixnity.core.model.UserId
 import de.connect2x.trixnity.core.model.events.m.Presence
+import de.connect2x.trixnity.core.model.events.m.room.Membership
 import de.connect2x.trixnity.messenger.MatrixMessengerSettingsHolder
 import de.connect2x.trixnity.messenger.viewmodel.ViewModelContext
 import de.connect2x.trixnity.messenger.viewmodel.matrixClients
@@ -317,6 +318,7 @@ private class TacitRoomListViewModelImpl(
         onGuildSelected = ::selectGuild,
         onRoomSelected = delegate::selectRoom,
         guildClient = ::guildClient,
+        spaceSettingsRequests = spaceSettingsRequests,
     )
 
     override val reorderCategoriesInProgress: StateFlow<Boolean> = actions.moveRoomInProgress
@@ -361,7 +363,7 @@ private class TacitRoomListViewModelImpl(
     }
 
     override fun openSpaceSettings(spaceRoomId: RoomId) {
-        spaceSettingsRequests.request(spaceRoomId)
+        if (canRequestSpaceSettings(selectedGuild.value, spaceRoomId)) spaceSettingsRequests.request(spaceRoomId)
         delegate.selectRoom(spaceRoomId)
     }
 
@@ -472,6 +474,13 @@ private class TacitRoomListViewModelImpl(
             )
         }.stateInScope(TacitRoomListUiState())
 }
+
+/**
+ * Whether opening [spaceRoomId] may file a settings request: not for the [selectedGuild] while it is not joined, since
+ * upstream then shows its join prompt instead of a room view model that would consume the request.
+ */
+internal fun canRequestSpaceSettings(selectedGuild: GuildEntry?, spaceRoomId: RoomId): Boolean =
+    selectedGuild?.roomId != spaceRoomId || selectedGuild.membership == Membership.JOIN
 
 private data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
 
