@@ -14,6 +14,8 @@ class TacitSystemEventGroupsTest {
 
     private fun empty(key: String) = Item(key, SystemEventGroupingInfo.Transparent)
 
+    private fun redacted(key: String) = Item(key, SystemEventGroupingInfo.Hidden)
+
     private fun group(vararg items: Item) = groupSystemEventRuns(items.toList(), { it.info }, { it.date })
 
     private fun SystemEventRuns<Item>.keys() = groups.map { run -> run.members.map { it.key } }
@@ -95,5 +97,23 @@ class TacitSystemEventGroupsTest {
     @Test
     fun `first element and messages after messages follow no system event`() {
         assertEquals(emptyList(), group(empty("e"), message("m1"), message("m2")).followerKeys())
+    }
+
+    @Test
+    fun `message behind a hidden redacted element still follows the system event`() {
+        val result = group(state("join"), redacted("r"), message("m"))
+        assertEquals(listOf("m"), result.followerKeys())
+    }
+
+    @Test
+    fun `hidden redacted element still ends a run`() {
+        val result = group(state("a"), state("b"), redacted("r"), state("c"), state("d"), redacted("r2"), message("m"))
+        assertEquals(listOf(listOf("a", "b"), listOf("c", "d")), result.keys())
+        assertEquals(listOf("m"), result.followerKeys())
+    }
+
+    @Test
+    fun `message behind a redacted message follows only that message`() {
+        assertEquals(listOf("m1"), group(state("join"), message("m1"), redacted("r"), message("m2")).followerKeys())
     }
 }

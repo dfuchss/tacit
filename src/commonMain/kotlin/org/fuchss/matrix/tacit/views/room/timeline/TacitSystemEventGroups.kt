@@ -59,6 +59,7 @@ import de.connect2x.trixnity.messenger.compose.view.room.timeline.UnreadMessages
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.TimelineElementHolderSwitch
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.TimelineElementViewSelector
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.BaseTimelineElementHolderViewModel
+import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.RedactedTimelineElementViewModel
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.TimelineElementHolderViewModel
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.TimelineElementViewModel
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.state.MemberStateTimelineElementViewModel
@@ -137,7 +138,11 @@ internal enum class SystemEventRole {
     /** Renders nothing (unsupported or ignored event): neither joins nor breaks a run. */
     Transparent,
 
-    /** Anything that is not a state event (messages, redacted elements, ...): ends the current run. */
+    /**
+     * Anything that is not a state event (messages, redacted elements, ...): ends the current run.
+     * A [SystemEventGroupingInfo.hidden] one (redacted, which Tacit does not render) is otherwise
+     * invisible: it does not hide the system event before it from the next message.
+     */
     Breaking,
 
     /** A state event; groupable unless [SystemEventGroupingInfo.standalone]. */
@@ -150,16 +155,22 @@ internal enum class SystemEventRole {
  * is too important to fold away; the "rejoin" prompt carries extra UI with an action), and the
  * unread marker drawn below an event ends a run right after it ([breakAfter]). [undecryptableHistoryInfo] is the member event's "history is
  * not decryptable" notice; it does not keep the event out of a group (the group shows it instead).
+ * A [hidden] element (redacted: Tacit does not render it) still ends a run, but is skipped when
+ * deciding whether a message follows a system event.
  */
 internal data class SystemEventGroupingInfo(
     val role: SystemEventRole,
     val standalone: Boolean = false,
     val breakAfter: Boolean = false,
     val undecryptableHistoryInfo: String? = null,
+    val hidden: Boolean = false,
 ) {
     companion object {
         val Transparent = SystemEventGroupingInfo(SystemEventRole.Transparent)
         val Breaking = SystemEventGroupingInfo(SystemEventRole.Breaking)
+
+        /** A redacted element: Tacit hides it, but it still separates the system events around it. */
+        val Hidden = SystemEventGroupingInfo(SystemEventRole.Breaking, hidden = true)
 
         /** A state event that never joins a group (room upgrade). */
         val StandaloneState = SystemEventGroupingInfo(SystemEventRole.Groupable, standalone = true)
@@ -173,6 +184,7 @@ private fun BaseTimelineElementHolderViewModel.groupingInfo(): Flow<SystemEventG
     element.flatMapLatest { element ->
         when {
             element is TimelineElementViewModel.Empty -> flowOf(SystemEventGroupingInfo.Transparent)
+            element is RedactedTimelineElementViewModel -> flowOf(SystemEventGroupingInfo.Hidden)
             this !is TimelineElementHolderViewModel || !element.isState() -> flowOf(SystemEventGroupingInfo.Breaking)
             element is TombstoneStateTimelineElementViewModel -> flowOf(SystemEventGroupingInfo.StandaloneState)
             element is MemberStateTimelineElementViewModel ->
@@ -194,6 +206,7 @@ private fun BaseTimelineElementHolderViewModel.currentGroupingInfo(): SystemEven
     val element = element.value
     return when {
         element is TimelineElementViewModel.Empty -> SystemEventGroupingInfo.Transparent
+        element is RedactedTimelineElementViewModel -> SystemEventGroupingInfo.Hidden
         this !is TimelineElementHolderViewModel || !element.isState() -> SystemEventGroupingInfo.Breaking
         element is TombstoneStateTimelineElementViewModel -> SystemEventGroupingInfo.StandaloneState
         else -> SystemEventGroupingInfo(
@@ -290,7 +303,8 @@ internal class SystemEventRuns<T>(
     /** Every event rendered in Tacit's quieter system event style (grouped or isolated). */
     val quiet: List<T>,
     /**
-     * Every non-state element (message, ...) whose older neighbour -- skipping transparent ones -- is
+     * Every non-state element (message, ...) whose older neighbour -- skipping transparent and hidden
+     * (redacted) ones -- is
      * a state event, grouped or not. Upstream's `isFirstInUserSequence` only compares senders, so a
      * message right after its sender's own join would otherwise continue a "sender run" that has no
      * visible message in it (no avatar, tight spacing).
@@ -334,6 +348,9 @@ internal fun <T> groupSystemEventRuns(
             SystemEventRole.Transparent -> continue
             SystemEventRole.Breaking -> {
                 closeRun()
+                // A hidden element ends the run but is not seen: the next message still follows the
+                // system event before it.
+                if (info.hidden) continue
                 if (previousIsState) followers += item
             }
             SystemEventRole.Groupable -> if (info.standalone) {
