@@ -59,7 +59,7 @@ fun startTacitMultiMessenger(
     tacitMessengerApp(matrixMultiMessenger, lifecycle, updater, activeMessengerOnce)
 
     desktopLog.info { "Shutting down client gracefully.." }
-    matrixMultiMessenger.closeSuspending()
+    shutDownGracefully(matrixMultiMessenger)
 }
 
 /**
