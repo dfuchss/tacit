@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - The unread badge of the topmost guild is no longer cut off at the top
 - Quitting or "Restart to update" no longer leaves Tacit running without a window when the sync was busy or retrying; the update now installs
+- On Windows and Linux, Tacit's process now always ends after quitting, so it no longer keeps the single-instance port and swallows later launches
 
 ## 26.9.2-tacit.6
 
