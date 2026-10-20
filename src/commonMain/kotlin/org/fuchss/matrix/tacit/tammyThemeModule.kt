@@ -14,6 +14,9 @@ import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.common.deriveFromHue
 import de.connect2x.trixnity.messenger.compose.view.common.hue
 import de.connect2x.trixnity.messenger.compose.view.theme.*
+import de.connect2x.trixnity.messenger.Worker
+import org.fuchss.matrix.tacit.settings.TacitDarkThemeMode
+import org.koin.dsl.bind
 import org.koin.dsl.module
 
 fun tammyThemeModule() = module {
@@ -44,6 +47,8 @@ fun tammyThemeModule() = module {
     single<ThemeDarkMessengerColors> { get<TacitMessengerColors>() }
     single<ThemeComponents> { TacitThemeComponents() }
     single<Theme> { TacitTheme() }
+    // Bound at multi-messenger and messenger level alike, like the rest of this module: each has its own settings.
+    single { TacitDarkThemeMode(get()) }.bind<Worker>()
 }
 
 private fun tacitReadableLink(accentColor: Color): Color = Color(0xFF9AF7C2).deriveFromHue(
