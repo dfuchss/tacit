@@ -65,7 +65,7 @@ private val guildPillSpacing: Dp = 10.dp
 internal fun GuildRail(
     state: TacitGuildRailState,
     onSelectGuild: (GuildEntry?) -> Unit,
-    onReorderGuild: (fromIndex: Int, toIndex: Int) -> Unit,
+    onReorderGuild: (guildKey: String, toIndex: Int) -> Unit,
     onCreateGuild: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -77,18 +77,22 @@ internal fun GuildRail(
     val density = LocalDensity.current
     val guildStepPx = remember(density) { with(density) { (guildPillSize + guildPillSpacing).toPx() } }
     var draggingGuildKey by remember { mutableStateOf<String?>(null) }
-    var dragFromIndex by remember { mutableStateOf<Int?>(null) }
-    var dropIndex by remember { mutableStateOf<Int?>(null) }
     var dragOffsetY by remember { mutableFloatStateOf(0f) }
 
     fun resetDragState() {
         draggingGuildKey = null
-        dragFromIndex = null
-        dropIndex = null
         dragOffsetY = 0f
     }
 
-    val hintBeforeIndex = guildDropHintIndex(dragFromIndex, dropIndex, guilds.size)
+    // Derived from the dragged guild's key against the current list, so a guild list change mid-drag (a guild
+    // joined, left or reordered elsewhere) cannot leave a stale index behind. Only changes at whole pill steps.
+    val hintBeforeIndex by remember(guilds, guildStepPx) {
+        derivedStateOf {
+            val fromIndex = draggingGuildKey?.let { key -> guilds.indexOfFirst { it.key() == key } }?.takeIf { it >= 0 }
+            val dropIndex = fromIndex?.let { guildDropIndex(it, dragOffsetY, guildStepPx, guilds.size) }
+            guildDropHintIndex(fromIndex, dropIndex, guilds.size)
+        }
+    }
 
     Column(
         modifier = modifier
@@ -154,16 +158,15 @@ internal fun GuildRail(
                             detectDragGestures(
                                 onDragStart = {
                                     draggingGuildKey = guildKey
-                                    dragFromIndex = currentIndex
-                                    dropIndex = currentIndex
                                     dragOffsetY = 0f
                                 },
                                 onDragEnd = {
-                                    val from = dragFromIndex
-                                    val to = dropIndex
+                                    // The pill is translated from its current slot, so the drop counts from there;
+                                    // the view model resolves the guild by its key against its own current list.
+                                    val to = guildDropIndex(currentIndex, dragOffsetY, guildStepPx, currentGuildCount)
                                     resetDragState()
-                                    if (isMove(from, to, currentGuildCount)) {
-                                        currentOnReorderGuild(from!!, to!!)
+                                    if (isMove(currentIndex, to, currentGuildCount)) {
+                                        currentOnReorderGuild(guildKey, to)
                                     }
                                 },
                                 onDragCancel = {
@@ -173,12 +176,6 @@ internal fun GuildRail(
                                     if (draggingGuildKey != guildKey) return@detectDragGestures
                                     change.consume()
                                     dragOffsetY += dragAmount.y
-
-                                    val from = dragFromIndex ?: return@detectDragGestures
-                                    val newDropIndex = guildDropIndex(from, dragOffsetY, guildStepPx, currentGuildCount)
-                                    if (dropIndex != newDropIndex) {
-                                        dropIndex = newDropIndex
-                                    }
                                 },
                             )
                         }

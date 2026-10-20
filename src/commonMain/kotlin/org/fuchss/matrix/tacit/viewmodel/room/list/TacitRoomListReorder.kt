@@ -17,6 +17,17 @@ internal fun <T> List<T>.moved(fromIndex: Int, toIndex: Int): List<T>? =
     if (!isMove(fromIndex, toIndex, size)) null
     else toMutableList().apply { add(toIndex, removeAt(fromIndex)) }
 
+/**
+ * The guild keys of [guilds] after moving the guild with [guildKey] to [toIndex] (clamped to the list), or null if that
+ * guild is gone or nothing moves. Resolving the guild by key keeps a drop correct when the list changed mid-drag.
+ */
+internal fun guildOrderAfterMove(guilds: List<GuildEntry>, guildKey: String, toIndex: Int): List<String>? {
+    val keys = guilds.map { it.key() }
+    val fromIndex = keys.indexOf(guildKey)
+    if (fromIndex < 0) return null
+    return keys.moved(fromIndex, toIndex.coerceIn(0, keys.lastIndex))
+}
+
 /** The category room ids of [groups] after moving the category at [fromIndex] to [toIndex], or null if nothing moves. */
 internal fun categoryOrderAfterMove(groups: List<TacitChannelGroup<*>>, fromIndex: Int, toIndex: Int): List<RoomId>? =
     groups.map { it.categoryRoomId }.moved(fromIndex, toIndex)

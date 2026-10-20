@@ -19,7 +19,8 @@ internal interface RoomListActions {
     val searchTerm: TextFieldViewModel
 
     fun selectGuild(guild: GuildEntry?)
-    fun reorderGuild(fromIndex: Int, toIndex: Int)
+    /** Moves the guild with [guildKey] (see [GuildEntry.key]) to [toIndex] of the guild list. */
+    fun reorderGuild(guildKey: String, toIndex: Int)
     fun reorderCategory(fromIndex: Int, toIndex: Int)
     fun selectRoom(roomId: RoomId)
     fun createNewRoom()
@@ -66,7 +67,7 @@ internal class TacitRoomListViewActions(
     override val searchTerm: TextFieldViewModel get() = viewModel.searchTerm
 
     override fun selectGuild(guild: GuildEntry?) = viewModel.selectGuild(guild)
-    override fun reorderGuild(fromIndex: Int, toIndex: Int) = viewModel.reorderGuild(fromIndex, toIndex)
+    override fun reorderGuild(guildKey: String, toIndex: Int) = viewModel.reorderGuild(guildKey, toIndex)
     override fun reorderCategory(fromIndex: Int, toIndex: Int) = viewModel.reorderCategory(fromIndex, toIndex)
     override fun selectRoom(roomId: RoomId) = viewModel.selectRoom(roomId)
     override fun createNewRoom() = viewModel.createNewRoom()

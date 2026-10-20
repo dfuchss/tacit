@@ -40,6 +40,23 @@ class TacitRoomListReorderTest {
     }
 
     @Test
+    fun `a guild is moved by its key against the current list`() {
+        val a = guild("a")
+        val b = guild("b")
+        val c = guild("c")
+        val d = guild("d")
+
+        assertEquals(listOf(b, c, a).map { it.key() }, guildOrderAfterMove(listOf(a, b, c), a.key(), 2))
+        // A guild joined above the dragged one mid-drag: the drag of "b" still moves "b", not the guild now at its old index.
+        assertEquals(listOf(d, a, c, b).map { it.key() }, guildOrderAfterMove(listOf(d, a, b, c), b.key(), 3))
+        // The target index is clamped to a list that shrank mid-drag.
+        assertEquals(listOf(b, a).map { it.key() }, guildOrderAfterMove(listOf(a, b), a.key(), 3))
+        assertNull(guildOrderAfterMove(listOf(a, c), b.key(), 0)) // the dragged guild is gone
+        assertNull(guildOrderAfterMove(listOf(a, b), a.key(), 0))
+        assertNull(guildOrderAfterMove(listOf(a.copy(userId = UserId("@other:example.org"))), a.key(), 0))
+    }
+
+    @Test
     fun `moving a category reorders the category ids of the groups`() {
         val groups = listOf("lobby", "games", "music").map { TacitChannelGroup(id(it), it, listOf(it)) }
 

@@ -64,7 +64,11 @@ internal interface TacitRoomListViewModel : RoomListViewModel {
     fun moveRoomToCategory(guild: GuildEntry, roomId: RoomId, targetCategoryRoomId: RoomId)
     fun acceptGuildInvite(guild: GuildEntry)
     fun declineGuildInvite(guild: GuildEntry)
-    fun reorderGuild(fromIndex: Int, toIndex: Int)
+    /**
+     * Moves the guild with [guildKey] to [toIndex]. The guild is resolved by its key against the current guild list,
+     * so a list that changed during the drag cannot move the wrong guild.
+     */
+    fun reorderGuild(guildKey: String, toIndex: Int)
     fun reorderCategory(fromIndex: Int, toIndex: Int)
 
     /** Keeps the selected guild in sync with [guilds]: refreshes its entry, or deselects it once it is gone. */
@@ -344,8 +348,8 @@ private class TacitRoomListViewModelImpl(
         reorderCategories(guild, ordered)
     }
 
-    override fun reorderGuild(fromIndex: Int, toIndex: Int) {
-        val reorderedKeys = guilds.value.moved(fromIndex, toIndex)?.map { it.key() } ?: return
+    override fun reorderGuild(guildKey: String, toIndex: Int) {
+        val reorderedKeys = guildOrderAfterMove(guilds.value, guildKey, toIndex) ?: return
         runtimeGuildOrder.value = reorderedKeys
         coroutineScope.launch { settings.update { writeTacitGuildOrder(reorderedKeys) } }
     }
