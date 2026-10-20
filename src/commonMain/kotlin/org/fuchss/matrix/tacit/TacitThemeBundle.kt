@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import de.connect2x.trixnity.messenger.compose.view.theme.ComponentStyles
 import org.fuchss.matrix.tacit.ui.TacitShapes
@@ -43,6 +44,10 @@ internal object TacitThemeBundle {
             focusedBorder = BorderStroke(TacitSizes.borderWidth, tokens.accent),
             contentPadding = PaddingValues(vertical = 4.dp),
         )
+        // Upstream's context menu (ThemedActionMenu: anchored dropdown and right-click popup) draws a hairline
+        // in DarkGray or LightGray depending on ThemeSettings.isDarkMode(), i.e. on the system appearance.
+        // Tacit is always dark: keep the dark hairline. A wider border is upstream's focus ring; leave it.
+        val contextMenu = base.contextMenu.copy(border = darkContextMenuBorder(base.contextMenu.border))
         val dropdownMenuItem = base.dropdownMenuItem.copy(
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
             focusedBorder = null,
@@ -52,6 +57,7 @@ internal object TacitThemeBundle {
             warningBanner = warningBanner,
             commonBanner = commonBanner,
             dropdownMenu = dropdownMenu,
+            contextMenu = contextMenu,
             dropdownMenuItem = dropdownMenuItem,
             messageBubbleError = base.messageBubbleError.copy(
                 color = tokens.errorBg,
@@ -59,6 +65,10 @@ internal object TacitThemeBundle {
             ),
         )
     }
+
+    /** Upstream's resting context menu hairline pinned to its dark-mode colour; anything else is kept. */
+    fun darkContextMenuBorder(border: BorderStroke?): BorderStroke? =
+        if (border != null && border.width == Dp.Hairline) BorderStroke(Dp.Hairline, Color.DarkGray) else border
 
     fun createTacitColorScheme(accentColor: Color): ColorScheme {
         val tokens = TacitTokens.fromAccent(accentColor)
