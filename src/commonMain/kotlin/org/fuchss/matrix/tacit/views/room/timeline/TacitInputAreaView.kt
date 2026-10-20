@@ -259,9 +259,10 @@ private fun AutocompleteSuggestions(
     suggestions: List<ComposerSuggestion>,
     selectedIndex: Int,
     onSelect: (Int) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 6.dp)
             .clip(TacitShapes.card)

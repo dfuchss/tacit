@@ -130,11 +130,11 @@ internal fun TacitRichTextDisplay(
  * same neutral the reply card falls back to for an unknown sender; the quoted text is dimmed like a reply quote's.
  */
 @Composable
-private fun TacitBlockquote(content: @Composable () -> Unit) {
+private fun TacitBlockquote(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     val color = MaterialTheme.tacit.textMuted
     val style = LocalTextStyle.current
     Column(
-        Modifier
+        modifier
             .fillMaxWidth()
             .tacitQuoteCard(
                 background = color.copy(alpha = TacitQuoteTintAlpha),

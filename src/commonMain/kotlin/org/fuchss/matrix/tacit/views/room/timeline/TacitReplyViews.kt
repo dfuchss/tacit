@@ -165,6 +165,7 @@ internal class TacitReferencedMessagePillView : ReferencedMessagePillView {
         }
 
         val sender = holder.sender.collectAsState().value
+        val senderImage = sender?.image?.collectAsState()?.value
         val senderColor = replySenderColor(sender)
         val isHovered by interactionSource.collectIsHoveredAsState()
         val isFocused by interactionSource.collectIsFocusedAsState()
@@ -212,7 +213,7 @@ internal class TacitReferencedMessagePillView : ReferencedMessagePillView {
                 if (sender != null) {
                     ThemedUserAvatar(
                         initials = sender.initials,
-                        image = sender.image?.collectAsState()?.value,
+                        image = senderImage,
                         size = 16.dp,
                     )
                 }
