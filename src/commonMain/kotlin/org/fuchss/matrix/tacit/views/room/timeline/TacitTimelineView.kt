@@ -193,7 +193,7 @@ private fun TimelineList(
     showTypingIndicator: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val focusState = rememberTimelineFocusState(showTypingIndicator, renderedTimelineViewElements.value)
+    val focusState = rememberTimelineFocusState(renderedTimelineViewElements.value)
     CompositionLocalProvider(
         LocalTacitReplyJumpSignal provides jumpHighlight.replyJumpSignal,
         LocalTacitJumpHighlightKey provides jumpHighlight.key,
@@ -216,12 +216,7 @@ private fun TimelineList(
             verticalArrangement = Arrangement.Bottom,
         ) {
             if (showTypingIndicator) {
-                item(key = "typing", contentType = "typing") {
-                    TypingIndicator(timelineViewModel)
-                    if (focusState.isFocused(0)) {
-                        LaunchedEffect(focusState) { focusState.skipTypingIndicator() }
-                    }
-                }
+                item(key = "typing", contentType = "typing") { TypingIndicator(timelineViewModel) }
             }
             itemsIndexed(
                 items = renderedTimelineViewElements.value,

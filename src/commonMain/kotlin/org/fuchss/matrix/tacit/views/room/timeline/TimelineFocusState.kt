@@ -35,7 +35,9 @@ internal class TimelineFocusTravel(var towardsNewer: Boolean = false)
 
 /**
  * The timeline's roving keyboard focus: the index (into the rendered elements) of the element that
- * takes the focus when tabbing into the list. Elements that render nothing hand it on via [skipFrom],
+ * takes the focus when tabbing into the list. The typing indicator is no rendered element (its item
+ * is not counted by `itemsIndexed`) and never takes the focus, so index 0 is always the newest
+ * element -- like upstream, which ignores the "typing" key. Elements that render nothing hand it on via [skipFrom],
  * from an effect -- never while composing.
  */
 @Stable
@@ -56,14 +58,6 @@ internal class TimelineFocusState(private val travel: TimelineFocusTravel) {
         val skip = skipTimelineFocus(index, travel.towardsNewer)
         travel.towardsNewer = skip.towardsNewer
         focusedIndex = skip.index
-    }
-
-    /**
-     * The typing indicator sits at the bottom of the list and shares item index 0 with the newest
-     * element; while it is shown the initial focus starts one element further up (as before).
-     */
-    fun skipTypingIndicator() {
-        if (focusedIndex == 0) focusedIndex = 1
     }
 }
 

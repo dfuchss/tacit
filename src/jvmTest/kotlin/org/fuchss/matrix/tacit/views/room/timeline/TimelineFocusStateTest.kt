@@ -53,16 +53,6 @@ class TimelineFocusStateTest {
     }
 
     @Test
-    fun `typing indicator moves the initial focus one element up`() {
-        val state = TimelineFocusState(TimelineFocusTravel())
-        state.skipTypingIndicator()
-        assertEquals(1, state.focusedIndex)
-        state.onFocus(3)
-        state.skipTypingIndicator()
-        assertEquals(3, state.focusedIndex)
-    }
-
-    @Test
     fun `a reset focus starts at the newest element and keeps the travel direction`() {
         val travel = TimelineFocusTravel()
         TimelineFocusState(travel).apply {
@@ -72,7 +62,6 @@ class TimelineFocusStateTest {
         assertTrue(travel.towardsNewer)
         val reset = TimelineFocusState(travel)
         assertEquals(0, reset.focusedIndex)
-        reset.skipTypingIndicator()
         reset.skipFrom(1)
         assertEquals(0, reset.focusedIndex)
     }
