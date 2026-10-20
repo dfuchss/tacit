@@ -194,6 +194,14 @@ private fun TimelineList(
     modifier: Modifier = Modifier,
 ) {
     val focusState = rememberTimelineFocusState(renderedTimelineViewElements.value)
+    // Passes the focus off an element that renders nothing, past every following one at once.
+    val skipFocus: (Int) -> Unit = remember(focusState, renderedTimelineViewElements, systemEventGroups, expansion) {
+        { index ->
+            val elements = renderedTimelineViewElements.value
+            val groups = systemEventGroups.value
+            focusState.skipFrom(index, elements.size) { elements[it].rendersNothing(groups, expansion) }
+        }
+    }
     CompositionLocalProvider(
         LocalTacitReplyJumpSignal provides jumpHighlight.replyJumpSignal,
         LocalTacitJumpHighlightKey provides jumpHighlight.key,
@@ -223,7 +231,7 @@ private fun TimelineList(
                 key = timelineItemKey,
                 contentType = timelineItemContentType,
             ) { index, timelineViewElement ->
-                TimelineItem(timelineViewElement, index, focusState, systemEventGroups, expansion)
+                TimelineItem(timelineViewElement, index, focusState, skipFocus, systemEventGroups, expansion)
             }
         }
     }
@@ -234,6 +242,7 @@ private fun LazyItemScope.TimelineItem(
     timelineViewElement: TimelineViewElement,
     index: Int,
     focusState: TimelineFocusState,
+    skipFocus: (Int) -> Unit,
     systemEventGroups: State<TacitSystemEventGroups>,
     expansion: SystemEventExpansionState,
 ) {
@@ -253,7 +262,7 @@ private fun LazyItemScope.TimelineItem(
             }
 
             is TimelineViewElement.Element ->
-                TimelineElement(timelineViewElement.viewModel, index, focusState, groups, expansion, snapOpen)
+                TimelineElement(timelineViewElement.viewModel, index, focusState, skipFocus, groups, expansion, snapOpen)
         }
     }
 }
@@ -263,6 +272,7 @@ private fun TimelineElement(
     viewModel: BaseTimelineElementHolderViewModel,
     index: Int,
     focusState: TimelineFocusState,
+    skipFocus: (Int) -> Unit,
     groups: TacitSystemEventGroups,
     expansion: SystemEventExpansionState,
     snapOpen: Boolean,
@@ -272,14 +282,8 @@ private fun TimelineElement(
     val expanded = systemEvent != null && group != null && expansion.isExpanded(group)
     // Elements that render nothing (Empty ones, collapsed group members other than the head) pass
     // the roving focus on (see TimelineFocusState).
-    val rendersNothing = rendersNothingInTimeline(
-        isEmpty = viewModel.element.value is TimelineElementViewModel.Empty,
-        isGroupedSystemEvent = systemEvent != null && group != null,
-        groupExpanded = expanded,
-        isGroupHead = group?.headKey == viewModel.key,
-    )
-    if (rendersNothing && focusState.isFocused(index)) {
-        LaunchedEffect(focusState, index) { focusState.skipFrom(index) }
+    if (viewModel.rendersNothing(groups, expansion) && focusState.isFocused(index)) {
+        LaunchedEffect(focusState, index) { skipFocus(index) }
     }
 
     if (systemEvent != null) {
@@ -297,6 +301,23 @@ private fun TimelineElement(
             TimelineElementHolder(viewModel, index)
         }
     }
+}
+
+/** Whether this rendered element renders nothing (see [rendersNothingInTimeline]); date headers always render. */
+private fun TimelineViewElement.rendersNothing(groups: TacitSystemEventGroups, expansion: SystemEventExpansionState): Boolean =
+    this is TimelineViewElement.Element && viewModel.rendersNothing(groups, expansion)
+
+private fun BaseTimelineElementHolderViewModel.rendersNothing(
+    groups: TacitSystemEventGroups,
+    expansion: SystemEventExpansionState,
+): Boolean {
+    val group = groups[key]?.takeIf { this is TimelineElementHolderViewModel && groups.isSystemEvent(key) }
+    return rendersNothingInTimeline(
+        isEmpty = element.value is TimelineElementViewModel.Empty,
+        isGroupedSystemEvent = group != null,
+        groupExpanded = group != null && expansion.isExpanded(group),
+        isGroupHead = group?.headKey == key,
+    )
 }
 
 @Composable

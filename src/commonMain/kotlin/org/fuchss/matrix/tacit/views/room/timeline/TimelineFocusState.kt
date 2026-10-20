@@ -11,13 +11,26 @@ import androidx.compose.runtime.setValue
 internal data class TimelineFocusSkip(val index: Int, val towardsNewer: Boolean)
 
 /**
- * Elements that render nothing pass the roving focus on in the direction it last travelled, so it can
- * move past a collapsed group towards newer elements as well. The list is reversed: index 0 is the
- * newest element, so "newer" is the lower index. At the newest element it turns around.
+ * Where the roving focus goes from the element at [index], which renders nothing: the nearest element
+ * of the [count] rendered ones that renders something ([rendersNothing] is `false`), searched in the
+ * direction the focus last travelled, so it can move past a collapsed group towards newer elements
+ * as well. The list is reversed: index 0 is the newest element, so "newer" is the lower index. With
+ * nothing left in that direction the search turns around (at the newest or the oldest element).
+ * `null` if no element renders anything.
+ *
+ * A whole run of such elements (a collapsed group of 30) is resolved at once, so the focus lands on
+ * its final element in one step instead of travelling one element (and one frame) at a time.
  */
-internal fun skipTimelineFocus(index: Int, towardsNewer: Boolean): TimelineFocusSkip =
-    if (towardsNewer && index > 0) TimelineFocusSkip(index - 1, towardsNewer = true)
-    else TimelineFocusSkip(index + 1, towardsNewer = false)
+internal fun skipTimelineFocus(
+    index: Int,
+    towardsNewer: Boolean,
+    count: Int,
+    rendersNothing: (Int) -> Boolean,
+): TimelineFocusSkip? {
+    fun newer() = (index - 1 downTo 0).firstOrNull { !rendersNothing(it) }?.let { TimelineFocusSkip(it, towardsNewer = true) }
+    fun older() = (index + 1 until count).firstOrNull { !rendersNothing(it) }?.let { TimelineFocusSkip(it, towardsNewer = false) }
+    return if (towardsNewer) newer() ?: older() else older() ?: newer()
+}
 
 /**
  * Whether a timeline element renders nothing and therefore cannot hold the roving focus: an Empty
@@ -52,10 +65,13 @@ internal class TimelineFocusState(private val travel: TimelineFocusTravel) {
         focusedIndex = index
     }
 
-    /** Moves the focus off the element at [index], which renders nothing, if it still has it. */
-    fun skipFrom(index: Int) {
+    /**
+     * Moves the focus off the element at [index], which renders nothing, if it still has it: straight
+     * to the nearest of the [count] elements that renders something (see [skipTimelineFocus]).
+     */
+    fun skipFrom(index: Int, count: Int, rendersNothing: (Int) -> Boolean) {
         if (focusedIndex != index) return
-        val skip = skipTimelineFocus(index, travel.towardsNewer)
+        val skip = skipTimelineFocus(index, travel.towardsNewer, count, rendersNothing) ?: return
         travel.towardsNewer = skip.towardsNewer
         focusedIndex = skip.index
     }
