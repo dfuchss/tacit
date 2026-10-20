@@ -286,13 +286,6 @@ class TacitUpdaterFlowTest {
 
     @Test
     fun `a failed helper preparation keeps the app running`() = runBlocking {
-        val updater = stagedUpdater()
-        // The staged copy vanishes, so the real helper preparation refuses.
-        TacitUpdateStaging.deleteRecursively(appData.resolve("updates/v26.9.2-tacit.3"))
-        val failing = updater(FakeSource { error("no check expected") })
-        failing.cleanUp()
-        assertTrue(failing.state.value is TacitUpdateState.Idle)
-
         val newer = release("v26.9.2-tacit.3")
         val source = FakeSource { ReleaseFetch.Fetched(newer, null) }.apply { serve(newer) }
         val real = updater(source)

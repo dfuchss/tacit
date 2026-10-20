@@ -61,6 +61,7 @@ internal class UpdateStore(private val appDataDir: Path) {
     /** Applies [change] and writes the file; a failed write is logged and the in-memory value still changes. */
     fun update(change: (UpdateSettings) -> UpdateSettings): UpdateSettings = synchronized(lock) {
         val value = change(settings)
+        if (value == settings) return@synchronized value
         settings = value
         runCatching {
             Files.createDirectories(appDataDir)

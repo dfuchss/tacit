@@ -1,5 +1,7 @@
 package org.fuchss.matrix.tacit
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
@@ -249,7 +251,7 @@ private fun ApplicationScope.TacitDesktopTray(
     if (!isTraySupported) return
     val updater = state.updater
     LaunchedEffect(readyVersion) {
-        if (readyVersion != null && updater.shouldNotify(readyVersion)) {
+        if (readyVersion != null && withContext(Dispatchers.IO) { updater.shouldNotify(readyVersion) }) {
             state.trayState.sendNotification(
                 Notification(i18n.tacitUpdateNotificationTitle(), i18n.tacitUpdateReady(readyVersion))
             )

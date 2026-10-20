@@ -88,6 +88,12 @@ class TacitComposerTextTest {
     }
 
     @Test
+    fun replaceShortcodeTakesNonAsciiLettersAfterCursor() {
+        val match = shortcode(":café", cursor = 4)!!
+        assertEquals(TacitComposerEdit("X ", 2), replaceEmojiShortcode(":café", match, "X"))
+    }
+
+    @Test
     fun emojiSuggestionsPrefixAndCaseInsensitive() {
         val suggestions = emojiShortcodeSuggestions("JOY")
         assertTrue(suggestions.isNotEmpty())

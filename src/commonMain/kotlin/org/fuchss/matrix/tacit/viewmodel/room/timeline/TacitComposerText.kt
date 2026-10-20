@@ -45,7 +45,7 @@ internal fun findEmojiShortcodeMatch(
     )
 }
 
-private fun Char.isTokenChar(): Boolean = this in 'A'..'Z' || this in 'a'..'z' || this in '0'..'9' || this == '_' || this == '-'
+private fun Char.isTokenChar(): Boolean = isLetterOrDigit() || this == '_' || this == '-'
 
 /** End of the token the cursor at [cursorIndex] sits in: the token characters after the cursor belong to it, too. */
 private fun tokenEnd(text: String, cursorIndex: Int): Int {
