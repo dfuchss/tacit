@@ -3,6 +3,7 @@ package org.fuchss.matrix.tacit.viewmodel.room.list
 import de.connect2x.trixnity.client.MatrixClient
 import de.connect2x.trixnity.core.model.RoomId
 import de.connect2x.trixnity.core.model.UserId
+import de.connect2x.trixnity.core.model.events.m.Presence
 import de.connect2x.trixnity.messenger.MatrixMessengerSettingsHolder
 import de.connect2x.trixnity.messenger.viewmodel.ViewModelContext
 import de.connect2x.trixnity.messenger.viewmodel.matrixClients
@@ -43,6 +44,12 @@ internal interface TacitRoomListViewModel : RoomListViewModel {
     val reorderCategoriesInProgress: StateFlow<Boolean>
     val guildInviteActionInProgress: StateFlow<Boolean>
 
+    /** Everything the room list view renders, combined from the flows above. */
+    val uiState: StateFlow<TacitRoomListUiState>
+
+    /** Scroll positions of the room list per account and guild; outlives the view's composition. */
+    val scrollMemory: TacitScrollMemory
+
     val createGuildViewModel: TacitCreateGuildViewModel
     val createChannelViewModel: TacitCreateChannelViewModel
     val createCategoryViewModel: TacitCreateCategoryViewModel
@@ -58,6 +65,13 @@ internal interface TacitRoomListViewModel : RoomListViewModel {
     fun acceptGuildInvite(guild: GuildEntry)
     fun declineGuildInvite(guild: GuildEntry)
     fun reorderGuild(fromIndex: Int, toIndex: Int)
+    fun reorderCategory(fromIndex: Int, toIndex: Int)
+
+    /** Keeps the selected guild in sync with [guilds]: refreshes its entry, or deselects it once it is gone. */
+    fun refreshSelectedGuild(guilds: List<GuildEntry>)
+
+    /** Picks a DM filter; picking the active one again goes back to [DmFilter.ALL]. */
+    fun selectDmFilter(requested: DmFilter)
 
     /** Opens [spaceRoomId] (a guild or category) with its settings shown in [TacitRoomSettingsMode.SPACE]. */
     fun openSpaceSettings(spaceRoomId: RoomId)
@@ -323,12 +337,23 @@ private class TacitRoomListViewModelImpl(
         coroutineScope.launch { settings.update { writeTacitCategoryOrderForGuild(guildKey, orderedCategoryKeys) } }
     }
 
+    override fun reorderCategory(fromIndex: Int, toIndex: Int) {
+        val guild = selectedGuild.value ?: return
+        if (reorderCategoriesInProgress.value) return
+        val ordered = categoryOrderAfterMove(guildChannelGroups.value, fromIndex, toIndex) ?: return
+        reorderCategories(guild, ordered)
+    }
+
     override fun reorderGuild(fromIndex: Int, toIndex: Int) {
-        val current = guilds.value
-        if (fromIndex !in current.indices || toIndex !in current.indices || fromIndex == toIndex) return
-        val reorderedKeys = current.toMutableList().apply { add(toIndex, removeAt(fromIndex)) }.map { it.key() }
+        val reorderedKeys = guilds.value.moved(fromIndex, toIndex)?.map { it.key() } ?: return
         runtimeGuildOrder.value = reorderedKeys
         coroutineScope.launch { settings.update { writeTacitGuildOrder(reorderedKeys) } }
+    }
+
+    override fun refreshSelectedGuild(guilds: List<GuildEntry>) {
+        val selected = selectedGuild.value ?: return
+        val refreshed = reselectGuild(selected, guilds)
+        if (refreshed != selected) selectGuild(refreshed)
     }
 
     override fun openSpaceSettings(spaceRoomId: RoomId) {
@@ -372,7 +397,85 @@ private class TacitRoomListViewModelImpl(
         errorSources.forEach { it.errorDismiss() }
         delegate.errorDismiss()
     }
+
+    // ---- the view's state: collected once by the room list view ----
+
+    private val dmFilter = MutableStateFlow(DmFilter.ALL)
+
+    override fun selectDmFilter(requested: DmFilter) {
+        dmFilter.update { it.toggled(requested) }
+    }
+
+    override val scrollMemory = TacitScrollMemory()
+
+    /** The visible rooms with, in the DM home, each room's unread and online state for the DM filters. */
+    private val visibleRoomsWithDirectMessages: Flow<Pair<List<TacitRoomListElementViewModel>, List<TacitDmRoom<TacitRoomListElementViewModel>>>> =
+        combine(selectedGuild, visibleRooms, ::Pair).flatMapLatest { (guild, rooms) ->
+            if (guild != null || rooms.isEmpty()) flowOf(rooms to emptyList())
+            else combine(rooms.map { it.directMessage() }) { rooms to it.toList() }
+        }
+
+    private val railState: Flow<TacitGuildRailState> =
+        combine(selectedGuild, guilds, guildAvatars, dmUnreadCount, guildUnreadCounts, ::TacitGuildRailState)
+
+    private val roomsState: Flow<TacitRoomListRooms> =
+        combine(typedElements, visibleRoomsWithDirectMessages, guildChannelGroups, inviteRooms) { all, (visible, directMessages), groups, invites ->
+            TacitRoomListRooms(
+                allRoomsEmpty = all.isEmpty(),
+                visibleRooms = visible,
+                guildChannelGroups = groups,
+                inviteRooms = invites,
+                directMessages = directMessages,
+            )
+        }
+
+    private val statusState: Flow<TacitRoomListStatus> =
+        combine(
+            combine(selectedRoomId, canCreateNewRoomWithAccount, searchResultsEmpty, syncStates, ::Quadruple),
+            combine(canUseSelectedGuildAccount, canUsePreferredCreationAccount, reorderCategoriesInProgress, guildInviteActionInProgress, ::Quadruple),
+        ) { (selectedRoomId, canCreateRoom, searchResultsEmpty, syncStates), (selectedGuildAccount, creationAccount, reordering, answeringInvite) ->
+            TacitRoomListStatus(
+                selectedRoomId = selectedRoomId,
+                canCreateNewRoomWithAccount = canCreateRoom,
+                searchResultsEmpty = searchResultsEmpty,
+                canUseSelectedGuildAccount = selectedGuildAccount,
+                canUsePreferredCreationAccount = creationAccount,
+                reorderCategoriesInProgress = reordering,
+                guildInviteActionInProgress = answeringInvite,
+                syncStates = syncStates,
+            )
+        }
+
+    private val errorState: Flow<TacitRoomListError> = combine(error, errorType, ::TacitRoomListError)
+
+    override val uiState: StateFlow<TacitRoomListUiState> =
+        combine(
+            combine(railState, roomsState, ::Pair),
+            combine(statusState, errorState, ::Pair),
+            dmFilter,
+            accountViewModel.activeAccount,
+            browseChannelsViewModel.channels,
+        ) { (rail, rooms), (status, error), dmFilter, activeAccount, browseChannels ->
+            val mode = rail.selectedGuild?.let { RoomListMode.GuildChannels(it) } ?: RoomListMode.DirectMessages
+            TacitRoomListUiState(
+                rail = rail,
+                rooms = rooms,
+                status = status,
+                error = error,
+                dmFilter = dmFilter,
+                scrollKey = roomListScrollKey(mode, activeAccount),
+                browseChannels = browseChannels,
+            )
+        }.stateInScope(TacitRoomListUiState())
 }
+
+private data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
+
+/** The element's unread and online state, for the DM filters. */
+private fun TacitRoomListElementViewModel.directMessage(): Flow<TacitDmRoom<TacitRoomListElementViewModel>> =
+    combine(isUnread, presence) { isUnread, presence ->
+        TacitDmRoom(this, isUnread = isUnread == true, isOnline = presence == Presence.ONLINE)
+    }
 
 /** The element's flows flattened into one [TacitRoomDerived]. */
 @OptIn(ExperimentalCoroutinesApi::class)
