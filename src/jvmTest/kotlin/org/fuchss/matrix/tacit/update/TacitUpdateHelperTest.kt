@@ -11,11 +11,10 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-import kotlin.test.fail
 
 /**
- * Runs the generated `sh` helper for real against a dummy install. The Linux flavor is used because its
- * relaunch (`bin/Tacit`) can be observed without starting anything; the swap logic is shared with macOS.
+ * Runs the generated `sh` helper for real against a dummy install. The Linux flavor is used because a
+ * start of `bin/Tacit` (which the helper must never do) can be observed; the swap logic is shared with macOS.
  */
 class TacitUpdateHelperTest {
     private val tempDirs = mutableListOf<java.nio.file.Path>()
@@ -34,13 +33,13 @@ class TacitUpdateHelperTest {
         val staging: Path = base.resolve("app data/updates/v26.9.2-tacit.9")
         val staged: Path = staging.resolve("extracted/Tacit")
         val result: Path = base.resolve("app data/updates/update-result.json")
-        val relaunched: Path = base.resolve("relaunched")
+        val started: Path = base.resolve("started")
 
         init {
             for ((root, marker) in listOf(install to "old", staged to "new")) {
                 root.resolve("bin").createDirectories()
                 root.resolve("marker").writeText(marker)
-                root.resolve("bin/Tacit").writeText("#!/bin/sh\necho \"$marker\" > '$relaunched'\n")
+                root.resolve("bin/Tacit").writeText("#!/bin/sh\necho \"$marker\" > '$started'\n")
                 root.resolve("bin/Tacit").toFile().setExecutable(true)
             }
         }
@@ -68,15 +67,6 @@ class TacitUpdateHelperTest {
         return app to helper
     }
 
-    private fun awaitFile(path: Path) {
-        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10)
-        while (System.nanoTime() < deadline) {
-            if (path.exists() && path.readText().isNotBlank()) return
-            Thread.sleep(50)
-        }
-        fail("timed out waiting for $path")
-    }
-
     @Test
     fun waitsForTheAppThenSwapsWithoutKeepingABackup() {
         assumeTrue("needs a Unix sh", isUnix)
@@ -95,8 +85,7 @@ class TacitUpdateHelperTest {
         assertFalse(fixture.staged.exists())
         assertFalse(fixture.install.resolveSibling("${fixture.install.fileName}.old-update").exists())
         assertContains(fixture.result.readText(), "\"success\":true")
-        awaitFile(fixture.relaunched)
-        assertEquals("new", fixture.relaunched.readText().trim())
+        assertFalse(fixture.started.exists(), "the helper must not start Tacit again")
     }
 
     @Test
@@ -113,8 +102,7 @@ class TacitUpdateHelperTest {
             assertEquals("old", fixture.install.resolve("marker").readText())
             assertFalse(fixture.install.resolveSibling("${fixture.install.fileName}.old-update").exists())
             assertContains(fixture.result.readText(), "\"success\":false")
-            awaitFile(fixture.relaunched)
-            assertEquals("old", fixture.relaunched.readText().trim())
+            assertFalse(fixture.started.exists(), "the helper must not start Tacit again")
         } finally {
             ProcessBuilder("chflags", "-R", "nouchg", fixture.staged.toString()).start().waitFor()
         }
@@ -133,33 +121,5 @@ class TacitUpdateHelperTest {
         )
         assertContains(TacitUpdateHelper.powerShellScript(fixture), "\$Install = '/Users/O''Brien/Tacit ’’x’’'")
         assertContains(TacitUpdateHelper.shScript(fixture), "INSTALL='/Users/O'\\''Brien/Tacit ’x’'")
-    }
-
-    @Test
-    fun relaunchesOnlyAfterTheAppHasExited() {
-        assumeTrue("needs a Unix sh", isUnix)
-        val base = Files.createTempDirectory("tacit relaunch").also(tempDirs::add)
-        val marker = base.resolve("it's relaunched")
-        val app = ProcessBuilder("sleep", "2").start()
-        val launch = listOf("/bin/sh", "-c", "echo \"\$1\" > \"\$2\"", "sh", "relaunched", marker.toString())
-        val waiter = TacitUpdateHelper.relaunchAfterExit(TacitOs.LINUX, app.pid(), launch)
-
-        // Genuinely timing-based: give the waiter time to (wrongly) launch while the app is still alive.
-        Thread.sleep(800)
-        assertTrue(app.isAlive)
-        assertFalse(marker.exists(), "nothing is started while the app runs")
-        assertTrue(waiter.waitFor(20, TimeUnit.SECONDS))
-        awaitFile(marker)
-        assertEquals("relaunched", marker.readText().trim())
-    }
-
-    @Test
-    fun theWindowsRelaunchWaitsForThePidAndQuotesTheLauncher() {
-        val command = TacitUpdateHelper.relaunchAfterExitCommand(TacitOs.WINDOWS, 42, listOf("C:\\Users\\O'Brien\\Tacit\\Tacit.exe"))
-        assertEquals("-EncodedCommand", command[command.size - 2])
-        val script = String(java.util.Base64.getDecoder().decode(command.last()), Charsets.UTF_16LE)
-        assertContains(script, "Wait-Process -Id 42 -Timeout ${TacitUpdateHelper.RELAUNCH_WAIT_SECONDS}")
-        assertContains(script, "if (-not (Get-Process -Id 42 -ErrorAction SilentlyContinue))")
-        assertContains(script, "Start-Process -FilePath 'C:\\Users\\O''Brien\\Tacit\\Tacit.exe' }")
     }
 }

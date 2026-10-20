@@ -57,7 +57,7 @@ fun TacitUpdateCard(
         exit = fadeOut() + slideOutVertically { it / 4 },
     ) {
         ElevatedCard(
-            modifier = Modifier.widthIn(max = 360.dp),
+            modifier = Modifier.widthIn(max = 480.dp),
             elevation = CardDefaults.elevatedCardElevation(defaultElevation = 6.dp),
         ) {
             Column(Modifier.padding(20.dp)) {
@@ -86,7 +86,7 @@ fun TacitUpdateCard(
                     TextButton(onClick = onWhatsNew) { Text(i18n.tacitUpdateWhatsNew()) }
                     Spacer(Modifier.weight(1f))
                     TextButton(onClick = onLater) { Text(i18n.tacitUpdateLater()) }
-                    Button(onClick = onRestart) { Text(i18n.tacitUpdateRestart()) }
+                    Button(onClick = onRestart) { Text(i18n.tacitUpdateRestart(), maxLines = 1, softWrap = false) }
                 }
             }
         }

@@ -39,16 +39,12 @@ import sun.misc.Unsafe
 
 private val desktopLog: Logger = Logger("org.fuchss.matrix.tacit.TacitDesktopApp")
 
-/**
- * Runs the desktop app until it exits and shuts it down. Returns whether Tacit was launched again while it was shutting
- * down (Windows and Linux, see [runThenShutDown]); `Main` then starts it again once this process has exited.
- */
 fun startTacitMultiMessenger(
     args: Array<String>,
     updater: TacitUpdater,
     activeMessengerOnce: (MatrixMessenger, RootViewModel) -> Unit = { _, _ -> },
     configuration: MatrixMultiMessengerConfiguration.() -> Unit,
-): Boolean = runBlocking(Dispatchers.Default) {
+) = runBlocking(Dispatchers.Default) {
     desktopLog.info { "Starting Tacit desktop client" }
     desktopLog.info { "command line args: ${args.joinToString { it }}" }
     desktopLog.info { "JVM version: ${System.getProperty("java.version")} (${System.getProperty("java.vendor")})" }
@@ -62,16 +58,14 @@ fun startTacitMultiMessenger(
     }
     val config = matrixMultiMessenger.di.get<MatrixMultiMessengerConfiguration>()
     val appDataDir = matrixMultiMessenger.di.get<RootPath>().path.toNioPath()
-    val launchedAgain = runThenShutDown(
-        app = { windowGone ->
+    runThenShutDown(
+        app = {
             matrixMultiMessenger.defaultUriHandler.start(singleInstanceArgs(args, config.appUri, TacitOs.current, appDataDir))
             updater.start()
-            tacitMessengerApp(matrixMultiMessenger, lifecycle, updater, activeMessengerOnce, windowGone)
+            tacitMessengerApp(matrixMultiMessenger, lifecycle, updater, activeMessengerOnce)
         },
         shutDown = { shutDownGracefully(matrixMultiMessenger) },
-        uris = matrixMultiMessenger.defaultUriHandler,
     )
-    launchedAgain && usesSingleInstanceLock(TacitOs.current)
 }
 
 /**
@@ -115,7 +109,6 @@ private fun tacitMessengerApp(
     lifecycle: LifecycleRegistry,
     updater: TacitUpdater,
     activeMessengerOnce: (MatrixMessenger, RootViewModel) -> Unit,
-    windowGone: () -> Unit,
 ) {
     val appName = matrixMultiMessenger.di.get<MatrixMultiMessengerConfiguration>().appName
     updateAppClassName(appName)
@@ -127,14 +120,12 @@ private fun tacitMessengerApp(
         val globalI18n = remember { matrixMultiMessenger.di.get<TacitI18nView>() }
         LifecycleController(lifecycle, shell.windowState)
 
-        // "Restart to update" must end the app completely, so it bypasses close-to-tray and removes the tray.
+        // "Quit and update" must end the app completely, so it bypasses close-to-tray and removes the tray.
         LaunchedEffect(updater) {
             updater.exitRequests.collect { exitApplication() }
         }
 
         DesktopReopenEffect(shell.activation)
-        // From here on, the collector below is gone; a URI is a launch during the shutdown (see runThenShutDown).
-        DisposableEffect(Unit) { onDispose(windowGone) }
 
         // A URI, also the activation URI of a bare relaunch (see singleInstanceArgs), shows the window; on the
         // profile screen as well as with an active messenger.

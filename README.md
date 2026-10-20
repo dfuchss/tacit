@@ -58,9 +58,10 @@ The builds are **not signed**, so macOS and Windows warn you on the first start:
 
 The desktop app checks GitHub for a new release about once a day (turn this off under **Settings** >
 **About the app**, which also has **Check now**). A new version is downloaded, checked against the release's
-`SHA256SUMS` and prepared in Tacit's data folder; your installed copy is not touched yet. **Restart to update** (in the
-banner, the settings or the tray menu) quits Tacit completely, swaps in the new version, keeps your sessions and
-settings, and starts it again; nothing is installed before you choose it. If the swap fails, the previous version is restored.
+`SHA256SUMS` and prepared in Tacit's data folder; your installed copy is not touched yet. **Quit and update** (in the
+banner, the settings or the tray menu) quits Tacit completely and swaps in the new version while keeping your sessions
+and settings; open Tacit again yourself afterwards. Nothing is installed before you choose it. If the swap fails, the
+previous version is restored.
 
 Tacit offers **Open release page** instead of updating itself when it runs from the mounted disk image
 (`/Volumes/...`), when macOS runs it from a temporary translocated copy (open it once from Applications), or when

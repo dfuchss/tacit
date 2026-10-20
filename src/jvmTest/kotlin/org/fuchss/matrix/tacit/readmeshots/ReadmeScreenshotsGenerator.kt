@@ -216,7 +216,7 @@ class ReadmeScreenshotsGenerator {
         step("update") {
             app.updates.state.value = TacitUpdateState.ReadyToRestart(NEXT_VERSION)
             ui.settleForCapture()
-            ui.waitForNode("update card", hasText("Restart", substring = true) and hasClickAction())
+            ui.waitForNode("update card", hasText("Quit and update", substring = true) and hasClickAction())
             ui.settle(600) // let the enter animation finish
             ui.capture("update")
             app.updates.state.value = TacitUpdateState.UpToDate // the card is gone again; About shows "up to date"

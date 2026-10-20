@@ -5,17 +5,12 @@ import de.connect2x.lognity.api.logger.error
 import de.connect2x.lognity.api.logger.warn
 import de.connect2x.trixnity.messenger.MatrixClients
 import de.connect2x.trixnity.messenger.multi.MatrixMultiMessenger
-import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emptyFlow
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
@@ -66,28 +61,11 @@ internal suspend fun shutDownGracefully(matrixMultiMessenger: MatrixMultiMesseng
  * Runs [app] and then always [shutDown], also when [app] throws, so the databases are closed before `Main` exits the
  * process. [shutDown] is expected to be bounded (see [shutDownGracefully]); an error in it is logged and never hides
  * the error of [app].
- *
- * Returns whether one of [uris] arrived after the window was gone ([app] called its `windowGone` callback or
- * returned). Upstream's single-instance listener keeps answering relaunches with "OK" until the process exits, so
- * such a launch has already ended and nothing would show a window; the caller starts Tacit again instead. [uris]
- * replays its last value to a new collector, so it is collected from the start and earlier values are ignored.
  */
-internal suspend fun runThenShutDown(
-    app: suspend (windowGone: () -> Unit) -> Unit,
-    shutDown: suspend () -> Unit,
-    uris: Flow<String> = emptyFlow(),
-): Boolean = coroutineScope {
-    val windowGone = AtomicBoolean(false)
-    val lateUri = AtomicBoolean(false)
-    val collector = launch(start = CoroutineStart.UNDISPATCHED) {
-        uris.collect {
-            if (windowGone.get() && !lateUri.getAndSet(true)) shutdownLog.info { "launched again while shutting down" }
-        }
-    }
+internal suspend fun runThenShutDown(app: suspend () -> Unit, shutDown: suspend () -> Unit) {
     try {
-        app { windowGone.set(true) }
+        app()
     } finally {
-        windowGone.set(true)
         shutdownLog.info { "Shutting down client gracefully.." }
         withContext(NonCancellable) {
             try {
@@ -96,7 +74,5 @@ internal suspend fun runThenShutDown(
                 shutdownLog.error(e) { "shutdown failed" }
             }
         }
-        collector.cancel()
     }
-    lateUri.get()
 }

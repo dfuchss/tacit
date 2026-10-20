@@ -4,7 +4,6 @@ import java.io.File
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
-import java.util.Base64
 import kotlin.io.path.isDirectory
 import kotlin.io.path.writeText
 
@@ -32,7 +31,7 @@ object TacitUpdateHelper {
 
     /**
      * Writes and validates the helper script without starting it, so a restart can be refused before Tacit
-     * exits. The helper runs outside the staging folder, which the relaunched app deletes at startup.
+     * exits. The helper runs outside the staging folder, which the next start of the app deletes.
      */
     fun prepare(params: TacitUpdateHelperParams): ProcessBuilder {
         val staging = params.stagingDir.toAbsolutePath().normalize()
@@ -70,59 +69,6 @@ object TacitUpdateHelper {
             .redirectErrorStream(true)
     }
 
-    /** Longest wait of [relaunchAfterExit] for Tacit to exit; it exits right after starting it. */
-    const val RELAUNCH_WAIT_SECONDS = 60
-
-    /** The command that starts the app installed at [installRoot]. */
-    fun launchCommand(os: TacitOs, installRoot: Path): List<String> = when (os) {
-        TacitOs.MACOS -> listOf("open", installRoot.toString())
-        TacitOs.LINUX -> listOf(installRoot.resolve("bin/Tacit").toString())
-        TacitOs.WINDOWS -> listOf(installRoot.resolve("Tacit.exe").toString())
-    }
-
-    /**
-     * Runs [launch] (e.g. [launchCommand]) from a detached process once the process [pid] has exited, and not at all
-     * when it is still running after [RELAUNCH_WAIT_SECONDS]. Starting Tacit while it still runs does nothing: on
-     * Windows and Linux the new launch hands over to the exiting instance, on macOS `open` activates it.
-     */
-    fun relaunchAfterExit(os: TacitOs, pid: Long, launch: List<String>): Process =
-        ProcessBuilder(relaunchAfterExitCommand(os, pid, launch))
-            .apply { removeUpdateEnvironment(environment()) }
-            .directory(neutralDirectory(Path.of(launch.first()).toAbsolutePath()))
-            .redirectInput(ProcessBuilder.Redirect.from(nullDevice()))
-            .redirectOutput(ProcessBuilder.Redirect.DISCARD)
-            .redirectErrorStream(true)
-            .start()
-
-    /** The command line of [relaunchAfterExit]; the waiting script never contains [launch], it gets it as arguments. */
-    internal fun relaunchAfterExitCommand(os: TacitOs, pid: Long, launch: List<String>): List<String> {
-        require(launch.isNotEmpty()) { "nothing to launch" }
-        return when (os) {
-            TacitOs.WINDOWS -> {
-                val arguments = launch.drop(1).takeIf { it.isNotEmpty() }
-                    ?.joinToString(",", prefix = " -ArgumentList ") { psQuote(it) }.orEmpty()
-                val script = "try { Wait-Process -Id $pid -Timeout $RELAUNCH_WAIT_SECONDS -ErrorAction SilentlyContinue } catch { }; " +
-                    "if (-not (Get-Process -Id $pid -ErrorAction SilentlyContinue)) { " +
-                    "Start-Process -FilePath ${psQuote(launch.first())}$arguments }"
-                // Encoded, so no quoting of the script survives Windows' command line parsing.
-                val encoded = Base64.getEncoder().encodeToString(script.toByteArray(Charsets.UTF_16LE))
-                listOf(
-                    windowsPowerShell(), "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
-                    "-WindowStyle", "Hidden", "-EncodedCommand", encoded,
-                )
-            }
-
-            TacitOs.MACOS, TacitOs.LINUX -> {
-                val polls = RELAUNCH_WAIT_SECONDS * 10
-                val script = "pid=\$1; shift; i=0; " +
-                    "while kill -0 \"\$pid\" 2>/dev/null; do i=\$((i + 1)); [ \"\$i\" -gt $polls ] && exit 1; sleep 0.1; done; " +
-                    "exec \"\$@\""
-                val setsid = listOf("/usr/bin/setsid", "/bin/setsid").firstOrNull { File(it).canExecute() }
-                listOfNotNull(setsid, "nohup", "/bin/sh", "-c", script, "tacit-relaunch", pid.toString()) + launch
-            }
-        }
-    }
-
     /** A working directory that is neither the staging folder nor the install, both of which get replaced. */
     private fun neutralDirectory(avoid: Path): File {
         val home = System.getProperty("user.home")?.let(::File)?.takeIf { it.isDirectory }
@@ -130,8 +76,7 @@ object TacitUpdateHelper {
     }
 
     /**
-     * The updater's test overrides must not leak into the helper and, through it, into the relaunched app,
-     * which would otherwise pretend to be the old version again.
+     * The updater's test overrides must not leak into the helper process.
      */
     fun removeUpdateEnvironment(environment: MutableMap<String, String>) {
         environment.keys.removeIf { it.startsWith(UPDATE_ENV_PREFIX) }
@@ -149,10 +94,6 @@ object TacitUpdateHelper {
     private fun shQuote(value: String) = "'" + value.replace("'", "'\\''") + "'"
 
     fun shScript(p: TacitUpdateHelperParams): String {
-        val relaunch = when (p.os) {
-            TacitOs.MACOS -> """open "${'$'}INSTALL" || log "relaunch failed""""
-            else -> """nohup "${'$'}INSTALL/bin/Tacit" >/dev/null 2>&1 &"""
-        }
         return """
             |#!/bin/sh
             |# Tacit update helper (generated). It runs from the staging folder and only touches the install after
@@ -164,23 +105,12 @@ object TacitUpdateHelper {
             |RESULT=${shQuote(p.resultFile.toString())}
             |VERSION=${shQuote(p.version)}
             |
-            |# Belt and braces: the relaunched app must not inherit the updater's test overrides.
-            |for name in ${'$'}(env | sed -n 's/^\(TACIT_UPDATE_[A-Za-z0-9_]*\)=.*/\1/p'); do unset "${'$'}name"; done
-            |
-            |# The relaunched app must not inherit a folder that is about to be replaced or deleted.
-            |cd "${'$'}HOME" 2>/dev/null || cd / || true
-            |
             |log() { echo "${'$'}(date '+%Y-%m-%dT%H:%M:%S') ${'$'}*"; }
             |
             |# ${'$'}1: true|false, ${'$'}2: a fixed message without quotes
             |write_result() {
             |  printf '{"success":%s,"version":"%s","message":"%s"}\n' "${'$'}1" "${'$'}VERSION" "${'$'}2" > "${'$'}RESULT.tmp" &&
             |    mv -f "${'$'}RESULT.tmp" "${'$'}RESULT"
-            |}
-            |
-            |relaunch() {
-            |  log "relaunching ${'$'}INSTALL"
-            |  $relaunch
             |}
             |
             |log "waiting for Tacit (pid ${'$'}APP_PID) to exit"
@@ -198,7 +128,6 @@ object TacitUpdateHelper {
             |if [ ! -d "${'$'}STAGED" ]; then
             |  log "staged update ${'$'}STAGED is missing"
             |  write_result false "the staged update is missing"
-            |  relaunch
             |  exit 1
             |fi
             |
@@ -206,7 +135,6 @@ object TacitUpdateHelper {
             |log "moving ${'$'}INSTALL to ${'$'}BACKUP"
             |if ! mv "${'$'}INSTALL" "${'$'}BACKUP"; then
             |  write_result false "could not move the current version aside"
-            |  relaunch
             |  exit 1
             |fi
             |
@@ -225,7 +153,6 @@ object TacitUpdateHelper {
             |    write_result false "could not restore the previous version"
             |  fi
             |fi
-            |relaunch
             |
         """.trimMargin()
     }
@@ -243,25 +170,12 @@ object TacitUpdateHelper {
         |${'$'}Backup = ${psQuote(p.backup.toString())}
         |${'$'}Result = ${psQuote(p.resultFile.toString())}
         |${'$'}Version = ${psQuote(p.version)}
-        |${'$'}Exe = Join-Path ${'$'}Install 'Tacit.exe'
-        |
-        |# Belt and braces: the relaunched app must not inherit the updater's test overrides.
-        |Get-ChildItem Env: | Where-Object { ${'$'}_.Name -like 'TACIT_UPDATE_*' } | ForEach-Object { Remove-Item -LiteralPath "Env:${'$'}(${'$'}_.Name)" }
-        |
-        |# The relaunched app must not inherit a folder that is about to be replaced or deleted.
-        |try { Set-Location -LiteralPath ${'$'}env:USERPROFILE } catch { Set-Location -LiteralPath ${'$'}env:SystemRoot }
-        |
         |# Logs go straight to stdout (helper.log) so they never end up in a function's return value.
         |function Log([string]${'$'}Message) { [Console]::Out.WriteLine(('{0:s} {1}' -f (Get-Date), ${'$'}Message)) }
         |
         |function Write-Result([bool]${'$'}Success, [string]${'$'}Message) {
         |    ${'$'}json = @{ success = ${'$'}Success; version = ${'$'}Version; message = ${'$'}Message } | ConvertTo-Json -Compress
         |    [System.IO.File]::WriteAllText(${'$'}Result, ${'$'}json)
-        |}
-        |
-        |function Relaunch {
-        |    Log "relaunching ${'$'}Exe"
-        |    try { Start-Process -FilePath ${'$'}Exe -WorkingDirectory (Get-Location).Path } catch { Log "relaunch failed: ${'$'}(${'$'}_.Exception.Message)" }
         |}
         |
         |# Antivirus and the search indexer can hold files for a moment after Tacit exited.
@@ -290,7 +204,6 @@ object TacitUpdateHelper {
         |if (-not (Test-Path -LiteralPath ${'$'}Staged -PathType Container)) {
         |    Log "staged update ${'$'}Staged is missing"
         |    Write-Result ${'$'}false 'the staged update is missing'
-        |    Relaunch
         |    exit 1
         |}
         |
@@ -298,7 +211,6 @@ object TacitUpdateHelper {
         |Log "moving ${'$'}Install to ${'$'}Backup"
         |if (-not (Retry { Rename-Item -LiteralPath ${'$'}Install -NewName (Split-Path -Leaf ${'$'}Backup) })) {
         |    Write-Result ${'$'}false 'could not move the current version aside'
-        |    Relaunch
         |    exit 1
         |}
         |
@@ -328,7 +240,6 @@ object TacitUpdateHelper {
         |        Write-Result ${'$'}false 'could not restore the previous version'
         |    }
         |}
-        |Relaunch
         |
     """.trimMargin()
 }

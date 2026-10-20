@@ -672,8 +672,8 @@ open class TacitI18nView(
     }
 
     open fun tacitUpdateAutoCheckDescription() = translate {
-        EN - "Checks about once a day. Updates are installed when you choose \"Restart to update\"."
-        DE - "Sucht etwa einmal täglich. Updates werden installiert, wenn du \"Neu starten und aktualisieren\" wählst."
+        EN - "Checks about once a day. Updates are installed when you choose \"Quit and update\"; Tacit closes and you open it again."
+        DE - "Sucht etwa einmal täglich. Updates werden installiert, wenn du \"Beenden und aktualisieren\" wählst; Tacit schließt sich und du öffnest es danach wieder."
     }
 
     open fun tacitUpdateCurrentVersion(version: String) = translate {
@@ -722,8 +722,8 @@ open class TacitI18nView(
     }
 
     open fun tacitUpdateRestart() = translate {
-        EN - "Restart"
-        DE - "Neu starten"
+        EN - "Quit and update"
+        DE - "Beenden und aktualisieren"
     }
 
     open fun tacitUpdateManualOnly(version: String) = translate {
@@ -737,8 +737,8 @@ open class TacitI18nView(
     }
 
     open fun tacitUpdateRestartToUpdate() = translate {
-        EN - "Restart to update"
-        DE - "Neu starten und aktualisieren"
+        EN - "Quit and update"
+        DE - "Beenden und aktualisieren"
     }
 
     open fun tacitUpdateOpenReleasePage() = translate {
