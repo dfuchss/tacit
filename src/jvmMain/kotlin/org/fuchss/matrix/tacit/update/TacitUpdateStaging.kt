@@ -15,19 +15,59 @@ import kotlin.io.path.*
 private val stagingLog = Logger("org.fuchss.matrix.tacit.update.TacitUpdateStaging")
 
 /**
- * Prepares a downloaded release under `<app data>/updates/<tag>/`. Nothing here ever writes next to or inside
- * the install; the install is only read (to compare the bundle identifier).
+ * Prepares a downloaded release: download, extraction and verification happen under `<app data>/updates/<tag>/`,
+ * then [placeNextToInstall] puts the ready app beside the install (`<install>.new-update`), so the swap after
+ * quitting is two renames on one volume. The install itself is only read (to compare the bundle identifier).
  */
 object TacitUpdateStaging {
     private const val EXTRACTED = "extracted"
+    const val NEW_UPDATE_SUFFIX = ".new-update"
 
     /**
-     * Where the staged app lives inside [stagingDir]: `Tacit.app` on macOS (copied out of the DMG), otherwise
-     * `extracted/Tacit` (from the zip). The single source of truth for staging and for finding a kept update.
+     * Where the app is first prepared inside [stagingDir]: `Tacit.app` on macOS (copied out of the DMG), otherwise
+     * `extracted/Tacit` (from the zip). It is moved next to the install right after verification.
      */
     fun stagedRoot(os: TacitOs, stagingDir: Path): Path = when (os) {
         TacitOs.MACOS -> stagingDir.resolve("Tacit.app")
         TacitOs.WINDOWS, TacitOs.LINUX -> stagingDir.resolve(EXTRACTED).resolve("Tacit")
+    }
+
+    /** The ready-to-swap copy of the update: a sibling of [installRoot], so on the install's volume. */
+    fun newUpdatePath(installRoot: Path): Path = installRoot.resolveSibling("${installRoot.fileName}$NEW_UPDATE_SUFFIX")
+
+    /**
+     * Moves [staged] to [newUpdatePath] (replacing a leftover) and returns it. Across file systems the app is copied
+     * to a `.partial` sibling first, so an interrupted copy is never mistaken for a complete update. This runs while
+     * Tacit is running and never touches [installRoot].
+     */
+    fun placeNextToInstall(os: TacitOs, staged: Path, installRoot: Path): Path {
+        val target = newUpdatePath(installRoot)
+        val partial = target.resolveSibling("${target.fileName}.partial")
+        deleteRecursively(partial)
+        deleteRecursively(target)
+        try {
+            Files.move(staged, target)
+        } catch (e: IOException) {
+            stagingLog.warn(e) { "could not move $staged to $target, copying instead" }
+            try {
+                if (os == TacitOs.MACOS) run("ditto", staged.toString(), partial.toString()) else copyTree(staged, partial)
+                Files.move(partial, target)
+            } catch (copyFailure: Exception) {
+                runCatching { deleteRecursively(partial) }
+                throw copyFailure
+            }
+            deleteRecursively(staged)
+        }
+        return target
+    }
+
+    private fun copyTree(source: Path, target: Path) {
+        Files.walk(source).use { paths ->
+            for (path in paths) {
+                val destination = target.resolve(source.relativize(path).toString())
+                Files.copy(path, destination, StandardCopyOption.COPY_ATTRIBUTES, LinkOption.NOFOLLOW_LINKS)
+            }
+        }
     }
 
     /** Resolves [entryName] below [target] and refuses entries that would escape it (zip slip). */

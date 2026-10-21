@@ -9,6 +9,7 @@ import java.nio.file.Path
 import java.security.MessageDigest
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
+import kotlin.io.path.createDirectories
 import kotlin.io.path.exists
 import kotlin.io.path.isDirectory
 import kotlin.io.path.readText
@@ -35,6 +36,7 @@ class TacitUpdaterFlowTest {
     private val base: Path = Files.createTempDirectory("tacit-updater").also(tempDirs::add)
     private val appData: Path = base.resolve("app data")
     private val install = TacitInstallLocation.SelfUpdatable(TacitOs.LINUX, base.resolve("install/Tacit"))
+        .also { it.root.parent.createDirectories() }
 
     private class FakeSource(var latest: () -> ReleaseFetch) : ReleaseSource {
         val files = mutableMapOf<String, ByteArray>()
@@ -110,8 +112,10 @@ class TacitUpdaterFlowTest {
         val updater = updater(source)
         updater.check()
         assertEquals(TacitUpdateState.ReadyToRestart("26.9.2-tacit.3"), updater.state.value)
-        val stagedRoot = TacitUpdateStaging.stagedRoot(TacitOs.LINUX, appData.resolve("updates/v26.9.2-tacit.3"))
+        val stagedRoot = TacitUpdateStaging.newUpdatePath(install.root)
+        assertEquals(install.root.resolveSibling("Tacit.new-update"), stagedRoot)
         assertTrue(stagedRoot.resolve("bin/Tacit").exists())
+        assertFalse(appData.resolve("updates/v26.9.2-tacit.3/extracted").exists(), "nothing is left in the data folder")
         assertFalse(appData.resolve("updates/v26.9.2-tacit.3/${asset.name}").exists(), "the archive is removed")
         assertFalse(install.root.exists(), "the install is never touched")
 
@@ -123,6 +127,32 @@ class TacitUpdaterFlowTest {
     }
 
     @Test
+    fun `an abandoned new-update next to the install is removed on start`() = runBlocking {
+        val leftover = TacitUpdateStaging.newUpdatePath(install.root).also { it.resolve("bin").createDirectories() }
+        val partial = leftover.resolveSibling("Tacit.new-update.partial").also { it.createDirectories() }
+        updater(FakeSource { error("no check expected") }).cleanUp()
+        assertFalse(leftover.exists())
+        assertFalse(partial.exists())
+    }
+
+    @Test
+    fun `a newer release replaces the staged new-update`() = runBlocking {
+        val first = release("v26.9.2-tacit.3")
+        val second = release("v26.9.2-tacit.4")
+        var latest = first
+        val source = FakeSource { ReleaseFetch.Fetched(latest, null) }.apply { serve(first); serve(second) }
+        val updater = updater(source)
+        updater.check()
+        val stagedRoot = TacitUpdateStaging.newUpdatePath(install.root)
+        stagedRoot.resolve("stale").writeText("x")
+        latest = second
+        updater.check()
+        assertEquals(TacitUpdateState.ReadyToRestart("26.9.2-tacit.4"), updater.state.value)
+        assertFalse(stagedRoot.resolve("stale").exists())
+        assertTrue(stagedRoot.resolve("bin/Tacit").exists())
+    }
+
+    @Test
     fun `a checksum mismatch fails and stages nothing`() = runBlocking {
         val newer = release("v26.9.2-tacit.3")
         val source = FakeSource { ReleaseFetch.Fetched(newer, null) }.apply { serve(newer) { "0".repeat(64) } }
@@ -130,7 +160,7 @@ class TacitUpdaterFlowTest {
         updater.check()
         assertEquals(TacitUpdateState.Failed("Checksum mismatch for ${asset.name}"), updater.state.value)
         val stagingDir = appData.resolve("updates/v26.9.2-tacit.3")
-        assertFalse(TacitUpdateStaging.stagedRoot(TacitOs.LINUX, stagingDir).exists())
+        assertFalse(TacitUpdateStaging.newUpdatePath(install.root).exists())
         assertFalse(stagingDir.resolve(asset.name).exists())
 
         // Nothing usable is kept for the next start.

@@ -13,12 +13,15 @@ private val downloaderLog = Logger("org.fuchss.matrix.tacit.update.UpdateDownloa
 
 private const val SHA256SUMS = "SHA256SUMS"
 
-/** An update ready under `<app data>/updates/<tag>/`; [stagedRoot] replaces the install after Tacit exited. */
+/**
+ * A verified update: [stagedRoot] is `<install>.new-update` next to the install and replaces it after Tacit exited;
+ * [stagingDir] (`<app data>/updates/<tag>/`) only holds the helper script, its log and the result.
+ */
 internal data class TacitStagedUpdate(val version: TacitVersion, val stagingDir: Path, val stagedRoot: Path)
 
 /**
  * Downloads a release asset, verifies it against the release's `SHA256SUMS` and stages it with
- * [TacitUpdateStaging] under [updatesDir]. Never writes next to or inside the install.
+ * [TacitUpdateStaging] under [updatesDir] and moves the ready app next to the install. Never writes inside the install.
  */
 internal class UpdateDownloader(private val source: ReleaseSource, private val updatesDir: Path) {
     /**
@@ -46,21 +49,25 @@ internal class UpdateDownloader(private val source: ReleaseSource, private val u
             Files.deleteIfExists(target)
             throw IOException("Checksum mismatch for ${asset.name}")
         }
-        val stagedRoot = when (asset.packageType) {
+        val prepared = when (asset.packageType) {
             TacitUpdatePackage.DMG -> TacitUpdateStaging.stageDmg(target, stagingDir, location.root)
             TacitUpdatePackage.ZIP -> TacitUpdateStaging.stageZip(location.os, target, stagingDir)
         }
         Files.deleteIfExists(target)
+        // Ahead of time, so the swap after quitting is only renames on the install's volume.
+        val stagedRoot = TacitUpdateStaging.placeNextToInstall(location.os, prepared, location.root)
+        TacitUpdateStaging.deleteRecursively(stagingDir.resolve("extracted"))
+        TacitUpdateStaging.deleteRecursively(stagingDir.resolve("mnt"))
         downloaderLog.info { "staged ${release.tag} at $stagedRoot" }
         return TacitStagedUpdate(release.version, stagingDir, stagedRoot)
     }
 
     /** The update staged for [tag] by an earlier run, or `null` when it is not (completely) there. */
-    fun existing(tag: String, os: TacitOs): TacitStagedUpdate? {
+    fun existing(tag: String, installRoot: Path): TacitStagedUpdate? {
         val version = TacitVersion.parse(tag) ?: return null
         val stagingDir = stagingDir(tag)
-        val stagedRoot = TacitUpdateStaging.stagedRoot(os, stagingDir)
-        return if (stagedRoot.isDirectory()) TacitStagedUpdate(version, stagingDir, stagedRoot) else null
+        val stagedRoot = TacitUpdateStaging.newUpdatePath(installRoot)
+        return if (stagedRoot.isDirectory() && stagingDir.isDirectory()) TacitStagedUpdate(version, stagingDir, stagedRoot) else null
     }
 
     private fun stagingDir(tag: String): Path = updatesDir.resolve(tag)

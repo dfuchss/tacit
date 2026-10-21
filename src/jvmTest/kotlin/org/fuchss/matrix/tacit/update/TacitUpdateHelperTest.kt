@@ -31,11 +31,12 @@ class TacitUpdateHelperTest {
     private class Fixture(val base: Path) {
         val install: Path = base.resolve("My Apps/Tacit's Install")
         val staging: Path = base.resolve("app data/updates/v26.9.2-tacit.9")
-        val staged: Path = staging.resolve("extracted/Tacit")
+        val staged: Path = TacitUpdateStaging.newUpdatePath(install)
         val result: Path = base.resolve("app data/updates/update-result.json")
         val started: Path = base.resolve("started")
 
         init {
+            staging.createDirectories()
             for ((root, marker) in listOf(install to "old", staged to "new")) {
                 root.resolve("bin").createDirectories()
                 root.resolve("marker").writeText(marker)

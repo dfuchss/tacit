@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- "Quit and update" prepares the new version next to the installed one, so the swap after quitting is instant even when Tacit's data is on another drive
 - On Windows and Linux, the window and taskbar icon is sharp at small sizes instead of speckled, and the Windows app icon (Explorer, Start menu) now has hand-sized entries from 16 to 256 px
 - The unread badge of the topmost guild is no longer cut off at the top
 - Quitting or "Quit and update" no longer leaves Tacit running without a window when the sync was busy or retrying; the update now installs

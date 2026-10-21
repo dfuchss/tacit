@@ -215,15 +215,10 @@ object TacitUpdateHelper {
         |}
         |
         |Log "moving ${'$'}Staged to ${'$'}Install"
-        |# Move-Item cannot move folders across volumes, so a staging folder on another drive is copied instead.
-        |${'$'}sameVolume = [System.IO.Path]::GetPathRoot(${'$'}Staged) -eq [System.IO.Path]::GetPathRoot(${'$'}Install)
+        |# Both folders are siblings on one volume, so this is a rename and never a copy.
         |${'$'}moved = Retry {
         |    if (Test-Path -LiteralPath ${'$'}Install) { Remove-Item -LiteralPath ${'$'}Install -Recurse -Force }
-        |    if (${'$'}sameVolume) {
-        |        Move-Item -LiteralPath ${'$'}Staged -Destination ${'$'}Install
-        |    } else {
-        |        Copy-Item -LiteralPath ${'$'}Staged -Destination ${'$'}Install -Recurse -Force
-        |    }
+        |    Rename-Item -LiteralPath ${'$'}Staged -NewName (Split-Path -Leaf ${'$'}Install)
         |} 5
         |
         |if (${'$'}moved) {

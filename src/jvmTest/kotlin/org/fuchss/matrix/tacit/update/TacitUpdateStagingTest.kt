@@ -83,4 +83,21 @@ class TacitUpdateStagingTest {
         val archive = zip(mapOf("Tacit/app/Tacit.cfg" to "cfg"))
         assertFailsWith<IOException> { TacitUpdateStaging.stageZip(TacitOs.WINDOWS, archive, staging) }
     }
+
+    @Test
+    fun placesTheAppNextToTheInstallReplacingALeftover() {
+        val base = Files.createTempDirectory("tacit-staging").also(tempDirs::add)
+        val install = base.resolve("apps/Tacit").also { it.resolve("bin").toFile().mkdirs() }
+        val leftover = TacitUpdateStaging.newUpdatePath(install).also { it.toFile().mkdirs() }
+        leftover.resolve("old.txt").toFile().writeText("old")
+        val staged = base.resolve("data/extracted/Tacit").also { it.resolve("bin").toFile().mkdirs() }
+        staged.resolve("bin/Tacit").toFile().writeText("new")
+
+        val placed = TacitUpdateStaging.placeNextToInstall(TacitOs.LINUX, staged, install)
+        assertEquals(base.resolve("apps/Tacit.new-update"), placed)
+        assertEquals("new", placed.resolve("bin/Tacit").readText())
+        assertFalse(placed.resolve("old.txt").exists())
+        assertFalse(staged.exists())
+        assertTrue(install.resolve("bin").exists(), "the install is untouched")
+    }
 }

@@ -24,7 +24,7 @@ private val updaterLog = Logger("org.fuchss.matrix.tacit.update.TacitUpdater")
 private const val OLD_UPDATE_SUFFIX = ".old-update"
 
 /**
- * Checks for a newer Tacit release, stages it under `<app data>/updates/<tag>/` and, after the app has exited
+ * Checks for a newer Tacit release, stages it (verified under `<app data>/updates/<tag>/`, ready app in `<install>.new-update`) and, after the app has exited
  * completely, hands over to [TacitUpdateHelper]. The running install is never modified. Fetching is done by a
  * [ReleaseSource], downloading and staging by [UpdateDownloader], persistence by [UpdateStore]; this class is the
  * state machine.
@@ -237,7 +237,7 @@ class TacitUpdater internal constructor(
 
     /**
      * Reports the outcome of the last swap, keeps a still valid staged update and removes everything else:
-     * older staging folders and a leftover `<install>.old-update` next to (never inside) the install.
+     * older staging folders, a leftover `<install>.old-update` and an unowned `<install>.new-update` next to (never inside) the install.
      * Never throws: a folder that is still in use is skipped.
      */
     private fun cleanUpAfterPreviousRun() {
@@ -265,7 +265,7 @@ class TacitUpdater internal constructor(
             }
             val location = install as? TacitInstallLocation.SelfUpdatable
             if (keepTag != null && location != null) {
-                downloader.existing(keepTag, location.os)?.let { kept ->
+                downloader.existing(keepTag, location.root)?.let { kept ->
                     staged = kept
                     // Even after a failed swap the kept update is offered again, so the user can retry.
                     _state.value = readyOr(kept.version, _state.value)
@@ -276,6 +276,12 @@ class TacitUpdater internal constructor(
             if (location != null) {
                 val leftover = location.root.resolveSibling("${location.root.fileName}$OLD_UPDATE_SUFFIX")
                 if (leftover.exists()) deleteTolerantly(leftover)
+                // A `<install>.new-update` that no kept update owns is from an abandoned or superseded download.
+                if (staged == null) {
+                    val newUpdate = TacitUpdateStaging.newUpdatePath(location.root)
+                    listOf(newUpdate, newUpdate.resolveSibling("${newUpdate.fileName}.partial"))
+                        .filter { it.exists() }.forEach(::deleteTolerantly)
+                }
             }
         }.onFailure { updaterLog.warn(it) { "clean-up after the previous run failed" } }
     }
