@@ -12,6 +12,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+### Fixed
+
+## 26.9.2-tacit.7
+
+Based on Tammy 26.9.2.
+
+### Changed
+
 - "Restart to update" is now "Quit and update": Tacit installs the update after quitting and you open it again yourself
 
 ### Fixed
