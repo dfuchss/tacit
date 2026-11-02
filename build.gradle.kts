@@ -170,6 +170,9 @@ kotlin {
                 implementation(compose.desktop.currentOs)
                 implementation(sharedLibs.kotlinx.coroutines.swing)
                 implementation("com.vdurmont:emoji-java:5.1.1")
+                // Linux tray (StatusNotifierItem + dbusmenu) and update notifications over the session bus
+                implementation(libs.dbus.java.core)
+                implementation(libs.dbus.java.transport.native.unixsocket)
             }
         }
         iosMain {

@@ -11,6 +11,8 @@ okio = "3.17.0" # https://square.github.io/okio/changelog
 screengrab = "2.1.1"
 testContainers = "2.0.5" # https://github.com/testcontainers/testcontainers-java/releases
 
+dbusJava = "5.1.1" # https://github.com/hypfvieh/dbus-java/releases (keep in line with the version filekit pulls in)
+
 androidMinSdk = "28"
 
 [libraries]
@@ -21,6 +23,9 @@ trixnity-messenger-compose-view-typography-nunito = { module = "de.connect2x.tri
 trixnity-messenger-notification-apns = { module = "de.connect2x.trixnity.messenger:trixnity-messenger-notification-apns", version.ref = "trixnityMessenger" }
 trixnity-messenger-notification-fcm = { module = "de.connect2x.trixnity.messenger:trixnity-messenger-notification-fcm", version.ref = "trixnityMessenger" }
 trixnity-messenger-notification-unifiedpush = { module = "de.connect2x.trixnity.messenger:trixnity-messenger-notification-unifiedpush", version.ref = "trixnityMessenger" }
+
+dbus-java-core = { module = "com.github.hypfvieh:dbus-java-core", version.ref = "dbusJava" }
+dbus-java-transport-native-unixsocket = { module = "com.github.hypfvieh:dbus-java-transport-native-unixsocket", version.ref = "dbusJava" }
 
 okio-fakefilesystem = { module = "com.squareup.okio:okio-fakefilesystem", version.ref = "okio" }
 screengrab = { module = "tools.fastlane:screengrab", version.ref = "screengrab" }

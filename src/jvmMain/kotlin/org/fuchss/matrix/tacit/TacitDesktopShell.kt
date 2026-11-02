@@ -28,6 +28,9 @@ import de.connect2x.trixnity.messenger.compose.view.PlatformType
 import de.connect2x.trixnity.messenger.compose.view.theme.MessengerTheme
 import kotlinx.coroutines.flow.MutableSharedFlow
 import org.fuchss.matrix.tacit.settings.TacitWindowCloseBehavior
+import org.fuchss.matrix.tacit.tray.TacitStatusNotifierTray
+import org.fuchss.matrix.tacit.tray.TacitStatusNotifierTrayItem
+import org.fuchss.matrix.tacit.tray.TacitTrayMenuEntry
 import org.fuchss.matrix.tacit.update.TacitOs
 import org.fuchss.matrix.tacit.update.TacitUpdateCard
 import org.fuchss.matrix.tacit.update.TacitUpdateState
@@ -111,14 +114,23 @@ internal class WindowActivationController {
     }
 }
 
-/** Application-wide shell state shared by the active-messenger and profile-selection branches. */
+/**
+ * Application-wide shell state shared by the active-messenger and profile-selection branches.
+ *
+ * [statusNotifierTray] is the Linux tray (see [TacitStatusNotifierTray]); `null` on macOS/Windows and on Linux
+ * desktops without a StatusNotifierWatcher, where Compose's AWT `Tray` is used.
+ */
 @Stable
 internal class TacitDesktopShellState(
     val appName: String,
     val updater: TacitUpdater,
     val windowState: WindowState,
     val trayState: TrayState,
+    val statusNotifierTray: TacitStatusNotifierTray?,
 ) {
+    /** Whether there is a tray to hide the window to. */
+    val hasTray: Boolean get() = statusNotifierTray != null || isTraySupported
+
     val activation = WindowActivationController()
     val escapeKeyPressed = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
 
@@ -127,7 +139,11 @@ internal class TacitDesktopShellState(
 }
 
 @Composable
-internal fun rememberTacitDesktopShellState(appName: String, updater: TacitUpdater): TacitDesktopShellState {
+internal fun rememberTacitDesktopShellState(
+    appName: String,
+    updater: TacitUpdater,
+    statusNotifierTray: TacitStatusNotifierTray?,
+): TacitDesktopShellState {
     val initialSize = remember {
         val config = GraphicsEnvironment.getLocalGraphicsEnvironment().defaultScreenDevice.defaultConfiguration
         val bounds = config.bounds
@@ -140,8 +156,8 @@ internal fun rememberTacitDesktopShellState(appName: String, updater: TacitUpdat
     }
     val windowState = rememberWindowState(size = initialSize)
     val trayState = rememberTrayState()
-    return remember(appName, updater, windowState, trayState) {
-        TacitDesktopShellState(appName, updater, windowState, trayState)
+    return remember(appName, updater, windowState, trayState, statusNotifierTray) {
+        TacitDesktopShellState(appName, updater, windowState, trayState, statusNotifierTray)
     }
 }
 
@@ -170,7 +186,7 @@ internal fun ApplicationScope.TacitDesktopShell(
         state = state,
         unreadMessages = unreadMessages,
         onCloseRequest = {
-            when (tacitWindowCloseAction(isTraySupported, currentCloseBehavior)) {
+            when (tacitWindowCloseAction(state.hasTray, currentCloseBehavior)) {
                 TacitWindowCloseAction.HIDE_TO_TRAY -> state.activation.hide()
                 TacitWindowCloseAction.EXIT -> exitApplication()
             }
@@ -249,30 +265,47 @@ private fun ApplicationScope.TacitDesktopTray(
     i18n: TacitI18nView,
     readyVersion: String?,
 ) {
-    if (!isTraySupported) return
+    if (!state.hasTray) return
+    val statusNotifierTray = state.statusNotifierTray
     val updater = state.updater
     LaunchedEffect(readyVersion) {
         if (readyVersion != null && withContext(Dispatchers.IO) { updater.shouldNotify(readyVersion) }) {
-            state.trayState.sendNotification(
-                Notification(i18n.tacitUpdateNotificationTitle(), i18n.tacitUpdateReady(readyVersion))
-            )
+            val title = i18n.tacitUpdateNotificationTitle()
+            val body = i18n.tacitUpdateReady(readyVersion)
+            // Without the AWT tray, its notifications are not available either.
+            if (statusNotifierTray != null) {
+                statusNotifierTray.notify(title, body)
+            } else {
+                state.trayState.sendNotification(Notification(title, body))
+            }
         }
     }
     val onOpen = state.activation::requestOpen
-    val icon = remember(unreadMessages) { MessengerTrayIcon(unreadMessages) }
-    Tray(
-        state = state.trayState,
-        icon = icon,
-        onAction = onOpen,
-        menu = {
-            Item(i18n.tacitTrayOpen(), onClick = onOpen)
-            if (readyVersion != null) {
-                Item(i18n.tacitUpdateRestartToUpdate(), onClick = updater::restartToUpdate)
-            }
-            Separator()
-            Item(i18n.tacitTrayExit(), onClick = ::exitApplication)
-        },
-    )
+    val menu = buildList {
+        add(TacitTrayMenuEntry.Item(i18n.tacitTrayOpen(), onOpen))
+        if (readyVersion != null) {
+            add(TacitTrayMenuEntry.Item(i18n.tacitUpdateRestartToUpdate(), updater::restartToUpdate))
+        }
+        add(TacitTrayMenuEntry.Separator)
+        add(TacitTrayMenuEntry.Item(i18n.tacitTrayExit(), ::exitApplication))
+    }
+    if (statusNotifierTray != null) {
+        TacitStatusNotifierTrayItem(statusNotifierTray, unreadMessages > 0, onActivate = onOpen, menu = menu)
+    } else {
+        Tray(
+            state = state.trayState,
+            icon = remember(unreadMessages) { MessengerTrayIcon(unreadMessages) },
+            onAction = onOpen,
+            menu = {
+                menu.forEach { entry ->
+                    when (entry) {
+                        is TacitTrayMenuEntry.Item -> Item(entry.label, onClick = entry.onClick)
+                        TacitTrayMenuEntry.Separator -> Separator()
+                    }
+                }
+            },
+        )
+    }
 }
 
 /** Whether the OS draws the unread counter on the app icon itself (the macOS Dock badge). */

@@ -28,6 +28,7 @@ import kotlinx.coroutines.runBlocking
 import okio.FileSystem
 import org.fuchss.matrix.tacit.settings.TacitWindowCloseBehavior
 import org.fuchss.matrix.tacit.settings.readTacitWindowCloseBehavior
+import org.fuchss.matrix.tacit.tray.TacitStatusNotifierTray
 import org.fuchss.matrix.tacit.update.TacitOs
 import org.fuchss.matrix.tacit.update.TacitUpdateController
 import org.fuchss.matrix.tacit.update.TacitUpdater
@@ -113,8 +114,31 @@ private fun tacitMessengerApp(
     val appName = matrixMultiMessenger.di.get<MatrixMultiMessengerConfiguration>().appName
     updateAppClassName(appName)
 
+    // Linux: a StatusNotifierItem instead of AWT's XEmbed tray, which current panels only show through a proxy.
+    val statusNotifierTray = if (TacitOs.current == TacitOs.LINUX) {
+        TacitStatusNotifierTray.connectOrNull(id = BuildConfig.appId, title = appName)
+    } else {
+        null
+    }
+    try {
+        tacitApplication(appName, matrixMultiMessenger, lifecycle, updater, statusNotifierTray, activeMessengerOnce)
+    } finally {
+        // The composition already hid the item; this drops the bus connection.
+        statusNotifierTray?.close()
+    }
+}
+
+@Suppress("LongParameterList")
+private fun tacitApplication(
+    appName: String,
+    matrixMultiMessenger: MatrixMultiMessenger,
+    lifecycle: LifecycleRegistry,
+    updater: TacitUpdater,
+    statusNotifierTray: TacitStatusNotifierTray?,
+    activeMessengerOnce: (MatrixMessenger, RootViewModel) -> Unit,
+) {
     application(exitProcessOnExit = false) {
-        val shell = rememberTacitDesktopShellState(appName, updater)
+        val shell = rememberTacitDesktopShellState(appName, updater, statusNotifierTray)
         // The profile screen has no settings of its own, so it keeps the last behaviour an active messenger chose.
         var lastCloseBehavior by remember { mutableStateOf(TacitWindowCloseBehavior.BACKGROUND) }
         val globalI18n = remember { matrixMultiMessenger.di.get<TacitI18nView>() }
