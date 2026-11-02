@@ -14,6 +14,7 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.DpSize
@@ -335,6 +336,21 @@ private fun DesktopTaskbarIcon(unreadMessages: Int) {
     }
 }
 
+/**
+ * Extra UI scale on Linux: AWT/X11 only applies integer scales and ignores the desktop's DPI, so a fractional XWayland
+ * scale (Plasma: "applications scale themselves") would render at 1x. `TACIT_UI_SCALE` overrides it.
+ */
+private val linuxUiScale: Float by lazy {
+    System.getenv("TACIT_UI_SCALE")?.toFloatOrNull()?.let { return@lazy it }
+    if (TacitOs.current != TacitOs.LINUX) return@lazy 1f
+    val toolkit = Toolkit.getDefaultToolkit()
+    // XSETTINGS DPI in 1024ths; Plasma's xsettingsd only publishes Gdk/UnscaledDPI.
+    val dpi = (toolkit.getDesktopProperty("gnome.Xft/DPI") ?: toolkit.getDesktopProperty("gnome.Gdk/UnscaledDPI")) as? Int
+        ?: return@lazy 1f
+    val awtScale = GraphicsEnvironment.getLocalGraphicsEnvironment().defaultScreenDevice.defaultConfiguration.defaultTransform.scaleX
+    (dpi / 1024f / 96f / awtScale.toFloat()).coerceAtLeast(1f)
+}
+
 /** Windows and Linux get pre-sized window icons; macOS keeps the Compose painter (Dock and minimised tile). */
 private val usesSizedIconImages: Boolean = TacitOs.current != TacitOs.MACOS
 
@@ -370,11 +386,11 @@ private fun TacitDesktopWindow(
         // Without a minimum size the window can be dragged far below the smallest layout that
         // still works: the single pane room list needs minTacitWindowWidth before the room names
         // start disappearing behind the fixed chrome (guild rail, avatars, badges).
-        // AWT sizes are in user-space units, which Compose Desktop treats 1:1 as dp.
+        // AWT sizes are in user-space units, which Compose Desktop treats 1:1 as dp (times linuxUiScale on Linux).
         LaunchedEffect(window) {
             window.minimumSize = Dimension(
-                minTacitWindowWidth.value.roundToInt(),
-                minTacitWindowHeight.value.roundToInt(),
+                (minTacitWindowWidth.value * linuxUiScale).roundToInt(),
+                (minTacitWindowHeight.value * linuxUiScale).roundToInt(),
             )
         }
         if (usesSizedIconImages) {
@@ -400,6 +416,9 @@ private fun TacitDesktopWindow(
             window.requestFocus()
             window.rootPane.requestFocus()
         }
-        content()
+        val density = LocalDensity.current
+        CompositionLocalProvider(LocalDensity provides Density(density.density * linuxUiScale, density.fontScale)) {
+            content()
+        }
     }
 }
