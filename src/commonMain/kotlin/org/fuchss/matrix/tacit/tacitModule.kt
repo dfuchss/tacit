@@ -28,6 +28,7 @@ import de.connect2x.trixnity.messenger.compose.view.roomlist.header.ShowSearchVi
 import de.connect2x.trixnity.messenger.compose.view.root.MainView
 import de.connect2x.trixnity.messenger.compose.view.root.MessengerView
 import de.connect2x.trixnity.messenger.compose.view.settings.*
+import de.connect2x.trixnity.messenger.compose.view.theme.DefaultSizes
 import de.connect2x.trixnity.messenger.viewmodel.room.RoomViewModelFactory
 import de.connect2x.trixnity.messenger.viewmodel.room.settings.ChangeRoomAvatarViewModelFactory
 import de.connect2x.trixnity.messenger.viewmodel.room.settings.RoomSettingsViewModelFactory
@@ -122,6 +123,7 @@ fun tacitViewModule() = module {
     single<AccountSetupWizardStepList> { TacitAccountSetupWizardStepList(get<MatrixMessengerConfiguration>().features) }
     single<UserSettingsView> { TacitUserSettingsView() }
     single<AppearanceSettingsView> { TacitAppearanceSettingsView() }
+    single<DefaultSizes> { TacitDefaultSizes() }
     single<AppInfoView> { TacitAppInfoView() }
     single<LegalFooterView> { TacitLegalFooterView() }
 }

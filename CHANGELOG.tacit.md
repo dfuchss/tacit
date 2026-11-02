@@ -12,6 +12,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- Display size and font size in the appearance settings now go up to 300% (previously 150% and 200%)
+
 ### Fixed
 
 - On Linux, the tray icon is now a native StatusNotifierItem: no more white square around the icon in KDE Plasma, a left click opens Tacit and a right click shows the menu
