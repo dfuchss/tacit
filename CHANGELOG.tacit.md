@@ -12,6 +12,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+### Fixed
+
+## 26.9.2-tacit.8
+
+Based on Tammy 26.9.2.
+
+### Changed
+
 - Display size and font size in the appearance settings now go up to 300% (previously 150% and 200%)
 - On Linux, Tacit now follows the desktop's fractional scaling (e.g. 165% in KDE Plasma) instead of rendering at 100%; `TACIT_UI_SCALE` overrides the factor. If you raised the display or font size to compensate, set it back to 100%
 
