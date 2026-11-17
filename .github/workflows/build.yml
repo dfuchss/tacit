@@ -57,7 +57,7 @@ jobs:
       matrix:
         include:
           - name: macos-arm64
-            os: macos-14
+            os: macos-15
             tasks: packageReleaseDmg
             artifact-paths: |
               build/compose/binaries/main-release/dmg/*.dmg
