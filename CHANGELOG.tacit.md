@@ -8,9 +8,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+Based on Tammy 26.11.0.
+
 ### Added
 
+- The arrow keys move through the @-mention suggestions in the message input, and Escape hides them until you type on
+- Stickers sent from other clients show in the timeline
+
 ### Changed
+
+- Updated to Tammy 26.11.0 (Trixnity Messenger 4.11.0). Tammy's video calls and its new navigation (Navigation 3) stay off in Tacit
+- Custom image reactions show their shortcode instead of an `mxc://` address
+- While the removal of your own reaction is on its way, the reaction is no longer highlighted and a click adds it again
 
 ### Fixed
 

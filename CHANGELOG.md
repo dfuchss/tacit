@@ -19,6 +19,17 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Security
 
+## 26.11.0
+
+### Added
+
+- Added beta web release ci task
+
+### Changed
+
+- Enable nav3
+- Update Trixnity Messenger to 4.11.0
+
 ## 26.9.2
 
 ### Changed

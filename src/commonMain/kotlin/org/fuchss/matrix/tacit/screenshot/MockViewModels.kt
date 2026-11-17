@@ -11,6 +11,7 @@ import de.connect2x.trixnity.core.model.UserId
 import de.connect2x.trixnity.core.model.events.m.Presence
 import de.connect2x.trixnity.core.model.events.m.room.RoomMessageEventContent
 import de.connect2x.trixnity.crypto.key.UserTrustLevel
+import de.connect2x.trixnity.messenger.abi.TrixnityMessengerCallApi
 import de.connect2x.trixnity.messenger.abi.TrixnityMessengerPrivateApi
 import de.connect2x.trixnity.messenger.util.FileDescriptor
 import de.connect2x.trixnity.messenger.util.FileTransferProgressElement
@@ -21,6 +22,7 @@ import de.connect2x.trixnity.messenger.viewmodel.media.AudioRecorderViewModel
 import de.connect2x.trixnity.messenger.viewmodel.media.MediaPlayerViewModel
 import de.connect2x.trixnity.messenger.viewmodel.room.RoomRouter
 import de.connect2x.trixnity.messenger.viewmodel.room.RoomViewModel
+import de.connect2x.trixnity.messenger.viewmodel.room.call.CallControlViewModel
 import de.connect2x.trixnity.messenger.viewmodel.room.settings.ExtrasRouter
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.*
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.*
@@ -36,6 +38,7 @@ import de.connect2x.trixnity.messenger.viewmodel.sharing.SharingRouter
 import de.connect2x.trixnity.messenger.viewmodel.util.ErrorType
 import de.connect2x.trixnity.messenger.viewmodel.util.EventReaction
 import de.connect2x.trixnity.messenger.viewmodel.util.EventReactions
+import de.connect2x.trixnity.messenger.viewmodel.util.ReactionStatus
 import de.connect2x.trixnity.messenger.viewmodel.verification.SelfVerificationRouter
 import de.connect2x.trixnity.messenger.viewmodel.verification.VerificationRouter
 import de.connect2x.trixnity.utils.nextString
@@ -330,6 +333,9 @@ class RoomListElementViewModelMock(
     override val isUnread: StateFlow<Boolean?> = MutableStateFlow(false)
     override val notificationCount: StateFlow<String?> = MutableStateFlow(null)
 
+    @TrixnityMessengerCallApi
+    override val hasRunningCall: StateFlow<Boolean> = MutableStateFlow(false)
+
     override fun acceptInvitation() {}
     override fun clearError() {}
     override fun markUnread() {}
@@ -337,6 +343,7 @@ class RoomListElementViewModelMock(
 
     override fun rejectInvitation() {}
     override fun rejectInvitationAndBlockInviter() {}
+    override fun leaveRoom() {}
     override fun unknock() {}
     override fun forgetRoom() {}
 }
@@ -562,6 +569,9 @@ class RoomHeaderViewModelMock(locale: Locale) : RoomHeaderViewModel {
     override val canUnblockUser: StateFlow<Boolean> = MutableStateFlow(false)
     override val canVerifyUser: StateFlow<Boolean> = MutableStateFlow(false)
     override val knockingMembersCount: StateFlow<Int> = MutableStateFlow(0)
+
+    @TrixnityMessengerCallApi
+    override val call: CallControlViewModel? = null
     override val error: StateFlow<String?> = MutableStateFlow(null)
     override val isUserBlocked: StateFlow<Boolean> = MutableStateFlow(false)
     override val isDirectChat: StateFlow<Boolean> = MutableStateFlow(false)
@@ -602,13 +612,16 @@ class InputAreaViewModelModelMock : InputAreaViewModel {
     override val isAllowedToSendMessages: StateFlow<Boolean> = MutableStateFlow(true)
     override val textField: TextFieldViewModel = TextFieldViewModelImpl(100, "Don't forget the games 😉")
     override val isSendEnabled: StateFlow<Boolean> = MutableStateFlow(true)
+
     @Deprecated("use suggestedMentions instead", replaceWith = ReplaceWith("suggestedMentions"))
     override val listOfMentions: StateFlow<List<UserInfoElement>?> = MutableStateFlow(null)
+
     @Deprecated("use suggestedMentionsLoading instead", replaceWith = ReplaceWith("suggestedMentionsLoading"))
     override val listOfMentionsLoading: StateFlow<Boolean> = MutableStateFlow(false)
     override val suggestedMentions: StateFlow<List<InputAreaViewModel.SuggestedMention>?> = MutableStateFlow(null)
     override val suggestedMentionsLoading: StateFlow<Boolean> = MutableStateFlow(false)
     override val useMarkdown: StateFlow<Boolean> = MutableStateFlow(false)
+    override val stickerPacks = null
 
     @OptIn(TrixnityMessengerPrivateApi::class)
     override val audio: AudioRecordingAreaViewModel = object : AudioRecordingAreaViewModel {
@@ -621,7 +634,9 @@ class InputAreaViewModelModelMock : InputAreaViewModel {
     override val showAttachmentSelectDialog: StateFlow<Boolean> = MutableStateFlow(false)
 
     @Deprecated("use selectionMention with id instead")
-    override fun selectMention(userId: UserId) {}
+    override fun selectMention(userId: UserId) {
+    }
+
     override fun selectMention(id: String) {}
 
     override fun closeAttachmentDialog() {}
@@ -658,6 +673,7 @@ class TimelineElementHolderViewModelMock(
     override val isReplaced: StateFlow<Boolean> = MutableStateFlow(false)
     override val redactionError: StateFlow<String?> = MutableStateFlow(null)
     override val showRedactionWarning: StateFlow<Boolean> = MutableStateFlow(false)
+
     @Deprecated("when supported by the homeserver, redactions are applied immediately")
     override val redactionInProgress: StateFlow<Boolean> = MutableStateFlow(false)
     override val showLoadingIndicatorAfter: StateFlow<Boolean> = MutableStateFlow(false)
@@ -673,7 +689,7 @@ class TimelineElementHolderViewModelMock(
                                     reaction,
                                     UserInfoElement(UserId(number.toString(), "server"), number.toString(), ""),
                                     EventIdOrTransactionId(number.toString()),
-                                    false,
+                                    ReactionStatus.FromOtherAccount,
                                 )
                             )
                         }
@@ -692,7 +708,7 @@ class TimelineElementHolderViewModelMock(
     override val showSender: StateFlow<Boolean?> = MutableStateFlow(showSender)
     override val showBigGapBefore: StateFlow<Boolean?> = MutableStateFlow(false)
     override val sendError: StateFlow<String?> = MutableStateFlow(null)
-
+    override fun openSenderProfile() {}
     override fun redact() {}
     override fun acceptRedactionWarning() {}
     override fun cancelRedactionWarning() {}
@@ -716,6 +732,8 @@ class TextMessageViewModelMock(
     override val mentionsInBody: Map<IntRange, StateFlow<TimelineElementMention?>> = mapOf()
     override val mentionsInFormattedBody: StateFlow<Map<String, TimelineElementMention?>> = MutableStateFlow(mapOf())
     override fun openMention(mention: TimelineElementMention) {}
+    override suspend fun loadInlineImage(uri: String, width: Int, height: Int): ByteArray? = null
+
     override val isMentioned: Boolean = false
 }
 
@@ -744,6 +762,11 @@ class ImageMessageViewModelMock(
     override val size: String? = null
     override val mimeType: String? = null
     override val hasCaption: Boolean = caption != null
+
+    @Deprecated(
+        "This will be removed in the future for consistency with downloadMedia behaviour, please use loadMediaResultBytes instead",
+        replaceWith = ReplaceWith("loadMediaResultBytes")
+    )
     override val loadMediaResult: StateFlow<ByteArray?> = MutableStateFlow(null)
     override val loadMediaResultPlatformMedia: StateFlow<PlatformMedia?> = MutableStateFlow(null)
     override val loadMediaResultBytes: StateFlow<ByteArray?> = MutableStateFlow(thumbnail)
@@ -762,4 +785,5 @@ class ImageMessageViewModelMock(
     override fun hideSaveDialog(errorShown: Boolean) {}
     override fun openMention(mention: TimelineElementMention) {}
     override val isMentioned: Boolean = false
+    override suspend fun loadInlineImage(uri: String, width: Int, height: Int): ByteArray? = null
 }

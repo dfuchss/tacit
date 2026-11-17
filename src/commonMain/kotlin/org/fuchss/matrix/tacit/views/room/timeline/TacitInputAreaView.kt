@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -17,11 +18,10 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import de.connect2x.trixnity.messenger.compose.view.DI
-import de.connect2x.trixnity.messenger.compose.view.collectAsTextFieldValueState
+import de.connect2x.trixnity.messenger.compose.view.collectAsTextFieldState
 import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.*
 import de.connect2x.trixnity.messenger.compose.view.theme.components
@@ -54,19 +54,26 @@ class TacitInputAreaView : InputAreaView {
         val canSendMessages = inputAreaViewModel.isAllowedToSendMessages.collectAsState().value
         val isEdit = inputAreaViewModel.isReplace.collectAsState().value
         val mentionSuggestions = inputAreaViewModel.suggestedMentions.collectAsState().value
+        val mentionsLoading = inputAreaViewModel.suggestedMentionsLoading.collectAsState().value
         val focusRequester = remember { FocusRequester() }
-        val textField = inputAreaViewModel.textField.collectAsTextFieldValueState()
+        val mentionFocusRequester = remember { FocusRequester() }
+        val textFieldState = inputAreaViewModel.textField.collectAsTextFieldState()
+        // Read in composition so that the suggestions follow every edit and cursor move.
+        val text = textFieldState.text.toString()
+        val selection = textFieldState.selection
+        // Like upstream: Escape hides the mention list until the text or the cursor changes.
+        var mentionsDismissed by remember { mutableStateOf(false) }
+        LaunchedEffect(textFieldState) {
+            snapshotFlow { textFieldState.text.toString() to textFieldState.selection }
+                .collect { mentionsDismissed = false }
+        }
 
-        val shortcodeMatch = remember(textField.value) { textField.value.findShortcodeMatch() }
+        val shortcodeMatch = remember(text, selection) { findEmojiShortcodeMatch(text, selection.start, selection.end) }
         val emojiSuggestions = remember(shortcodeMatch) {
             shortcodeMatch?.let { emojiShortcodeSuggestions(it.query) }.orEmpty()
         }
-        val slashCommandMatch = remember(textField.value) {
-            findSlashCommandMatch(
-                text = textField.value.text,
-                selectionStart = textField.value.selection.start,
-                selectionEnd = textField.value.selection.end,
-            )
+        val slashCommandMatch = remember(text, selection) {
+            findSlashCommandMatch(text = text, selectionStart = selection.start, selectionEnd = selection.end)
         }
         val slashSuggestions = remember(slashCommandMatch) {
             slashCommandMatch?.let { slashCommandSuggestions(it.query) }.orEmpty()
@@ -87,11 +94,13 @@ class TacitInputAreaView : InputAreaView {
 
         val showSlashSuggestions = canSendMessages &&
                 !suggestionsDismissed &&
+                !mentionsLoading &&
                 mentionSuggestions.isNullOrEmpty() &&
                 slashSuggestions.isNotEmpty() &&
                 slashCommandMatch != null
         val showEmojiSuggestions = canSendMessages &&
                 !suggestionsDismissed &&
+                !mentionsLoading &&
                 mentionSuggestions.isNullOrEmpty() &&
                 !showSlashSuggestions &&
                 emojiSuggestions.isNotEmpty() &&
@@ -123,14 +132,10 @@ class TacitInputAreaView : InputAreaView {
         val applySelectedSuggestion: (() -> Boolean)? = when {
             showSlashSuggestions -> {
                 {
-                    val match = findSlashCommandMatch(
-                        text = textField.value.text,
-                        selectionStart = textField.value.selection.start,
-                        selectionEnd = textField.value.selection.end,
-                    )
+                    val match = textFieldState.findSlashCommandMatch()
                     val suggestion = slashSuggestions.getOrNull(selectedSuggestionIndex)
                     if (match != null && suggestion != null) {
-                        textField.value = textField.value.replaceSlashCommand(match, suggestion.insertion)
+                        textFieldState.replaceSlashCommand(match, suggestion.insertion)
                         focusRequester.requestFocus()
                         true
                     } else {
@@ -141,10 +146,10 @@ class TacitInputAreaView : InputAreaView {
 
             showEmojiSuggestions -> {
                 {
-                    val match = textField.value.findShortcodeMatch()
+                    val match = textFieldState.findShortcodeMatch()
                     val suggestion = emojiSuggestions.getOrNull(selectedSuggestionIndex)
                     if (match != null && suggestion != null) {
-                        textField.value = textField.value.replaceShortcode(match, suggestion.emoji)
+                        textFieldState.replaceShortcode(match, suggestion.emoji)
                         focusRequester.requestFocus()
                         true
                     } else {
@@ -159,13 +164,24 @@ class TacitInputAreaView : InputAreaView {
         ThemedSurface(
             style = MaterialTheme.components.inputAreaSurface,
         ) {
-            Column(Modifier.fillMaxWidth()) {
+            Column(
+                Modifier.fillMaxWidth().onPreviewKeyEvent { keyEvent ->
+                    val mentionsAvailable = mentionsLoading || !mentionSuggestions.isNullOrEmpty()
+                    if (keyEvent.type != KeyEventType.KeyDown || keyEvent.key != Key.Escape) return@onPreviewKeyEvent false
+                    if (mentionsDismissed || !mentionsAvailable) return@onPreviewKeyEvent false
+                    focusRequester.requestFocus()
+                    mentionsDismissed = true
+                    true
+                }
+            ) {
                 HorizontalDivider(Modifier.fillMaxWidth())
                 if (isReplyTo) {
                     ReplyToArea(inputAreaViewModel)
                 }
 
-                MentionSelector(inputAreaViewModel, focusRequester)
+                if (!mentionsDismissed) {
+                    MentionSelector(inputAreaViewModel, focusRequester, mentionFocusRequester)
+                }
                 if (suggestionItems.isNotEmpty()) {
                     AutocompleteSuggestions(
                         suggestions = suggestionItems,
@@ -183,6 +199,9 @@ class TacitInputAreaView : InputAreaView {
                         // No IntrinsicSize here: the text field's intrinsic height ignores its line limit, so a
                         // long draft would stretch the row over the whole timeline. The field caps itself and scrolls.
                         .padding(horizontal = 10.dp, vertical = 10.dp)
+                        // A parent of the text field, so this runs before upstream's handler. It only consumes keys
+                        // while Tacit's own suggestions are visible, which never happens together with mention
+                        // suggestions; Up/Down then still reach upstream's mention navigation.
                         .onPreviewKeyEvent { keyEvent ->
                             val autocompleteVisible = showSlashSuggestions || showEmojiSuggestions
                             if (keyEvent.type != KeyEventType.KeyDown || !autocompleteVisible) return@onPreviewKeyEvent false
@@ -223,9 +242,10 @@ class TacitInputAreaView : InputAreaView {
                     if (canSendMessages) {
                         InputAreaTextField(
                             inputAreaViewModel = inputAreaViewModel,
-                            textField = textField,
+                            textFieldState = textFieldState,
                             focusRequester = focusRequester,
                             canRecordAudio = false,
+                            mentionFocusRequester = mentionFocusRequester.takeUnless { mentionsDismissed },
                         )
 
                         if (isEdit) {
@@ -312,13 +332,24 @@ private fun AutocompleteSuggestions(
     }
 }
 
-private fun TextFieldValue.findShortcodeMatch(): TacitEmojiShortcodeMatch? =
-    findEmojiShortcodeMatch(text, selection.start, selection.end)
+internal fun TextFieldState.findShortcodeMatch(): TacitEmojiShortcodeMatch? =
+    findEmojiShortcodeMatch(text.toString(), selection.start, selection.end)
 
-private fun TextFieldValue.replaceShortcode(match: TacitEmojiShortcodeMatch, emoji: String): TextFieldValue =
-    replaceEmojiShortcode(text, match, emoji).toTextFieldValue()
+internal fun TextFieldState.findSlashCommandMatch(): TacitSlashCommandMatch? =
+    findSlashCommandMatch(text = text.toString(), selectionStart = selection.start, selectionEnd = selection.end)
 
-private fun TextFieldValue.replaceSlashCommand(match: TacitSlashCommandMatch, replacement: String): TextFieldValue =
-    org.fuchss.matrix.tacit.viewmodel.room.timeline.replaceSlashCommand(text, match, replacement).toTextFieldValue()
+internal fun TextFieldState.replaceShortcode(match: TacitEmojiShortcodeMatch, emoji: String) =
+    applyComposerEdit(replaceEmojiShortcode(text.toString(), match, emoji))
 
-private fun TacitComposerEdit.toTextFieldValue() = TextFieldValue(text = text, selection = TextRange(cursor))
+internal fun TextFieldState.replaceSlashCommand(match: TacitSlashCommandMatch, replacement: String) =
+    applyComposerEdit(
+        org.fuchss.matrix.tacit.viewmodel.room.timeline.replaceSlashCommand(text.toString(), match, replacement)
+    )
+
+/** Replaces the whole text with [change] and puts the cursor where [change] says, as one undoable edit. */
+internal fun TextFieldState.applyComposerEdit(change: TacitComposerEdit) {
+    edit {
+        replace(0, length, change.text)
+        selection = TextRange(change.cursor)
+    }
+}

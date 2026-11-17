@@ -57,6 +57,7 @@ import de.connect2x.trixnity.messenger.compose.view.theme.ThemeComponents
 import de.connect2x.trixnity.messenger.compose.view.theme.components
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedProgressIndicator
 import org.fuchss.matrix.tacit.views.common.TacitUserAvatar
+import de.connect2x.trixnity.messenger.compose.view.theme.components.SurfaceStyle
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.BaseTimelineElementHolderViewModel
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.OutboxElementHolderViewModel
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.elements.TimelineElementHolderViewModel
@@ -97,6 +98,22 @@ class TacitFlatMessageView : MessageBubbleView {
             content = content,
         )
     }
+
+    /**
+     * Images, files and stickers ask for a styled bubble. Tacit has no bubbles, so they get the same flat row as every
+     * other message and [messageBubbleStyle] is ignored.
+     */
+    @Composable
+    override fun createWithStyle(
+        holder: BaseTimelineElementHolderViewModel,
+        needsMaxWidth: Boolean,
+        additionalContextActions: @Composable ColumnScope.(onClose: () -> Unit) -> Unit,
+        isPreview: Boolean,
+        isMentioned: Boolean,
+        index: Int,
+        messageBubbleStyle: SurfaceStyle,
+        content: @Composable (showActionMenu: () -> Unit) -> Unit,
+    ) = create(holder, needsMaxWidth, additionalContextActions, isPreview, isMentioned, index, content)
 }
 
 @Composable

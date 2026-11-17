@@ -1,5 +1,6 @@
 package org.fuchss.matrix.tacit
 
+import de.connect2x.trixnity.messenger.MatrixMessengerBaseConfiguration
 import de.connect2x.trixnity.messenger.MatrixMessengerConfiguration
 import de.connect2x.trixnity.messenger.Worker
 import de.connect2x.trixnity.messenger.multi.MatrixMultiMessengerConfiguration
@@ -12,7 +13,8 @@ import de.connect2x.trixnity.messenger.compose.view.room.timeline.InputAreaView
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.RoomHeaderView
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.TimelineView
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.TypingIndicatorView
-import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.RedactedTimelineElementView
+import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.RedactedMessageTimelineElementView
+import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.RedactedStateTimelineElementView
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.TimelineElementView
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.message.EmoteRoomMessageTimelineElementView
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.element.message.NoticeRoomMessageTimelineElementView
@@ -77,8 +79,36 @@ import org.koin.dsl.module
 fun MatrixMultiMessengerConfiguration.addTacit() {
     modulesFactories += ::tacitViewModule
     messengerConfiguration {
-        modulesFactories += listOf(::tacitViewModule, ::tacitViewModelModule)
+        val configuration = this
+        modulesFactories += listOf(::tacitViewModule, ::tacitViewModelModule, { tacitFeaturesModule(configuration) })
     }
+}
+
+/**
+ * Tacit's deviations from upstream's feature defaults.
+ *
+ * - Video calls stay off: LiveKit has no JVM implementation, and the flag also enables MSC4354 and the call timeline
+ *   elements.
+ * - Sticker packs stay off for now. The flag only creates the input's sticker pack model; stickers in the timeline
+ *   render either way.
+ * - New web accounts keep IndexedDB instead of Room3.
+ */
+fun tacitFeatures(features: MatrixMessengerConfiguration.Features): MatrixMessengerConfiguration.Features =
+    features.copy(
+        enableVideoCalls = false,
+        enableStickers = false,
+        enableRoom3ForNewAccountsOnWeb = false,
+    )
+
+/**
+ * Rebinds [MatrixMessengerConfiguration] to a copy with [tacitFeatures]. Some flags are `val`s, so they cannot be set
+ * on the instance Trixnity Messenger creates; every reader of these flags resolves the configuration from Koin. The
+ * copy is made on first use, after all `messengerConfiguration` blocks have run.
+ */
+fun tacitFeaturesModule(configuration: MatrixMessengerConfiguration) = module {
+    single<MatrixMessengerConfiguration> {
+        configuration.copy(features = tacitFeatures(configuration.features))
+    }.bind<MatrixMessengerBaseConfiguration>()
 }
 
 /**
@@ -115,8 +145,11 @@ fun tacitViewModule() = module {
     single<EmoteRoomMessageTimelineElementView>(named<EmoteRoomMessageTimelineElementView>()) {
         TacitEmoteRoomMessageTimelineElementViewImpl()
     }.bind<TimelineElementView<*>>()
-    single<RedactedTimelineElementView>(named<RedactedTimelineElementView>()) {
-        TacitHiddenRedactedTimelineElementView
+    single<RedactedMessageTimelineElementView>(named<RedactedMessageTimelineElementView>()) {
+        TacitHiddenRedactedTimelineElementView.Message
+    }.bind<TimelineElementView<*>>()
+    single<RedactedStateTimelineElementView>(named<RedactedStateTimelineElementView>()) {
+        TacitHiddenRedactedTimelineElementView.State
     }.bind<TimelineElementView<*>>()
     single<MessageBubbleView> { TacitFlatMessageView() }
     single<TimelineView> { TacitTimelineView() }

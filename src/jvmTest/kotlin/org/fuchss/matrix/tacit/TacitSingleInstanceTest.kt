@@ -1,5 +1,9 @@
 package org.fuchss.matrix.tacit
 
+import de.connect2x.trixnity.core.model.MatrixUri
+import de.connect2x.trixnity.core.model.RoomId
+import de.connect2x.trixnity.core.model.toReference
+import de.connect2x.trixnity.core.util.Reference
 import de.connect2x.trixnity.messenger.multi.MatrixMultiMessengerConfiguration
 import de.connect2x.trixnity.messenger.util.uriFilter
 import io.ktor.http.Url
@@ -66,10 +70,14 @@ class TacitSingleInstanceTest {
         val uri = activationUri(appUri)
         assertTrue(uriFilter(config)(uri), "the running instance must not drop it")
         val url = Url(uri)
-        // RootRouter / the login workers react to these paths, the room list to `/matrix:roomid/<id>`.
+        // RootRouter / the login workers react to these paths, the room list to `<appUri>/<matrix URI of a room>`.
         assertNotEquals("/sso", url.encodedPath)
         assertNotEquals("/oAuth2", url.encodedPath)
-        assertTrue(url.rawSegments.size < 3 || url.rawSegments[1] != "matrix:roomid")
+        // Parsed like upstream's RoomListViewModel does it.
+        fun roomReference(uri: String) = MatrixUri(uri.removePrefix("$appUri/")).toReference() as? Reference.Room
+        assertEquals(null, roomReference(uri))
+        // Control: a room link in that format is recognised, so the check above is not vacuous.
+        assertEquals(RoomId("!room:example.org"), roomReference("$appUri/matrix:roomid/room:example.org")?.roomId)
     }
 
     @Test

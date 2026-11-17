@@ -37,7 +37,7 @@ internal data class TacitFlatMessageUiState(
      */
     val isContinuation: Boolean,
     val showRedactionWarning: Boolean,
-    val reactionEntries: List<Map.Entry<String, Set<EventReactions.ByReactionInfo>>>,
+    val reactionEntries: List<Map.Entry<String, EventReactions.ByReactionsInfo>>,
     val senderInitials: String?,
     val senderAvatar: ByteArray?,
     /**
@@ -95,7 +95,7 @@ internal fun rememberTacitFlatMessageUiState(
         ?.value
         ?.byReaction
         ?.entries
-        ?.sortedByDescending { it.value.size }
+        ?.sortedByDescending { it.value.reactions.size }
         .orEmpty()
 
     val sender = holder.sender.collectAsState().value

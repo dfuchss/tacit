@@ -23,10 +23,20 @@ dependencyResolutionManagement {
         maven("https://gitlab.com/api/v4/projects/72850047/packages/maven") // sqlitenity
         maven("https://gitlab.com/api/v4/projects/75787860/packages/maven") // compose multiplatform core a11y
         maven("https://gitlab.com/api/v4/projects/75787729/packages/maven") // compose multiplatform a11y
+        @Suppress("UnstableApiUsage") repositories {
+            exclusiveContent {
+                forRepository { maven("https://jitpack.io") }.filter {
+                    includeModule(
+                        "com.github.davidliu",
+                        "audioswitch"
+                    )
+                }
+            }
+        }
         google()
     }
 }
 
 plugins {
-    id("de.connect2x.conventions.c2x-settings-plugin") version "20260917.122828"
+    id("de.connect2x.conventions.c2x-settings-plugin") version "20261015.131930"
 }

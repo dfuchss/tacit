@@ -18,13 +18,30 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.unit.dp
 import de.connect2x.trixnity.messenger.compose.view.common.Tooltip
 import de.connect2x.trixnity.messenger.viewmodel.util.EventReactions
+import de.connect2x.trixnity.messenger.viewmodel.util.ReactionStatus
 import org.fuchss.matrix.tacit.*
 import org.fuchss.matrix.tacit.ui.TacitShapes
+
+/**
+ * Whether the own account has a reaction here that a click should redact. A reaction whose redaction is already pending
+ * counts as removed, so a second click reacts again instead of redacting twice.
+ */
+internal fun EventReactions.ByReactionsInfo.reactedByMe(): Boolean =
+    reactions.any {
+        when (it.status) {
+            ReactionStatus.Sent, ReactionStatus.Pending, is ReactionStatus.SentError -> true
+            ReactionStatus.FromOtherAccount, ReactionStatus.RedactionPending -> false
+        }
+    }
+
+/** The text shown for [key]. Image reactions (custom emoji) use their key as `mxc://` URI; show the shortcode instead. */
+internal fun EventReactions.ByReactionsInfo.label(key: String): String =
+    if (key.startsWith("mxc://")) shortcode ?: key else key
 
 @Composable
 internal fun TacitMessageReactions(
     modifier: Modifier = Modifier,
-    reactionEntries: List<Map.Entry<String, Set<EventReactions.ByReactionInfo>>>,
+    reactionEntries: List<Map.Entry<String, EventReactions.ByReactionsInfo>>,
     isOwnMessage: Boolean,
     onToggleReaction: (reaction: String, reactedByMe: Boolean) -> Unit,
 ) {
@@ -33,12 +50,12 @@ internal fun TacitMessageReactions(
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        reactionEntries.forEach { (reaction, infos) ->
-            val reactedByMe = infos.any { it.isMe }
-            val reactedByNames = infos.joinToString { it.sender.name }
+        reactionEntries.forEach { (reaction, info) ->
+            val reactedByMe = info.reactedByMe()
+            val reactedByNames = info.reactions.joinToString { it.sender.name }
             TacitReactionChip(
-                reaction = reaction,
-                count = infos.size,
+                reaction = info.label(reaction),
+                count = info.reactions.size,
                 selected = reactedByMe,
                 reactedByNames = reactedByNames,
                 onClick = { onToggleReaction(reaction, reactedByMe) },
