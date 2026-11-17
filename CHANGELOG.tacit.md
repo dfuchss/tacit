@@ -28,6 +28,8 @@ Based on Tammy 26.11.0.
 
 ### Fixed
 
+- The privacy policy and imprint addresses Tammy's upstream defaults pointed to (connect2x's website) now lead to Tacit's project page, should any dialog still open them
+
 ## 26.9.2-tacit.8
 
 Based on Tammy 26.9.2.

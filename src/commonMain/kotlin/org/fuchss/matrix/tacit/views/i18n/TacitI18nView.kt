@@ -15,6 +15,18 @@ open class TacitI18nView(
     timeZone: TimeZone,
 ) : I18nView(lang, messengerSettings, getSystemLang, timeZone) {
 
+    // Upstream defaults to connect2x's imprint and privacy policy pages, which are not Tacit's. Tacit's own app info
+    // and legal footer do not link them; these keep every upstream dialog that still might from showing connect2x's.
+    override fun privacyPolicyUrl() = translate {
+        EN - TACIT_PROJECT_URL
+        DE - TACIT_PROJECT_URL
+    }
+
+    override fun imprintUrl() = translate {
+        EN - TACIT_PROJECT_URL
+        DE - TACIT_PROJECT_URL
+    }
+
     open fun tacitFooterBuiltByPrefix() = translate {
         EN - "Built by "
         DE - "Erstellt von "
@@ -830,3 +842,5 @@ open class TacitI18nView(
         DE - "Mehr"
     }
 }
+
+private const val TACIT_PROJECT_URL = "https://gitlab.com/dfuchss/tacit"
