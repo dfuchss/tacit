@@ -15,6 +15,7 @@ Based on Tammy 26.11.0.
 - The arrow keys move through the @-mention suggestions in the message input, and Escape hides them until you type on
 - Stickers sent from other clients show in the timeline
 - A sticker button next to the message input opens your and the room's sticker packs: click a sticker to send it, star packs as favourites, and (with the permission) create packs and add or remove stickers
+- Custom emotes and inline images in formatted messages show as images, also inside quotes, instead of their alt text (such as `:cat:`)
 
 ### Changed
 

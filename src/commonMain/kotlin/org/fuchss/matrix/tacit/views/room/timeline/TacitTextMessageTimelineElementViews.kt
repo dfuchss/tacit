@@ -263,6 +263,7 @@ private fun TacitMessageBodyContent(
                 onCopy = null,
                 onLinkClick = { uriCaller.invoke(it, true) },
                 onMentionClick = element::openMention,
+                loadImage = remember(element) { element::loadInlineImage },
             )
         }
     }

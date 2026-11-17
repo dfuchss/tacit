@@ -91,7 +91,8 @@ internal fun splitTacitBlockquotes(document: HtmlNode.HtmlElement): List<TacitRi
 
 /**
  * Upstream's `RichTextDisplay` with top-level blockquotes drawn as Tacit quote cards (see the file comment).
- * Documents without one take upstream's path unchanged.
+ * Documents without one take upstream's path unchanged. [loadImage] (the message's `loadInlineImage`) lets upstream draw
+ * `<img>` elements, such as custom emotes, inline in every run and quote; without it they show their alt text.
  */
 @Composable
 internal fun TacitRichTextDisplay(
@@ -102,10 +103,11 @@ internal fun TacitRichTextDisplay(
     onCopy: ((String) -> Unit)? = null,
     onLinkClick: (String) -> Unit = {},
     onMentionClick: (TimelineElementMention) -> Unit = {},
+    loadImage: (suspend (uri: String, width: Int, height: Int) -> ByteArray?)? = null,
 ) {
     val segments = remember(document) { splitTacitBlockquotes(document) }
     if (segments == null) {
-        RichTextDisplay(document, mentions, modifier, colors, onCopy, onLinkClick, onMentionClick)
+        RichTextDisplay(document, mentions, modifier, colors, onCopy, onLinkClick, onMentionClick, loadImage)
         return
     }
     // Upstream separates blocks by 1em of the current text style.
@@ -115,10 +117,10 @@ internal fun TacitRichTextDisplay(
         for (segment in segments) {
             when (segment) {
                 is TacitRichTextSegment.Rich ->
-                    RichTextDisplay(segment.document, mentions, Modifier, colors, onCopy, onLinkClick, onMentionClick)
+                    RichTextDisplay(segment.document, mentions, Modifier, colors, onCopy, onLinkClick, onMentionClick, loadImage)
 
                 is TacitRichTextSegment.Quote -> TacitBlockquote {
-                    TacitRichTextDisplay(segment.document, mentions, Modifier, colors, onCopy, onLinkClick, onMentionClick)
+                    TacitRichTextDisplay(segment.document, mentions, Modifier, colors, onCopy, onLinkClick, onMentionClick, loadImage)
                 }
             }
         }
