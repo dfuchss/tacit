@@ -15,7 +15,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import de.connect2x.trixnity.messenger.compose.view.i18n.I18nView
+import org.fuchss.matrix.tacit.viewmodel.room.timeline.entry.matchingSearch
+import org.fuchss.matrix.tacit.views.room.list.ToolbarSearchField
 import de.connect2x.trixnity.messenger.compose.view.DI
 import de.connect2x.trixnity.messenger.compose.view.get
 import org.fuchss.matrix.tacit.views.common.TacitUserAvatar
@@ -34,7 +38,10 @@ internal fun ChannelMembersPane(
     onConfirmStartDirectMessage: (ChannelMemberEntry) -> Unit,
 ) {
     val i18n = DI.get<TacitI18nView>()
+    val i18nView = DI.get<I18nView>()
     var selectedMemberForDm by remember { mutableStateOf<ChannelMemberEntry?>(null) }
+    var searchText by remember { mutableStateOf(TextFieldValue("")) }
+    val visibleMembers = remember(roomMembers, searchText.text) { roomMembers.matchingSearch(searchText.text) }
 
     Column(
         modifier = Modifier
@@ -50,7 +57,18 @@ internal fun ChannelMembersPane(
             fontWeight = FontWeight.SemiBold,
         )
 
-        if (roomMembers.isEmpty()) {
+        Row {
+            ToolbarSearchField(
+                searchText = searchText,
+                onSearchTextChange = { searchText = it },
+                placeholder = i18nView.userSearchNameOrMatrixId(),
+                searchVerticalPadding = 7.dp,
+                clearSearchLabel = i18n.tacitClearSearchDescription(),
+                onClear = { searchText = TextFieldValue("") },
+            )
+        }
+
+        if (visibleMembers.isEmpty()) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center,
@@ -66,7 +84,7 @@ internal fun ChannelMembersPane(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(TacitSpacing.compactGap),
             ) {
-                items(roomMembers, key = { it.userId.full }) { member ->
+                items(visibleMembers, key = { it.userId.full }) { member ->
                     MemberRow(
                         member = member,
                         i18n = i18n,

@@ -169,7 +169,7 @@ private fun ChannelToolbarScaffold(
 }
 
 @Composable
-private fun RowScope.ToolbarSearchField(
+internal fun RowScope.ToolbarSearchField(
     searchText: androidx.compose.ui.text.input.TextFieldValue,
     onSearchTextChange: (androidx.compose.ui.text.input.TextFieldValue) -> Unit,
     placeholder: String,

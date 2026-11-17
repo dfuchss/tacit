@@ -30,3 +30,15 @@ internal data class ChannelMemberEntry(
         return result
     }
 }
+
+/**
+ * The members whose display name or Matrix ID contains [query] (ignoring case and surrounding whitespace); all of them
+ * for a blank query. Same matching as the member list of the room settings.
+ */
+internal fun List<ChannelMemberEntry>.matchingSearch(query: String): List<ChannelMemberEntry> {
+    val trimmedQuery = query.trim()
+    if (trimmedQuery.isEmpty()) return this
+    return filter {
+        it.displayName.contains(trimmedQuery, ignoreCase = true) || it.userId.full.contains(trimmedQuery, ignoreCase = true)
+    }
+}

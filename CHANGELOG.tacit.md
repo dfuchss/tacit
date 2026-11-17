@@ -16,6 +16,7 @@ Based on Tammy 26.11.0.
 - Stickers sent from other clients show in the timeline
 - A sticker button next to the message input opens your and the room's sticker packs: click a sticker to send it, star packs as favourites, and (with the permission) create packs and add or remove stickers
 - Custom emotes and inline images in formatted messages show as images, also inside quotes, instead of their alt text (such as `:cat:`)
+- The members pane has a search field that filters members by display name or Matrix ID
 
 ### Changed
 
