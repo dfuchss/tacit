@@ -10,16 +10,15 @@ import org.koin.dsl.module
 
 class TacitFeaturesTest {
     @Test
-    fun callsStickersAndRoom3StayOff() {
+    fun callsAndRoom3StayOff() {
         val defaults = MatrixMessengerConfiguration.Features()
         val features = tacitFeatures(defaults)
         assertFalse(features.enableVideoCalls)
-        assertFalse(features.enableStickers)
         assertFalse(features.enableRoom3ForNewAccountsOnWeb)
         // Everything else keeps upstream's default.
         assertEquals(
             defaults,
-            features.copy(enableVideoCalls = true, enableStickers = true, enableRoom3ForNewAccountsOnWeb = true),
+            features.copy(enableVideoCalls = true, enableRoom3ForNewAccountsOnWeb = true),
         )
     }
 

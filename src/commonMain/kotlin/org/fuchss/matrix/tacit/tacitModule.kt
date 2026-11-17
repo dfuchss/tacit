@@ -89,14 +89,11 @@ fun MatrixMultiMessengerConfiguration.addTacit() {
  *
  * - Video calls stay off: LiveKit has no JVM implementation, and the flag also enables MSC4354 and the call timeline
  *   elements.
- * - Sticker packs stay off for now. The flag only creates the input's sticker pack model; stickers in the timeline
- *   render either way.
  * - New web accounts keep IndexedDB instead of Room3.
  */
 fun tacitFeatures(features: MatrixMessengerConfiguration.Features): MatrixMessengerConfiguration.Features =
     features.copy(
         enableVideoCalls = false,
-        enableStickers = false,
         enableRoom3ForNewAccountsOnWeb = false,
     )
 
