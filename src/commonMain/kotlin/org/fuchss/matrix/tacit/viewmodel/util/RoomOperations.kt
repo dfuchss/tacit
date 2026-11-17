@@ -244,8 +244,12 @@ internal suspend fun MatrixClient.createGroupChannel(
     return Result.success(roomId)
 }
 
+/**
+ * Invites [userId] to this guild through [invite] (upstream's `InviteUser`, which also shares the historic room keys
+ * when `enableHistoricRoomKeySharing` is on) after validating the input.
+ */
 internal suspend fun GuildEntry.inviteMember(
-    matrixClient: MatrixClient,
+    invite: suspend (roomId: RoomId, userId: UserId, reason: String?) -> Result<Unit>,
     userId: String,
     reason: String,
 ): Result<Unit> {
@@ -257,11 +261,7 @@ internal suspend fun GuildEntry.inviteMember(
         .getOrElse {
             return Result.failure(RoomOperationError.InvalidUserId())
         }
-    return matrixClient.api.room.inviteUser(
-        roomId = this.roomId,
-        userId = invitee,
-        reason = reason.trim().ifBlank { null },
-    )
+    return invite(this.roomId, invitee, reason.trim().ifBlank { null })
 }
 
 internal suspend fun MatrixClient.acceptRoomInvite(

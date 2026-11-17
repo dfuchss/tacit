@@ -18,6 +18,7 @@ Based on Tammy 26.11.0.
 - Custom emotes and inline images in formatted messages show as images, also inside quotes, instead of their alt text (such as `:cat:`)
 - The members pane has a search field that filters members by display name or Matrix ID
 - Clicking a sender's avatar in the timeline opens their profile, like clicking their name
+- Inviting someone to a guild also shares the guild's earlier encrypted messages with them (Tammy's historic room key sharing, which can be turned off in its configuration)
 
 ### Changed
 
