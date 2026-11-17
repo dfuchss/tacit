@@ -26,6 +26,7 @@ import de.connect2x.trixnity.messenger.compose.view.get
 import de.connect2x.trixnity.messenger.compose.view.room.timeline.*
 import de.connect2x.trixnity.messenger.compose.view.theme.components
 import de.connect2x.trixnity.messenger.compose.view.theme.components.ThemedSurface
+import de.connect2x.trixnity.messenger.viewmodel.room.ImagePackViewModel
 import de.connect2x.trixnity.messenger.viewmodel.room.timeline.InputAreaViewModel
 import org.fuchss.matrix.tacit.tacit
 import org.fuchss.matrix.tacit.ui.TacitShapes
@@ -57,6 +58,12 @@ class TacitInputAreaView : InputAreaView {
         val mentionsLoading = inputAreaViewModel.suggestedMentionsLoading.collectAsState().value
         val focusRequester = remember { FocusRequester() }
         val mentionFocusRequester = remember { FocusRequester() }
+        // Upstream's sticker packs (null while the feature is off). The panel above the input row hosts upstream's
+        // picker with its pack management; it closes after a sticker was sent, on Escape and with the button.
+        val stickerPacks = inputAreaViewModel.stickerPacks
+        val stickersOpen = remember(inputAreaViewModel) { mutableStateOf(false) }
+        val showStickerButton = isStickerButtonVisible(stickerPacks != null, canSendMessages, isEdit)
+        val stickerPanelOpen = stickersOpen.value && showStickerButton
         val textFieldState = inputAreaViewModel.textField.collectAsTextFieldState()
         // Read in composition so that the suggestions follow every edit and cursor move.
         val text = textFieldState.text.toString()
@@ -166,6 +173,11 @@ class TacitInputAreaView : InputAreaView {
         ) {
             Column(
                 Modifier.fillMaxWidth().onPreviewKeyEvent { keyEvent ->
+                    if (keyEvent.type == KeyEventType.KeyDown && keyEvent.key == Key.Escape && stickerPanelOpen) {
+                        stickersOpen.value = false
+                        focusRequester.requestFocus()
+                        return@onPreviewKeyEvent true
+                    }
                     val mentionsAvailable = mentionsLoading || !mentionSuggestions.isNullOrEmpty()
                     if (keyEvent.type != KeyEventType.KeyDown || keyEvent.key != Key.Escape) return@onPreviewKeyEvent false
                     if (mentionsDismissed || !mentionsAvailable) return@onPreviewKeyEvent false
@@ -189,6 +201,16 @@ class TacitInputAreaView : InputAreaView {
                         onSelect = { index ->
                             selectedSuggestionIndex = index
                             applySelectedSuggestion?.invoke()
+                        },
+                    )
+                }
+
+                if (stickerPanelOpen && stickerPacks != null) {
+                    TacitStickerPanel(
+                        stickerPacks = stickerPacks,
+                        onDismiss = {
+                            stickersOpen.value = false
+                            focusRequester.requestFocus()
                         },
                     )
                 }
@@ -252,6 +274,11 @@ class TacitInputAreaView : InputAreaView {
                             EditButton(inputAreaViewModel)
                         }
                         // Bottom-aligned so the buttons stay next to the last line of a multi-line draft.
+                        if (showStickerButton && stickerPacks != null) {
+                            Box(Modifier.align(Alignment.Bottom), contentAlignment = Alignment.Center) {
+                                StickerButton(stickerPacks, stickersOpen)
+                            }
+                        }
                         Box(Modifier.align(Alignment.Bottom), contentAlignment = Alignment.Center) {
                             AttachmentButton(
                                 inputAreaViewModel = inputAreaViewModel,
@@ -271,8 +298,34 @@ class TacitInputAreaView : InputAreaView {
                 }
             }
         }
+        if (stickerPacks != null) {
+            StickerPackErrorDialog(stickerPacks)
+        }
     }
 }
+
+/** Stickers need the feature, the permission to write and a new message: an edit cannot turn into a sticker. */
+internal fun isStickerButtonVisible(hasStickerPacks: Boolean, canSendMessages: Boolean, isEdit: Boolean): Boolean =
+    hasStickerPacks && canSendMessages && !isEdit
+
+/** Upstream's [StickerPackPicker] in a Tacit card above the input row, like the autocomplete list. */
+@Composable
+private fun TacitStickerPanel(stickerPacks: ImagePackViewModel, onDismiss: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .height(StickerPanelHeight)
+            .clip(TacitShapes.card)
+            .background(MaterialTheme.tacit.surfaceAlt)
+            .border(TacitSizes.borderWidth, MaterialTheme.tacit.border, TacitShapes.card)
+            .padding(vertical = 4.dp),
+    ) {
+        StickerPackPicker(model = stickerPacks, onDismiss = onDismiss)
+    }
+}
+
+private val StickerPanelHeight = 260.dp
 
 @Composable
 private fun AutocompleteSuggestions(
