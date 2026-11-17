@@ -1,6 +1,7 @@
 package org.fuchss.matrix.tacit.views
 
 import org.fuchss.matrix.tacit.ui.TacitAlpha
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -8,15 +9,24 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import de.connect2x.trixnity.messenger.abi.TrixnityMessengerPrivateApi
 import de.connect2x.trixnity.messenger.compose.view.common.Tooltip
+import de.connect2x.trixnity.messenger.compose.view.files.rememberImageBitmapOrNull
 import de.connect2x.trixnity.messenger.viewmodel.util.EventReactions
 import de.connect2x.trixnity.messenger.viewmodel.util.ReactionStatus
 import org.fuchss.matrix.tacit.*
@@ -38,6 +48,34 @@ internal fun EventReactions.ByReactionsInfo.reactedByMe(): Boolean =
 internal fun EventReactions.ByReactionsInfo.label(key: String): String =
     if (key.startsWith("mxc://")) shortcode ?: key else key
 
+/**
+ * The reaction itself: a custom emote (an image reaction whose image upstream already loads into
+ * [EventReactions.ByReactionsInfo.image]) is drawn as the image at text size, described by its [label]. Until the image
+ * is there, or if it cannot be decoded, the [label] (shortcode, else the key) is shown as text, like upstream's
+ * `MessageReactionDisplay`.
+ */
+@OptIn(TrixnityMessengerPrivateApi::class)
+@Composable
+internal fun TacitReactionContent(reaction: String, info: EventReactions.ByReactionsInfo, color: Color) {
+    val label = info.label(reaction)
+    val imageBytes = info.image?.collectAsState()?.value
+    val bitmap = rememberImageBitmapOrNull(imageBytes, maxSize = ReactionImageDecodeSize)
+    if (bitmap != null) {
+        val size = with(LocalDensity.current) { LocalTextStyle.current.fontSize.takeIf { it.isSp }?.toDp() } ?: 16.dp
+        Image(
+            bitmap = bitmap,
+            contentDescription = label,
+            modifier = Modifier.size(size),
+            contentScale = ContentScale.Fit,
+        )
+    } else {
+        Text(text = label, color = color)
+    }
+}
+
+/** Upstream decodes reaction images at the same bound. */
+private val ReactionImageDecodeSize = IntSize(64, 64)
+
 @Composable
 internal fun TacitMessageReactions(
     modifier: Modifier = Modifier,
@@ -54,7 +92,8 @@ internal fun TacitMessageReactions(
             val reactedByMe = info.reactedByMe()
             val reactedByNames = info.reactions.joinToString { it.sender.name }
             TacitReactionChip(
-                reaction = info.label(reaction),
+                reaction = reaction,
+                info = info,
                 count = info.reactions.size,
                 selected = reactedByMe,
                 reactedByNames = reactedByNames,
@@ -67,6 +106,7 @@ internal fun TacitMessageReactions(
 @Composable
 private fun TacitReactionChip(
     reaction: String,
+    info: EventReactions.ByReactionsInfo,
     count: Int,
     selected: Boolean,
     reactedByNames: String,
@@ -94,8 +134,9 @@ private fun TacitReactionChip(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = reaction,
+                TacitReactionContent(
+                    reaction = reaction,
+                    info = info,
                     color = if (selected) MaterialTheme.tacit.accent else MaterialTheme.tacit.text,
                 )
                 Text(

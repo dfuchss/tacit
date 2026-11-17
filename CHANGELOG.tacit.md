@@ -19,7 +19,7 @@ Based on Tammy 26.11.0.
 ### Changed
 
 - Updated to Tammy 26.11.0 (Trixnity Messenger 4.11.0). Tammy's video calls and its new navigation (Navigation 3) stay off in Tacit
-- Custom image reactions show their shortcode instead of an `mxc://` address
+- Custom image reactions show their image; until it has loaded (or if it cannot be shown), their shortcode instead of an `mxc://` address
 - While the removal of your own reaction is on its way, the reaction is no longer highlighted and a click adds it again
 
 ### Fixed
