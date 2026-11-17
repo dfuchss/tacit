@@ -19,6 +19,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -307,7 +312,12 @@ private fun TacitFlatMessageContainer(
                             image = uiState.senderAvatar,
                             size = 30.dp,
                             // deliberate optical offset against the first text line, not a bug
-                            modifier = Modifier.padding(top = 4.dp),
+                            modifier = Modifier
+                                .padding(top = 4.dp)
+                                // Like the sender name (upstream's MessageBubbleContent): opens the profile.
+                                .clip(CircleShape)
+                                .pointerHoverIcon(PointerIcon.Hand)
+                                .clickable(role = Role.Button, onClick = holder::openSenderProfile),
                         )
                         Spacer(Modifier.width(10.dp))
                     }
