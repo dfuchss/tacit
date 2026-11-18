@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Categories and channels follow the order the space admins set for the space (`m.space.child` order) unless you arranged the categories yourself; channels without such an order are sorted by name
+
 ### Changed
 
 - Browse Rooms only offers "Join" for rooms you can actually join (public rooms, or restricted rooms you are allowed into through a room you are in); invite-only rooms and rooms you are banned from show as not joinable, and public rooms you left can be joined again

@@ -18,11 +18,21 @@ import kotlinx.coroutines.flow.*
 @OptIn(ExperimentalCoroutinesApi::class)
 internal class TacitSpaceHierarchy {
 
+    private fun childEvents(client: MatrixClient, spaceRoomId: RoomId) =
+        client.room.getAllState(spaceRoomId, ChildEventContent::class).flattenValues()
+
     /** The `m.space.child` children of [spaceRoomId] with their `via` servers. */
     fun children(client: MatrixClient, spaceRoomId: RoomId): Flow<Map<RoomId, Set<String>>> =
-        client.room.getAllState(spaceRoomId, ChildEventContent::class)
-            .flattenValues()
+        childEvents(client, spaceRoomId)
             .map(::parseSpaceChildren)
+            .distinctUntilChanged()
+
+    private data class ChildLinks(val via: Map<RoomId, Set<String>>, val order: Map<RoomId, String>)
+
+    /** [children] together with their valid `m.space.child` orders. */
+    private fun childLinks(client: MatrixClient, spaceRoomId: RoomId): Flow<ChildLinks> =
+        childEvents(client, spaceRoomId)
+            .map { events -> ChildLinks(parseSpaceChildren(events), parseSpaceChildOrders(events)) }
             .distinctUntilChanged()
 
     /** The `m.space.parent` links of [roomId]. */
@@ -59,22 +69,25 @@ internal class TacitSpaceHierarchy {
 
     /** The direct children of [guildRoomId] and, for those that are spaces, their children and names. */
     fun guildLayout(client: MatrixClient, guildRoomId: RoomId): Flow<TacitGuildLayout> =
-        children(client, guildRoomId)
-            .flatMapLatest { directChildren ->
+        childLinks(client, guildRoomId)
+            .flatMapLatest { direct ->
+                val directChildren = direct.via
                 if (directChildren.isEmpty()) flowOf(TacitGuildLayout(directChildren, emptyMap(), emptyMap()))
                 else combine(directChildren.keys.map { category(client, it) }) { categories ->
                     val spaces = categories.filterNotNull()
                     TacitGuildLayout(
                         directChildren = directChildren,
-                        categories = spaces.associate { it.roomId to it.children },
+                        categories = spaces.associate { it.roomId to it.children.via.keys },
                         categoryNames = spaces.mapNotNull { c -> c.name?.let { c.roomId to it } }.toMap(),
+                        directChildOrder = direct.order,
+                        categoryChildOrder = spaces.filter { it.children.order.isNotEmpty() }.associate { it.roomId to it.children.order },
                     )
                 }
             }
             .distinctUntilChanged()
 
     private data class CategoryName(val name: String?)
-    private data class Category(val roomId: RoomId, val name: String?, val children: Set<RoomId>)
+    private data class Category(val roomId: RoomId, val name: String?, val children: ChildLinks)
 
     /** [roomId] as a category, or `null` while the local store does not know it as a space. */
     private fun category(client: MatrixClient, roomId: RoomId): Flow<Category?> =
@@ -83,7 +96,7 @@ internal class TacitSpaceHierarchy {
             .distinctUntilChanged()
             .flatMapLatest { category ->
                 if (category == null) flowOf(null)
-                else children(client, roomId).map { Category(roomId, category.name, it.keys) }
+                else childLinks(client, roomId).map { Category(roomId, category.name, it) }
             }
 
     /** The guild (top-level space) [roomId] belongs to, following canonical parents; `null` if it has no parent. */

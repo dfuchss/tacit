@@ -52,6 +52,24 @@ class TacitSpaceModelTest {
     }
 
     @Test
+    fun `only valid orders of present children are kept`() {
+        val nested = RoomId("!nested:example.org")
+        val orders = parseSpaceChildOrders(
+            listOf(
+                state(category.full, ChildEventContent(via = setOf("example.org"), order = "b")),
+                state(channel.full, ChildEventContent(via = emptySet(), order = "a")),
+                state(other.full, ChildEventContent(via = setOf("example.org"), order = "x".repeat(51))),
+                state(guild.full, ChildEventContent(via = setOf("example.org"), order = "ü")),
+                state(nested.full, ChildEventContent(via = setOf("example.org"), order = " ~")),
+            )
+        )
+
+        assertEquals(mapOf(category to "b", nested to " ~"), orders)
+        assertEquals("x".repeat(50), validSpaceChildOrder("x".repeat(50)))
+        assertNull(validSpaceChildOrder("tab\t"))
+    }
+
+    @Test
     fun `the canonical parent is preferred over the first one`() {
         val parents = parseSpaceParents(
             listOf(

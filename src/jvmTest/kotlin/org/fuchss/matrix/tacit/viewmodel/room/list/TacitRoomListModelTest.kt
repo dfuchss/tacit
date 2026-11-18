@@ -111,7 +111,7 @@ class TacitRoomListModelTest {
     }
 
     @Test
-    fun `categories without visible channels are hidden and channels keep the room-list order`() {
+    fun `categories without visible channels are hidden and channels are sorted by name`() {
         val empty = id("empty")
         val layout = TacitGuildLayout(
             directChildren = mapOf(lobby to setOf("x"), games to setOf("x"), empty to setOf("x")),
@@ -119,7 +119,7 @@ class TacitRoomListModelTest {
             categoryNames = mapOf(lobby to "Lobby"),
         )
         val rooms = listOf(room("a"), room("b"), room("c"), room("left", isLeave = true), room("games", isSpace = true))
-        val visible = guildRooms(rooms, setOf(id("a"), id("b"), id("c"), id("left")))
+        val visible = guildRooms(rooms, setOf(id("b"), id("a"), id("c"), id("left")))
 
         val groups = guildChannelGroups(rooms, visible, layout, hierarchyRooms = emptyMap(), categoryOrder = emptyList())
 
@@ -142,6 +142,38 @@ class TacitRoomListModelTest {
         val groups = guildChannelGroups(rooms, visible, layout, mapOf(lobby to hierarchyRoom("Lobby")), categoryOrder = listOf(lobby.full))
 
         assertEquals(listOf("Lobby", games.full), groups.map { it.categoryName })
+    }
+
+    @Test
+    fun `categories follow the saved order, then the space child order, then the name`() {
+        val news = id("news")
+        val zoo = id("zoo")
+        val layout = TacitGuildLayout(
+            directChildren = listOf(lobby, games, news, zoo).associateWith { setOf("x") },
+            categories = listOf(lobby, games, news, zoo).associateWith { setOf(id("a")) },
+            categoryNames = mapOf(lobby to "Lobby", games to "Games", news to "News", zoo to "Zoo"),
+            directChildOrder = mapOf(zoo to "a", news to "b", lobby to "c"),
+        )
+        val rooms = listOf(room("a"))
+
+        val groups = guildChannelGroups(rooms, rooms, layout, emptyMap(), categoryOrder = listOf(lobby.full))
+
+        assertEquals(listOf("Lobby", "Zoo", "News", "Games"), groups.map { it.categoryName })
+    }
+
+    @Test
+    fun `channels follow the space child order, then the name`() {
+        val layout = TacitGuildLayout(
+            directChildren = mapOf(lobby to setOf("x")),
+            categories = mapOf(lobby to setOf(id("a"), id("b"), id("c"), id("d"))),
+            categoryNames = mapOf(lobby to "Lobby"),
+            categoryChildOrder = mapOf(lobby to mapOf(id("d") to "1", id("c") to "2")),
+        )
+        val rooms = listOf(room("b", roomName = "Beta"), room("a", roomName = "alpha"), room("c"), room("d"))
+
+        val groups = guildChannelGroups(rooms, rooms, layout, emptyMap(), categoryOrder = emptyList())
+
+        assertEquals(listOf("d", "c", "a", "b"), groups.single().channels)
     }
 
     @Test

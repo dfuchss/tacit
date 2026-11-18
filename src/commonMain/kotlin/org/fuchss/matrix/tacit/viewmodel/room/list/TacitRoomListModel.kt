@@ -8,6 +8,7 @@ import org.fuchss.matrix.tacit.viewmodel.room.list.entry.SpaceChannelStatus
 import org.fuchss.matrix.tacit.viewmodel.space.TacitGuildLayout
 import org.fuchss.matrix.tacit.viewmodel.space.TacitHierarchyRoom
 import org.fuchss.matrix.tacit.viewmodel.space.canJoinSpaceChild
+import org.fuchss.matrix.tacit.viewmodel.space.spaceChildOrderComparator
 
 /*
  * Pure reducers behind the room list: they turn the rooms' state and the space hierarchy into what the guild rail,
@@ -82,7 +83,8 @@ internal fun orderGuilds(guilds: List<GuildEntry>, order: List<String>): List<Gu
 
 /**
  * The selected guild's categories with their visible channels. Categories without a visible channel are hidden.
- * Ordered by the user's [categoryOrder] (category room ids), then by name.
+ * Categories are ordered by the user's [categoryOrder] (category room ids), then by their `m.space.child` order in the
+ * guild, then by name; channels by their `m.space.child` order in the category, then by name.
  */
 internal fun <R> guildChannelGroups(
     rooms: List<TacitRoomDerived<R>>,
@@ -92,7 +94,6 @@ internal fun <R> guildChannelGroups(
     categoryOrder: List<String>,
 ): List<TacitChannelGroup<R>> {
     val roomById = rooms.associateBy { it.roomId }
-    val visibleOrder = visibleRooms.withIndex().associate { (index, room) -> room.roomId to index }
     val visibleById = visibleRooms.associateBy { it.roomId }
     fun displayName(roomId: RoomId): String {
         val derivedName = roomById[roomId]?.roomName
@@ -107,12 +108,19 @@ internal fun <R> guildChannelGroups(
         .filter { roomById[it]?.isSpace != false }
         .sortedWith(
             compareBy<RoomId> { categoryOrder.indexOf(it.full).let { index -> if (index >= 0) index else Int.MAX_VALUE } }
+                .then(spaceChildOrderComparator { layout.directChildOrder[it] })
                 .thenBy { displayName(it).lowercase() }
+                .thenBy { it.full }
         )
         .mapNotNull { categoryRoomId ->
+            val channelOrder = layout.categoryChildOrder[categoryRoomId].orEmpty()
             val channels = layout.categories[categoryRoomId].orEmpty()
                 .mapNotNull { visibleById[it] }
-                .sortedBy { visibleOrder[it.roomId] ?: Int.MAX_VALUE }
+                .sortedWith(
+                    spaceChildOrderComparator<TacitRoomDerived<R>> { channelOrder[it.roomId] }
+                        .thenBy { (it.roomName ?: it.roomId.full).lowercase() }
+                        .thenBy { it.roomId.full }
+                )
                 .map { it.room }
             if (channels.isEmpty()) null
             else TacitChannelGroup(categoryRoomId, displayName(categoryRoomId), channels)

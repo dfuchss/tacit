@@ -42,6 +42,10 @@ internal data class TacitGuildLayout(
     val categories: Map<RoomId, Set<RoomId>>,
     /** Explicit, non-blank names of the categories that the local store knows. */
     val categoryNames: Map<RoomId, String>,
+    /** The valid `m.space.child` orders of the guild's direct children (see [validSpaceChildOrder]). */
+    val directChildOrder: Map<RoomId, String> = emptyMap(),
+    /** The valid `m.space.child` orders of each category's children. */
+    val categoryChildOrder: Map<RoomId, Map<RoomId, String>> = emptyMap(),
 ) {
     companion object {
         val EMPTY = TacitGuildLayout(emptyMap(), emptyMap(), emptyMap())
@@ -82,6 +86,15 @@ internal fun parseSpaceChildren(events: Iterable<ClientEvent.StateBaseEvent<Chil
         if (event.content.via.isEmpty()) return@mapNotNull null
         val childRoomId = roomIdOrNull(event.stateKey) ?: return@mapNotNull null
         childRoomId to event.content.via
+    }.toMap()
+
+/** The valid `order`s of the children [parseSpaceChildren] counts (see [validSpaceChildOrder]). */
+internal fun parseSpaceChildOrders(events: Iterable<ClientEvent.StateBaseEvent<ChildEventContent>>): Map<RoomId, String> =
+    events.mapNotNull { event ->
+        if (event.content.via.isEmpty()) return@mapNotNull null
+        val childRoomId = roomIdOrNull(event.stateKey) ?: return@mapNotNull null
+        val order = validSpaceChildOrder(event.content.order) ?: return@mapNotNull null
+        childRoomId to order
     }.toMap()
 
 /** The spaces a room names as its parents in its `m.space.parent` state. */
