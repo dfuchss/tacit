@@ -14,6 +14,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- Spaces that list each other as children (a loop) show up as guilds again, with a warning that the space admin should fix the loop, instead of disappearing from the guild rail
+
 ## 26.11.0-tacit.1
 
 Based on Tammy 26.11.0.

@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DragIndicator
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -73,6 +74,7 @@ internal fun GuildRail(
     onCreateGuild: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val i18n = DI.get<TacitI18nView>()
     val guilds = state.guilds
     val selectedGuild = state.selectedGuild
     // The drag gestures outlive list changes (they are keyed on the guild only), so they read the latest values.
@@ -132,6 +134,8 @@ internal fun GuildRail(
             itemsIndexed(guilds, key = { _, g -> "${g.userId.full}:${g.roomId.full}" }) { index, guild ->
                 val guildKey = guild.key()
                 val guildName = guild.displayName?.ifBlank { null } ?: guild.roomId.full
+                val loopWarning = if (guild.isInLoop) i18n.spacesLoopWarning() else null
+                val guildLabel = loopWarning?.let { "$guildName: $it" } ?: guildName
                 val pillInteractionSource = remember(guildKey) { MutableInteractionSource() }
                 val currentIndex by rememberUpdatedState(index)
                 if (hintBeforeIndex == index) {
@@ -152,7 +156,7 @@ internal fun GuildRail(
                         .clickable(
                             interactionSource = pillInteractionSource,
                             indication = null,
-                            onClickLabel = guildName,
+                            onClickLabel = guildLabel,
                             role = Role.Button,
                             onClick = { onSelectGuild(guild) },
                         )
@@ -185,15 +189,19 @@ internal fun GuildRail(
                             )
                         }
                 ) {
-                    GuildPill(
-                        label = guild.guildLabel(),
-                        selected = selectedGuild?.roomId == guild.roomId && selectedGuild.userId == guild.userId,
-                        onClick = null,
-                        avatarImage = state.guildAvatars[guildKey],
-                        unreadCount = state.guildUnreadCounts[guildKey] ?: 0,
-                        interactionSource = pillInteractionSource,
-                        showDragAffordance = guilds.size > 1 && draggingGuildKey == null,
-                    )
+                    val pill = @Composable {
+                        GuildPill(
+                            label = guild.guildLabel(),
+                            selected = selectedGuild?.roomId == guild.roomId && selectedGuild.userId == guild.userId,
+                            onClick = null,
+                            avatarImage = state.guildAvatars[guildKey],
+                            unreadCount = state.guildUnreadCounts[guildKey] ?: 0,
+                            interactionSource = pillInteractionSource,
+                            showDragAffordance = guilds.size > 1 && draggingGuildKey == null,
+                            loopWarning = loopWarning,
+                        )
+                    }
+                    if (loopWarning != null) Tooltip(tooltip = { Text(loopWarning) }) { pill() } else pill()
                 }
             }
             if (hintBeforeIndex == guilds.size) {
@@ -282,6 +290,7 @@ private fun GuildPill(
     unreadCount: Int = 0,
     interactionSource: MutableInteractionSource? = null,
     showDragAffordance: Boolean = false,
+    loopWarning: String? = null,
 ) {
     val i18n = DI.get<TacitI18nView>()
     val hoverSource = remember { MutableInteractionSource() }
@@ -408,6 +417,26 @@ private fun GuildPill(
                         .align(Alignment.BottomCenter)
                         .size(12.dp),
                 )
+            }
+            if (loopWarning != null) {
+                // The space is only a guild because it is part of a space-child loop (see topLevelGuilds).
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .offset(x = 1.dp)
+                        .size(16.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.tacit.warningBg)
+                        .border(1.dp, MaterialTheme.tacit.warningBorder, CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        Icons.Default.Warning,
+                        contentDescription = loopWarning,
+                        tint = MaterialTheme.tacit.warningText,
+                        modifier = Modifier.size(11.dp),
+                    )
+                }
             }
             if (unreadCount > 0) {
                 Box(

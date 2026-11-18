@@ -15,6 +15,8 @@ import de.connect2x.trixnity.core.model.events.m.space.ParentEventContent
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import kotlin.test.assertNull
 
 class TacitSpaceModelTest {
@@ -115,6 +117,67 @@ class TacitSpaceModelTest {
         val graph = TacitSpaceGraph(
             spaces = listOf(space(guild), space(category, Membership.INVITE)),
             childrenBySpace = mapOf(guild to setOf(category)),
+        )
+
+        assertEquals(listOf(category, guild), graph.topLevelGuilds(user).map { it.roomId })
+    }
+
+    private fun loopGraph(vararg links: Pair<RoomId, Set<RoomId>>): TacitSpaceGraph {
+        val childrenBySpace = links.toMap()
+        return TacitSpaceGraph(childrenBySpace.keys.map { space(it, name = it.full) }, childrenBySpace)
+    }
+
+    @Test
+    fun `members of a two-space loop are guilds marked as in a loop`() {
+        val guilds = loopGraph(guild to setOf(category), category to setOf(guild)).topLevelGuilds(user)
+
+        assertEquals(setOf(guild, category), guilds.map { it.roomId }.toSet())
+        assertTrue(guilds.all { it.isInLoop })
+    }
+
+    @Test
+    fun `members of a longer loop are guilds, their other descendants stay nested`() {
+        val nested = RoomId("!nested:example.org")
+        val graph = loopGraph(guild to setOf(category), category to setOf(other, channel), other to setOf(guild), channel to setOf(nested), nested to emptySet())
+
+        val guilds = graph.topLevelGuilds(user)
+
+        assertEquals(setOf(guild, category, other), guilds.map { it.roomId }.toSet())
+        assertTrue(guilds.all { it.isInLoop })
+        assertEquals(setOf(guild, category, other, channel, nested), guilds.flatMap { graph.descendantsOf(it.roomId) }.toSet())
+    }
+
+    @Test
+    fun `a loop below a normal guild promotes only its members`() {
+        val nested = RoomId("!nested:example.org")
+        val graph = loopGraph(guild to setOf(category), category to setOf(other), other to setOf(category, channel), channel to setOf(nested), nested to emptySet())
+
+        val guilds = graph.topLevelGuilds(user).associate { it.roomId to it.isInLoop }
+
+        assertEquals(mapOf(guild to false, category to true, other to true), guilds)
+    }
+
+    @Test
+    fun `a space listing itself stays a guild marked as in a loop`() {
+        val guilds = loopGraph(guild to setOf(guild, channel)).topLevelGuilds(user)
+
+        assertEquals(listOf(guild), guilds.map { it.roomId })
+        assertTrue(guilds.single().isInLoop)
+    }
+
+    @Test
+    fun `guilds without loops are not marked`() {
+        val guilds = loopGraph(guild to setOf(category), category to setOf(channel)).topLevelGuilds(user)
+
+        assertEquals(listOf(guild), guilds.map { it.roomId })
+        assertFalse(guilds.single().isInLoop)
+    }
+
+    @Test
+    fun `invited loop members show up once`() {
+        val graph = TacitSpaceGraph(
+            spaces = listOf(space(guild), space(category, Membership.INVITE)),
+            childrenBySpace = mapOf(guild to setOf(category), category to setOf(guild)),
         )
 
         assertEquals(listOf(category, guild), graph.topLevelGuilds(user).map { it.roomId })

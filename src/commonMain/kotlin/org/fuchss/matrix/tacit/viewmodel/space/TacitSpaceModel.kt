@@ -98,13 +98,16 @@ internal suspend fun findRootSpace(start: RoomId?, preferredParentOf: suspend (R
 }
 
 /**
- * The spaces shown as guilds: all of them except joined spaces that another space lists as a child (those are
- * categories). Invited spaces always show up, so that the invite can be answered. Sorted by name.
+ * The spaces shown as guilds: the roots of the joined and invited spaces, where a joined space that another space
+ * lists as a child is a category instead. Members of a loop (A → B → A) are roots as well and marked
+ * [GuildEntry.isInLoop], so that a loop cannot make its spaces unreachable. Invited spaces always show up, so that the
+ * invite can be answered. Sorted by name.
  */
 internal fun TacitSpaceGraph.topLevelGuilds(userId: UserId): List<GuildEntry> {
+    val roots = spaceHierarchyRoots(spaces.associate { it.roomId to childrenBySpace[it.roomId].orEmpty() })
     val childRoomIds = childrenBySpace.values.flatten().toSet()
     return spaces
-        .filterNot { space -> space.membership == Membership.JOIN && space.roomId in childRoomIds }
+        .filter { space -> space.membership != Membership.JOIN || space.roomId !in childRoomIds || space.roomId in roots.topLevel }
         .map { space ->
             GuildEntry(
                 roomId = space.roomId,
@@ -112,6 +115,7 @@ internal fun TacitSpaceGraph.topLevelGuilds(userId: UserId): List<GuildEntry> {
                 displayName = space.name,
                 avatarUri = space.avatarUri,
                 membership = space.membership,
+                isInLoop = space.roomId in roots.loopMembers,
             )
         }
         .sortedBy { it.displayName ?: it.roomId.full }

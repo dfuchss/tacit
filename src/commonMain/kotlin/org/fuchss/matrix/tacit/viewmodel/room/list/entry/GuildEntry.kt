@@ -10,6 +10,8 @@ internal data class GuildEntry(
     val displayName: String?,
     val avatarUri: String?,
     val membership: Membership,
+    /** Whether the space is part of a space-child loop and only shows as a guild because of it. */
+    val isInLoop: Boolean = false,
 ) {
     val isInvite: Boolean get() = membership == Membership.INVITE
 
