@@ -14,6 +14,7 @@ import org.fuchss.matrix.tacit.viewmodel.room.list.browseChannelEntries
 import org.fuchss.matrix.tacit.viewmodel.room.list.entry.GuildEntry
 import org.fuchss.matrix.tacit.viewmodel.room.list.entry.SpaceChannelEntry
 import org.fuchss.matrix.tacit.viewmodel.space.TacitGuildLayout
+import org.fuchss.matrix.tacit.viewmodel.space.TacitHierarchyRoom
 import org.fuchss.matrix.tacit.viewmodel.util.TacitErrorSource
 import org.fuchss.matrix.tacit.viewmodel.util.TacitErrorState
 import org.fuchss.matrix.tacit.viewmodel.util.TacitFailure
@@ -31,7 +32,7 @@ internal class TacitBrowseChannelsViewModel(
     viewModelContext: ViewModelContext,
     rooms: Flow<List<TacitRoomDerived<*>>>,
     guildLayout: Flow<TacitGuildLayout>,
-    hierarchyNames: Flow<Map<RoomId, String>>,
+    hierarchyRooms: Flow<Map<RoomId, TacitHierarchyRoom>>,
     selectedGuildClient: Flow<MatrixClient?>,
     private val guildClient: (GuildEntry) -> MatrixClient?,
     private val onRoomJoined: (RoomId) -> Unit,
@@ -39,20 +40,29 @@ internal class TacitBrowseChannelsViewModel(
     private val tacitI18n = get<TacitI18n>()
 
     private val candidates: Flow<Set<RoomId>> =
-        combine(guildLayout, hierarchyNames, ::browseCandidates).distinctUntilChanged()
+        combine(guildLayout, hierarchyRooms, ::browseCandidates).distinctUntilChanged()
 
-    /** Store memberships of the candidates, for rooms the room list does not know. */
+    /** The candidates and the rooms whose members may join restricted candidates. */
+    private val membershipRoomIds: Flow<Set<RoomId>> =
+        combine(candidates, hierarchyRooms) { candidateRoomIds, hierarchy ->
+            candidateRoomIds + hierarchy.values.flatMap { it.allowedRoomIds }
+        }.distinctUntilChanged()
+
+    /**
+     * Store memberships of the candidates, for rooms the room list does not know, and of the rooms restricted join
+     * rules allow.
+     */
     private val memberships: Flow<Map<RoomId, Membership?>> =
-        combine(selectedGuildClient.distinctUntilChanged(), candidates, ::Pair)
-            .flatMapLatest { (client, candidateRoomIds) ->
-                if (client == null || candidateRoomIds.isEmpty()) flowOf(emptyMap())
-                else combine(candidateRoomIds.map { roomId ->
+        combine(selectedGuildClient.distinctUntilChanged(), membershipRoomIds, ::Pair)
+            .flatMapLatest { (client, roomIds) ->
+                if (client == null || roomIds.isEmpty()) flowOf(emptyMap())
+                else combine(roomIds.map { roomId ->
                     client.room.getById(roomId).map { room -> roomId to room?.membership }.distinctUntilChanged()
                 }) { it.toMap() }
             }
 
     val channels: StateFlow<List<SpaceChannelEntry>> =
-        combine(rooms, candidates, guildLayout, hierarchyNames, memberships, ::browseChannelEntries)
+        combine(rooms, candidates, guildLayout, hierarchyRooms, memberships, ::browseChannelEntries)
             .stateIn(coroutineScope, tacitWhileSubscribed, emptyList())
 
     private val errors = TacitErrorState()

@@ -24,6 +24,7 @@ import org.fuchss.matrix.tacit.viewmodel.space.TacitGuildLayout
 import org.fuchss.matrix.tacit.viewmodel.space.TacitSpaceGraph
 import org.fuchss.matrix.tacit.viewmodel.space.TacitSpaceHierarchy
 import org.fuchss.matrix.tacit.viewmodel.space.descendantsOf
+import org.fuchss.matrix.tacit.viewmodel.space.TacitHierarchyRoom
 import org.fuchss.matrix.tacit.viewmodel.space.topLevelGuilds
 import org.fuchss.matrix.tacit.viewmodel.util.loadAvatarThumbnail
 import org.fuchss.matrix.tacit.viewmodel.util.mapConcurrently
@@ -220,8 +221,8 @@ private class TacitRoomListViewModelImpl(
             source?.let { (guildRoomId, client) -> spaceHierarchy.guildLayout(client, guildRoomId) } ?: flowOf(TacitGuildLayout.EMPTY)
         }.stateInScope(TacitGuildLayout.EMPTY)
 
-    private val selectedGuildHierarchyNames: StateFlow<Map<RoomId, String>> = selectedGuildSource
-        .mapLatest { source -> source?.let { (guildRoomId, client) -> spaceHierarchy.hierarchyNames(client, guildRoomId) }.orEmpty() }
+    private val selectedGuildHierarchyRooms: StateFlow<Map<RoomId, TacitHierarchyRoom>> = selectedGuildSource
+        .mapLatest { source -> source?.let { (guildRoomId, client) -> spaceHierarchy.hierarchyRooms(client, guildRoomId) }.orEmpty() }
         .stateInScope(emptyMap())
 
     // ---- rooms ----
@@ -254,7 +255,7 @@ private class TacitRoomListViewModelImpl(
             roomDerived,
             selectedGuildRooms,
             selectedGuildLayout,
-            selectedGuildHierarchyNames,
+            selectedGuildHierarchyRooms,
             selectedGuildCategoryOrder,
             ::guildChannelGroups,
         ).stateInScope(emptyList())
@@ -288,7 +289,7 @@ private class TacitRoomListViewModelImpl(
         viewModelContext = childContext("tacitBrowseChannels"),
         rooms = roomDerived,
         guildLayout = selectedGuildLayout,
-        hierarchyNames = selectedGuildHierarchyNames,
+        hierarchyRooms = selectedGuildHierarchyRooms,
         selectedGuildClient = selectedGuildClient,
         guildClient = ::guildClient,
         onRoomJoined = delegate::selectRoom,

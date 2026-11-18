@@ -137,6 +137,7 @@ private fun SpaceChannelStatus.toDisplayText(i18n: TacitI18nView): String = when
     SpaceChannelStatus.KNOCKING -> i18n.tacitKnocking()
     SpaceChannelStatus.LEFT -> i18n.tacitLeft()
     SpaceChannelStatus.NOT_JOINED -> i18n.tacitNotJoined()
+    SpaceChannelStatus.NOT_JOINABLE -> i18n.tacitNotJoinable()
     SpaceChannelStatus.UNKNOWN -> i18n.tacitUnknown()
 }
 

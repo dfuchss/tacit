@@ -502,6 +502,11 @@ open class TacitI18nView(
         DE - "Nicht beigetreten"
     }
 
+    open fun tacitNotJoinable() = translate {
+        EN - "Not joinable"
+        DE - "Kein Beitritt möglich"
+    }
+
     open fun tacitUnknown() = translate {
         EN - "Unknown"
         DE - "Unbekannt"

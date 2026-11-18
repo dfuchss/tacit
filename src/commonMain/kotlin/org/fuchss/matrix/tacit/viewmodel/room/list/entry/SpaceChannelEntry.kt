@@ -8,6 +8,8 @@ internal enum class SpaceChannelStatus {
     KNOCKING,
     LEFT,
     NOT_JOINED,
+    /** Not joined, and the join rule (or a ban) does not let the account join. */
+    NOT_JOINABLE,
     UNKNOWN,
 }
 

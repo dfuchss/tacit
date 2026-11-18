@@ -102,12 +102,12 @@ private class TacitRoomSettingsViewModelImpl(
         }
             .mapLatest { (guildId, categoryRoomIds) ->
                 if (guildId == null || categoryRoomIds.isEmpty()) return@mapLatest emptyList()
-                val namesByRoomId = spaceHierarchy.hierarchyNames(matrixClient, guildId)
+                val hierarchyRooms = spaceHierarchy.hierarchyRooms(matrixClient, guildId)
                 categoryRoomIds
                     .map { categoryRoomId ->
                         TacitRoomCategoryTarget(
                             roomId = categoryRoomId,
-                            displayName = namesByRoomId[categoryRoomId] ?: categoryRoomId.full,
+                            displayName = hierarchyRooms[categoryRoomId]?.name ?: categoryRoomId.full,
                         )
                     }
                     .sortedBy { it.displayName.lowercase() }

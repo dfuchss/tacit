@@ -95,14 +95,21 @@ internal class TacitSpaceHierarchy {
             .distinctUntilChanged()
 
     /**
-     * Names of all rooms in the server-side hierarchy below [rootRoomId], following pagination. Includes rooms the
-     * account has not joined. Empty if the server cannot be asked.
+     * All rooms in the server-side hierarchy below [rootRoomId] with their names and join rules, following
+     * pagination. Includes rooms the account has not joined. Empty if the server cannot be asked.
      */
-    suspend fun hierarchyNames(client: MatrixClient, rootRoomId: RoomId): Map<RoomId, String> =
+    suspend fun hierarchyRooms(client: MatrixClient, rootRoomId: RoomId): Map<RoomId, TacitHierarchyRoom> =
         collectPages { from ->
             client.api.room.getHierarchy(roomId = rootRoomId, from = from, limit = HIERARCHY_PAGE_SIZE)
                 .map { response -> TacitPage(response.rooms, response.nextBatch) }
-        }.associate { room -> room.roomId to (room.name?.takeIf { it.isNotBlank() } ?: room.roomId.full) }
+        }.associate { room ->
+            room.roomId to TacitHierarchyRoom(
+                name = room.name?.takeIf { it.isNotBlank() } ?: room.roomId.full,
+                joinRule = room.joinRule,
+                allowedRoomIds = room.allowedRoomIds.orEmpty(),
+                roomType = room.roomType,
+            )
+        }
 
     private companion object {
         const val HIERARCHY_PAGE_SIZE = 200L

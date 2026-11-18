@@ -6,6 +6,8 @@ import org.fuchss.matrix.tacit.viewmodel.room.list.entry.GuildEntry
 import org.fuchss.matrix.tacit.viewmodel.room.list.entry.SpaceChannelEntry
 import org.fuchss.matrix.tacit.viewmodel.room.list.entry.SpaceChannelStatus
 import org.fuchss.matrix.tacit.viewmodel.space.TacitGuildLayout
+import org.fuchss.matrix.tacit.viewmodel.space.TacitHierarchyRoom
+import org.fuchss.matrix.tacit.viewmodel.space.canJoinSpaceChild
 
 /*
  * Pure reducers behind the room list: they turn the rooms' state and the space hierarchy into what the guild rail,
@@ -86,7 +88,7 @@ internal fun <R> guildChannelGroups(
     rooms: List<TacitRoomDerived<R>>,
     visibleRooms: List<TacitRoomDerived<R>>,
     layout: TacitGuildLayout,
-    hierarchyNames: Map<RoomId, String>,
+    hierarchyRooms: Map<RoomId, TacitHierarchyRoom>,
     categoryOrder: List<String>,
 ): List<TacitChannelGroup<R>> {
     val roomById = rooms.associateBy { it.roomId }
@@ -96,7 +98,7 @@ internal fun <R> guildChannelGroups(
         val derivedName = roomById[roomId]?.roomName
         return layout.categoryNames[roomId]?.takeIf { it.isNotBlank() }
             ?: derivedName?.takeIf { it.isNotBlank() && it != roomId.full }
-            ?: hierarchyNames[roomId]?.takeIf { it.isNotBlank() }
+            ?: hierarchyRooms[roomId]?.name?.takeIf { it.isNotBlank() }
             ?: derivedName
             ?: roomId.full
     }
@@ -118,63 +120,70 @@ internal fun <R> guildChannelGroups(
 }
 
 /** Rooms the browse dialog considers: the guild's children, its categories' children and the server hierarchy. */
-internal fun browseCandidates(layout: TacitGuildLayout, hierarchyNames: Map<RoomId, String>): Set<RoomId> =
-    layout.directChildren.keys + layout.categories.values.flatten() + hierarchyNames.keys
+internal fun browseCandidates(layout: TacitGuildLayout, hierarchyRooms: Map<RoomId, TacitHierarchyRoom>): Set<RoomId> =
+    layout.directChildren.keys + layout.categories.values.flatten() + hierarchyRooms.keys
 
 /**
- * The browse dialog's channels: joined, joinable, invited or knocking candidates, sorted by name. Rooms the room list
- * knows report their own state; others fall back to their [memberships] in the store and the server hierarchy.
+ * The browse dialog's channels: joined, joinable, not joinable, invited or knocking candidates, sorted by name. Rooms
+ * the room list knows report their own state; others fall back to their [memberships] in the store. Whether a room can
+ * be joined follows its join rule in the server hierarchy ([canJoinSpaceChild]); a `restricted` room is joinable if
+ * the account is a member of one of its allowed rooms, which [memberships] should therefore also cover.
  */
 internal fun browseChannelEntries(
     rooms: List<TacitRoomDerived<*>>,
     candidates: Set<RoomId>,
     layout: TacitGuildLayout,
-    hierarchyNames: Map<RoomId, String>,
+    hierarchyRooms: Map<RoomId, TacitHierarchyRoom>,
     memberships: Map<RoomId, Membership?>,
 ): List<SpaceChannelEntry> {
     val known = rooms.filter { !it.isDirect && it.roomId in candidates }.associateBy { it.roomId }
+    val joinedRoomIds = rooms.filter { it.isJoined }.map { it.roomId }.toSet() +
+            memberships.filterValues { it == Membership.JOIN }.keys
 
-    val knownEntries = known.values.map { room ->
-        SpaceChannelEntry(
-            roomId = room.roomId,
-            displayName = room.roomName ?: room.roomId.full,
-            status = when {
-                room.isJoined -> SpaceChannelStatus.JOINED
-                room.isInvite -> SpaceChannelStatus.INVITED
-                room.isKnock -> SpaceChannelStatus.KNOCKING
-                room.isLeave -> SpaceChannelStatus.LEFT
-                else -> SpaceChannelStatus.NOT_JOINED
-            },
-            isJoined = room.isJoined,
-            isJoinable = !room.isJoined && !room.isInvite && !room.isKnock && !room.isLeave,
-            via = layout.directChildren[room.roomId].orEmpty(),
+    fun entry(roomId: RoomId, displayName: String, membership: Membership?): SpaceChannelEntry {
+        val hierarchyRoom = hierarchyRooms[roomId]
+        val canJoin = canJoinSpaceChild(
+            membership = membership,
+            rule = hierarchyRoom?.joinRule,
+            roomType = hierarchyRoom?.roomType,
+            allowedByRoomMembership = hierarchyRoom?.allowedRoomIds.orEmpty().any { it in joinedRoomIds },
         )
-    }
-
-    val unknownEntries = candidates.filterNot { it in known }.map { roomId ->
-        val resolvedName = hierarchyNames[roomId]
-        val membership = memberships[roomId]
-        val status = when (membership) {
-            Membership.JOIN -> SpaceChannelStatus.JOINED
-            Membership.INVITE -> SpaceChannelStatus.INVITED
-            Membership.KNOCK -> SpaceChannelStatus.KNOCKING
-            Membership.LEAVE -> SpaceChannelStatus.LEFT
-            else -> if (resolvedName != null) SpaceChannelStatus.NOT_JOINED else SpaceChannelStatus.UNKNOWN
+        val status = when {
+            membership == Membership.JOIN -> SpaceChannelStatus.JOINED
+            membership == Membership.INVITE -> SpaceChannelStatus.INVITED
+            membership == Membership.KNOCK -> SpaceChannelStatus.KNOCKING
+            canJoin && membership == Membership.LEAVE -> SpaceChannelStatus.LEFT
+            canJoin -> SpaceChannelStatus.NOT_JOINED
+            hierarchyRoom != null || membership == Membership.BAN -> SpaceChannelStatus.NOT_JOINABLE
+            else -> SpaceChannelStatus.UNKNOWN
         }
-        SpaceChannelEntry(
+        return SpaceChannelEntry(
             roomId = roomId,
-            displayName = resolvedName ?: roomId.full,
+            displayName = displayName,
             status = status,
-            isJoined = membership == Membership.JOIN,
-            isJoinable = membership !in setOf(Membership.JOIN, Membership.INVITE, Membership.KNOCK, Membership.LEAVE) &&
-                    resolvedName != null,
+            isJoined = status == SpaceChannelStatus.JOINED,
+            // Invites are answered from the room list, not joined from here.
+            isJoinable = status == SpaceChannelStatus.NOT_JOINED || status == SpaceChannelStatus.LEFT,
             via = layout.directChildren[roomId].orEmpty(),
         )
     }
 
-    return (knownEntries + unknownEntries)
-        .filter {
-            it.isJoined || it.isJoinable || it.status == SpaceChannelStatus.INVITED || it.status == SpaceChannelStatus.KNOCKING
+    val knownEntries = known.values.map { room ->
+        val membership = when {
+            room.isJoined -> Membership.JOIN
+            room.isInvite -> Membership.INVITE
+            room.isKnock -> Membership.KNOCK
+            room.isLeave -> Membership.LEAVE
+            else -> memberships[room.roomId]
         }
+        entry(room.roomId, room.roomName ?: hierarchyRooms[room.roomId]?.name ?: room.roomId.full, membership)
+    }
+
+    val unknownEntries = candidates.filterNot { it in known }.map { roomId ->
+        entry(roomId, hierarchyRooms[roomId]?.name ?: roomId.full, memberships[roomId])
+    }
+
+    return (knownEntries + unknownEntries)
+        .filter { it.status != SpaceChannelStatus.UNKNOWN }
         .sortedBy { it.displayName.lowercase() }
 }

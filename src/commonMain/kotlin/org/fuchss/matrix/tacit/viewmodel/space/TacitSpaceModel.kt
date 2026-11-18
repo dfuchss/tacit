@@ -5,6 +5,7 @@ import de.connect2x.trixnity.core.model.RoomId
 import de.connect2x.trixnity.core.model.UserId
 import de.connect2x.trixnity.core.model.events.ClientEvent
 import de.connect2x.trixnity.core.model.events.m.room.CreateEventContent.RoomType
+import de.connect2x.trixnity.core.model.events.m.room.JoinRulesEventContent.JoinRule
 import de.connect2x.trixnity.core.model.events.m.room.Membership
 import de.connect2x.trixnity.core.model.events.m.space.ChildEventContent
 import de.connect2x.trixnity.core.model.events.m.space.ParentEventContent
@@ -46,6 +47,16 @@ internal data class TacitGuildLayout(
         val EMPTY = TacitGuildLayout(emptyMap(), emptyMap(), emptyMap())
     }
 }
+
+/** A room of the server's space hierarchy (`/hierarchy`), also one the account has not joined. */
+internal data class TacitHierarchyRoom(
+    /** The room's name, or its id if it has none. */
+    val name: String,
+    val joinRule: JoinRule?,
+    /** The rooms whose members may join a `restricted` or `knock_restricted` room. */
+    val allowedRoomIds: Set<RoomId>,
+    val roomType: RoomType?,
+)
 
 /** An `m.space.parent` link of a room. */
 internal data class TacitSpaceParent(val roomId: RoomId, val canonical: Boolean)

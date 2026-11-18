@@ -2,10 +2,13 @@ package org.fuchss.matrix.tacit.viewmodel.room.list
 
 import de.connect2x.trixnity.core.model.RoomId
 import de.connect2x.trixnity.core.model.UserId
+import de.connect2x.trixnity.core.model.events.m.room.CreateEventContent.RoomType
 import de.connect2x.trixnity.core.model.events.m.room.Membership
 import org.fuchss.matrix.tacit.viewmodel.room.list.entry.GuildEntry
 import org.fuchss.matrix.tacit.viewmodel.room.list.entry.SpaceChannelStatus
+import de.connect2x.trixnity.core.model.events.m.room.JoinRulesEventContent.JoinRule
 import org.fuchss.matrix.tacit.viewmodel.space.TacitGuildLayout
+import org.fuchss.matrix.tacit.viewmodel.space.TacitHierarchyRoom
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -26,6 +29,9 @@ class TacitRoomListModelTest {
 
     private fun guild(name: String, displayName: String? = name) =
         GuildEntry(id(name), UserId("@tacit:example.org"), displayName, avatarUri = null, membership = Membership.JOIN)
+
+    private fun hierarchyRoom(name: String, joinRule: JoinRule? = JoinRule.Public, allowed: Set<RoomId> = emptySet()) =
+        TacitHierarchyRoom(name, joinRule, allowed, roomType = null)
 
     private val guild = id("guild")
     private val lobby = id("lobby")
@@ -115,7 +121,7 @@ class TacitRoomListModelTest {
         val rooms = listOf(room("a"), room("b"), room("c"), room("left", isLeave = true), room("games", isSpace = true))
         val visible = guildRooms(rooms, setOf(id("a"), id("b"), id("c"), id("left")))
 
-        val groups = guildChannelGroups(rooms, visible, layout, hierarchyNames = emptyMap(), categoryOrder = emptyList())
+        val groups = guildChannelGroups(rooms, visible, layout, hierarchyRooms = emptyMap(), categoryOrder = emptyList())
 
         assertEquals(
             listOf(TacitChannelGroup(games, "games", listOf("c")), TacitChannelGroup(lobby, "Lobby", listOf("a", "b"))),
@@ -133,7 +139,7 @@ class TacitRoomListModelTest {
         val rooms = listOf(room("a"), room("b"), room("lobby", roomName = lobby.full, isSpace = true))
         val visible = guildRooms(rooms, setOf(id("a"), id("b")))
 
-        val groups = guildChannelGroups(rooms, visible, layout, mapOf(lobby to "Lobby"), categoryOrder = listOf(lobby.full))
+        val groups = guildChannelGroups(rooms, visible, layout, mapOf(lobby to hierarchyRoom("Lobby")), categoryOrder = listOf(lobby.full))
 
         assertEquals(listOf("Lobby", games.full), groups.map { it.categoryName })
     }
@@ -153,17 +159,17 @@ class TacitRoomListModelTest {
             categories = mapOf(lobby to setOf(id("invited"), id("left"), id("stored"))),
             categoryNames = emptyMap(),
         )
-        val hierarchyNames = mapOf(id("remote") to "Remote", id("stored") to "Stored", id("knocked") to "Knocked")
+        val hierarchyRooms = mapOf(id("remote") to hierarchyRoom("Remote"), id("stored") to hierarchyRoom("Stored"), id("knocked") to hierarchyRoom("Knocked"))
         val rooms = listOf(
             room("joined", roomName = "Joined"),
             room("invited", roomName = "Invited", isInvite = true),
             room("left", roomName = "Left", isLeave = true),
             room("dm", isDirect = true),
         )
-        val candidates = browseCandidates(layout, hierarchyNames)
+        val candidates = browseCandidates(layout, hierarchyRooms)
         val memberships = mapOf(id("stored") to Membership.JOIN, id("knocked") to Membership.KNOCK)
 
-        val entries = browseChannelEntries(rooms, candidates, layout, hierarchyNames, memberships)
+        val entries = browseChannelEntries(rooms, candidates, layout, hierarchyRooms, memberships)
 
         assertEquals(listOf("Invited", "Joined", "Knocked", "Remote", "Stored"), entries.map { it.displayName })
         val byName = entries.associateBy { it.displayName }
@@ -174,5 +180,63 @@ class TacitRoomListModelTest {
         assertEquals(SpaceChannelStatus.KNOCKING, byName.getValue("Knocked").status)
         assertEquals(SpaceChannelStatus.INVITED, byName.getValue("Invited").status)
         assertEquals(false, byName.getValue("Invited").isJoinable)
+    }
+
+    private fun browse(hierarchyRooms: Map<RoomId, TacitHierarchyRoom>, rooms: List<TacitRoomDerived<*>> = emptyList(), memberships: Map<RoomId, Membership?> = emptyMap()) =
+        browseChannelEntries(rooms, hierarchyRooms.keys, TacitGuildLayout.EMPTY, hierarchyRooms, memberships).associateBy { it.displayName }
+
+    @Test
+    fun `public rooms can be joined, invite-only rooms cannot`() {
+        val entries = browse(mapOf(id("public") to hierarchyRoom("Public"), id("private") to hierarchyRoom("Private", JoinRule.Invite)))
+
+        assertEquals(SpaceChannelStatus.NOT_JOINED, entries.getValue("Public").status)
+        assertEquals(true, entries.getValue("Public").isJoinable)
+        assertEquals(SpaceChannelStatus.NOT_JOINABLE, entries.getValue("Private").status)
+        assertEquals(false, entries.getValue("Private").isJoinable)
+    }
+
+    @Test
+    fun `restricted rooms can be joined only by members of an allowed room`() {
+        val hierarchy = mapOf(
+            id("restricted") to hierarchyRoom("Restricted", JoinRule.Restricted, allowed = setOf(guild)),
+            id("knock-restricted") to hierarchyRoom("KnockRestricted", JoinRule.KnockRestricted, allowed = setOf(lobby)),
+        )
+
+        val withoutMembership = browse(hierarchy)
+        assertEquals(false, withoutMembership.getValue("Restricted").isJoinable)
+        assertEquals(SpaceChannelStatus.NOT_JOINABLE, withoutMembership.getValue("KnockRestricted").status)
+
+        val asMember = browse(hierarchy, rooms = listOf(room("guild", isSpace = true)), memberships = mapOf(lobby to Membership.JOIN))
+        assertEquals(true, asMember.getValue("Restricted").isJoinable)
+        assertEquals(true, asMember.getValue("KnockRestricted").isJoinable)
+
+        val invitedOnly = browse(hierarchy, memberships = mapOf(guild to Membership.INVITE, lobby to Membership.LEAVE))
+        assertEquals(false, invitedOnly.getValue("Restricted").isJoinable)
+        assertEquals(false, invitedOnly.getValue("KnockRestricted").isJoinable)
+    }
+
+    @Test
+    fun `banned rooms, unsupported room types and rooms without a join rule cannot be joined`() {
+        val entries = browse(
+            mapOf(
+                id("banned") to hierarchyRoom("Banned"),
+                id("custom") to TacitHierarchyRoom("Custom", JoinRule.Public, emptySet(), RoomType.Unknown("org.example.custom")),
+                id("norule") to hierarchyRoom("NoRule", joinRule = null),
+            ),
+            memberships = mapOf(id("banned") to Membership.BAN),
+        )
+
+        assertEquals(SpaceChannelStatus.NOT_JOINABLE, entries.getValue("Banned").status)
+        assertEquals(false, entries.getValue("Banned").isJoinable)
+        assertEquals(false, entries.getValue("Custom").isJoinable)
+        assertEquals(false, entries.getValue("NoRule").isJoinable)
+    }
+
+    @Test
+    fun `a left public room can be joined again`() {
+        val entries = browse(mapOf(id("left") to hierarchyRoom("Left")), rooms = listOf(room("left", roomName = "Left", isLeave = true)))
+
+        assertEquals(SpaceChannelStatus.LEFT, entries.getValue("Left").status)
+        assertEquals(true, entries.getValue("Left").isJoinable)
     }
 }

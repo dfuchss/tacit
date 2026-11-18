@@ -12,6 +12,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- Browse Rooms only offers "Join" for rooms you can actually join (public rooms, or restricted rooms you are allowed into through a room you are in); invite-only rooms and rooms you are banned from show as not joinable, and public rooms you left can be joined again
+
 ### Fixed
 
 - Spaces that list each other as children (a loop) show up as guilds again, with a warning that the space admin should fix the loop, instead of disappearing from the guild rail
